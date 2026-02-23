@@ -6,7 +6,7 @@
 import { spawn } from "child_process";
 import { runE2ETests } from "./e2e-tests";
 
-const PORT = 7027; // Use a different port to avoid conflicts with dev server
+const PORT = 17026; // Use a different port to avoid conflicts with dev server
 const BASE_URL = `http://localhost:${PORT}`;
 const STARTUP_TIMEOUT = 30_000; // 30s for Next.js to compile
 
