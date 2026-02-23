@@ -15,6 +15,7 @@ import {
   Archive,
   Download,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,8 +188,9 @@ export default function ProjectDetailPage() {
       setName(updated.name);
       setDescription(updated.description ?? "");
       setAllowedIps(updated.allowed_ips ?? "");
+      toast.success("Project settings saved");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      toast.error(err instanceof Error ? err.message : "Failed to save project");
     } finally {
       setSaving(false);
     }
@@ -203,8 +205,9 @@ export default function ProjectDetailPage() {
       const data: { webhook_token: string } = await res.json();
       setProject({ ...project, webhook_token: data.webhook_token });
       setTokenVisible(true);
+      toast.success("Token regenerated successfully");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      toast.error(err instanceof Error ? err.message : "Failed to regenerate token");
     } finally {
       setRegenerating(false);
     }
@@ -217,7 +220,7 @@ export default function ProjectDetailPage() {
       if (!res.ok) throw new Error("Failed to delete project");
       router.push("/projects");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      toast.error(err instanceof Error ? err.message : "Failed to delete project");
       setDeleting(false);
     }
   }
@@ -236,7 +239,7 @@ export default function ProjectDetailPage() {
       const data: { url: string } = await res.json();
       window.open(data.url, "_blank");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Download failed");
+      toast.error(err instanceof Error ? err.message : "Download failed");
     } finally {
       setDownloading(null);
     }
@@ -251,7 +254,7 @@ export default function ProjectDetailPage() {
       const data: { prompt: string } = await res.json();
       setPromptText(data.prompt);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      toast.error(err instanceof Error ? err.message : "Failed to load prompt");
     } finally {
       setPromptLoading(false);
     }
@@ -662,13 +665,6 @@ export default function ProjectDetailPage() {
             </DialogContent>
           </Dialog>
         </section>
-
-        {/* Error display */}
-        {error && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
 
         {/* Metadata */}
         <section className="text-xs text-muted-foreground/60 flex items-center gap-4">
