@@ -123,7 +123,7 @@ function isIpInCidr(ip: string, cidr: string): boolean {
  *
  * @param clientIp - The client's IPv4 address
  * @param allowedIps - Comma-separated CIDR list (from project.allowed_ips)
- * @returns true if the IP matches any range, false otherwise
+ * @returns true if the IP matches any range, false if not (fail-closed)
  */
 export function isIpAllowed(clientIp: string, allowedIps: string): boolean {
   const ranges = allowedIps
@@ -131,17 +131,72 @@ export function isIpAllowed(clientIp: string, allowedIps: string): boolean {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  if (ranges.length === 0) return true; // empty = allow all
+  // Truthy but empty after parsing → fail-closed (deny all)
+  if (ranges.length === 0) return false;
 
   return ranges.some((range) => isIpInCidr(clientIp, range));
 }
 
 /**
- * Extract client IP from request headers (x-forwarded-for or direct).
+ * Extract the real client IP from request headers.
+ *
+ * Priority:
+ *   1. x-envoy-external-address — set by Railway's Envoy proxy, cannot be spoofed
+ *   2. x-forwarded-for (rightmost entry) — last hop added by trusted proxy
+ *
+ * Strips IPv6-mapped IPv4 prefix (::ffff:) for compatibility.
  * Returns null if no IP can be determined.
  */
 export function getClientIp(request: Request): string | null {
+  // Railway/Envoy sets the true external client IP here
+  const envoyIp = request.headers.get("x-envoy-external-address");
+  if (envoyIp?.trim()) {
+    return stripIpv6Mapped(envoyIp.trim());
+  }
+
+  // Fallback: rightmost entry in x-forwarded-for (added by trusted edge proxy)
   const forwarded = request.headers.get("x-forwarded-for");
-  const ip = forwarded?.split(",")[0]?.trim();
-  return ip || null;
+  if (!forwarded) return null;
+
+  const parts = forwarded
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const ip = parts.at(-1);
+  if (!ip) return null;
+
+  return stripIpv6Mapped(ip);
+}
+
+/**
+ * Strip IPv6-mapped IPv4 prefix (::ffff:1.2.3.4 → 1.2.3.4).
+ */
+function stripIpv6Mapped(ip: string): string {
+  if (ip.startsWith("::ffff:")) return ip.slice(7);
+  return ip;
+}
+
+/**
+ * Check IP restriction for a project. Returns a 403 Response if blocked,
+ * or null if the request is allowed to proceed.
+ *
+ * Used by webhook and restore route handlers to avoid code duplication.
+ */
+export function enforceIpRestriction(
+  request: Request,
+  allowedIps: string | null,
+  options?: { headRequest?: boolean },
+): Response | null {
+  if (!allowedIps) return null; // no restriction configured
+
+  const clientIp = getClientIp(request);
+  if (!clientIp || !isIpAllowed(clientIp, allowedIps)) {
+    if (options?.headRequest) {
+      return new Response(null, { status: 403 });
+    }
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  return null;
 }

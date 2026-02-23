@@ -115,9 +115,9 @@ describe("isIpAllowed", () => {
     expect(isIpAllowed("172.16.0.1", ranges)).toBe(false);
   });
 
-  test("empty allowedIps string allows all", () => {
-    expect(isIpAllowed("1.2.3.4", "")).toBe(true);
-    expect(isIpAllowed("1.2.3.4", "  ,  ")).toBe(true);
+  test("empty allowedIps string denies all (fail-closed)", () => {
+    expect(isIpAllowed("1.2.3.4", "")).toBe(false);
+    expect(isIpAllowed("1.2.3.4", "  ,  ")).toBe(false);
   });
 
   test("invalid client IP is rejected", () => {
@@ -129,14 +129,28 @@ describe("isIpAllowed", () => {
     expect(isIpAllowed("200.100.50.25", "200.100.50.0/24")).toBe(true);
     expect(isIpAllowed("255.255.255.254", "255.255.255.0/24")).toBe(true);
   });
+
+  test("skips invalid CIDR entries but matches valid ones", () => {
+    expect(isIpAllowed("10.0.0.1", "bad,10.0.0.0/8")).toBe(true);
+    expect(isIpAllowed("10.0.0.1", "bad,999.0.0.0")).toBe(false);
+  });
+
+  test("boundary IP just outside CIDR range is rejected", () => {
+    // 192.168.1.0/24 covers 192.168.1.0–192.168.1.255
+    expect(isIpAllowed("192.168.0.255", "192.168.1.0/24")).toBe(false);
+    expect(isIpAllowed("192.168.2.0", "192.168.1.0/24")).toBe(false);
+    // Just inside
+    expect(isIpAllowed("192.168.1.0", "192.168.1.0/24")).toBe(true);
+    expect(isIpAllowed("192.168.1.255", "192.168.1.0/24")).toBe(true);
+  });
 });
 
 describe("getClientIp", () => {
-  test("extracts first IP from x-forwarded-for", () => {
+  test("extracts rightmost IP from x-forwarded-for", () => {
     const req = new Request("http://localhost", {
       headers: { "x-forwarded-for": "1.2.3.4, 5.6.7.8" },
     });
-    expect(getClientIp(req)).toBe("1.2.3.4");
+    expect(getClientIp(req)).toBe("5.6.7.8");
   });
 
   test("extracts single IP from x-forwarded-for", () => {
@@ -156,5 +170,29 @@ describe("getClientIp", () => {
       headers: { "x-forwarded-for": "" },
     });
     expect(getClientIp(req)).toBeNull();
+  });
+
+  test("prefers x-envoy-external-address over x-forwarded-for", () => {
+    const req = new Request("http://localhost", {
+      headers: {
+        "x-envoy-external-address": "99.99.99.99",
+        "x-forwarded-for": "1.2.3.4, 5.6.7.8",
+      },
+    });
+    expect(getClientIp(req)).toBe("99.99.99.99");
+  });
+
+  test("strips ::ffff: IPv6-mapped prefix", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-envoy-external-address": "::ffff:10.0.0.1" },
+    });
+    expect(getClientIp(req)).toBe("10.0.0.1");
+  });
+
+  test("strips ::ffff: prefix from x-forwarded-for", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "::ffff:192.168.1.1" },
+    });
+    expect(getClientIp(req)).toBe("192.168.1.1");
   });
 });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBackup } from "@/lib/db/backups";
 import { getProject } from "@/lib/db/projects";
 import { createPresignedDownloadUrl } from "@/lib/r2/client";
-import { isIpAllowed, getClientIp } from "@/lib/ip";
+import { enforceIpRestriction } from "@/lib/ip";
 
 /**
  * GET /api/restore/[id] — Generate a temporary download URL for a backup.
@@ -59,15 +59,8 @@ export async function GET(
     }
 
     // --- IP restriction ---
-    if (project.allowed_ips) {
-      const clientIp = getClientIp(request);
-      if (!clientIp || !isIpAllowed(clientIp, project.allowed_ips)) {
-        return NextResponse.json(
-          { error: "IP address not allowed" },
-          { status: 403 },
-        );
-      }
-    }
+    const ipBlock = enforceIpRestriction(request, project.allowed_ips);
+    if (ipBlock) return ipBlock;
 
     // --- Generate presigned download URL ---
     const downloadUrl = await createPresignedDownloadUrl(backup.file_key);

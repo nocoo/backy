@@ -137,7 +137,7 @@ describe("GET /api/restore/[id] — IP restriction", () => {
     const res = await GET(req, { params });
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toContain("IP");
+    expect(body.error).toContain("Forbidden");
   });
 
   test("returns 403 when no x-forwarded-for on restricted project", async () => {

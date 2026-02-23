@@ -406,7 +406,7 @@ describe("IP restriction enforcement", () => {
       const res = await GET(req, { params: ipParams });
       expect(res.status).toBe(403);
       const body = await res.json();
-      expect(body.error).toContain("IP");
+      expect(body.error).toContain("Forbidden");
     });
   });
 
@@ -440,7 +440,7 @@ describe("IP restriction enforcement", () => {
       const res = await POST(req, { params: ipParams });
       expect(res.status).toBe(403);
       const body = await res.json();
-      expect(body.error).toContain("IP");
+      expect(body.error).toContain("Forbidden");
     });
   });
 

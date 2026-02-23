@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProjectByToken } from "@/lib/db/projects";
 import { createBackup, listBackups, countBackups } from "@/lib/db/backups";
 import { uploadToR2 } from "@/lib/r2/client";
-import { isIpAllowed, getClientIp } from "@/lib/ip";
+import { enforceIpRestriction, getClientIp } from "@/lib/ip";
 
 /** Max upload size: 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -43,12 +43,8 @@ export async function HEAD(
     }
 
     // --- IP restriction ---
-    if (project.allowed_ips) {
-      const clientIp = getClientIp(request);
-      if (!clientIp || !isIpAllowed(clientIp, project.allowed_ips)) {
-        return new Response(null, { status: 403 });
-      }
-    }
+    const headIpBlock = enforceIpRestriction(request, project.allowed_ips, { headRequest: true });
+    if (headIpBlock) return headIpBlock;
 
     return new Response(null, {
       status: 200,
@@ -100,15 +96,8 @@ export async function GET(
     }
 
     // --- IP restriction ---
-    if (project.allowed_ips) {
-      const clientIp = getClientIp(request);
-      if (!clientIp || !isIpAllowed(clientIp, project.allowed_ips)) {
-        return NextResponse.json(
-          { error: "IP address not allowed" },
-          { status: 403 },
-        );
-      }
-    }
+    const getIpBlock = enforceIpRestriction(request, project.allowed_ips);
+    if (getIpBlock) return getIpBlock;
 
     // --- Parse query params ---
     const url = new URL(request.url);
@@ -185,15 +174,8 @@ export async function POST(
     }
 
     // --- IP restriction ---
-    if (project.allowed_ips) {
-      const clientIp = getClientIp(request);
-      if (!clientIp || !isIpAllowed(clientIp, project.allowed_ips)) {
-        return NextResponse.json(
-          { error: "IP address not allowed" },
-          { status: 403 },
-        );
-      }
-    }
+    const postIpBlock = enforceIpRestriction(request, project.allowed_ips);
+    if (postIpBlock) return postIpBlock;
 
     // --- Parse multipart form ---
     const formData = await request.formData();
