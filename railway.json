@@ -7,7 +7,7 @@
   "deploy": {
     "startCommand": "bun server.js",
     "healthcheckPath": "/api/live",
-    "healthcheckTimeout": 30,
+    "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
