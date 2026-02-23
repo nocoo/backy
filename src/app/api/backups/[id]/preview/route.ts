@@ -43,27 +43,18 @@ export async function GET(
       );
     }
 
-    // Read the stream into a buffer
-    const chunks: Uint8Array[] = [];
-    const reader = (r2Response.body as ReadableStream<Uint8Array>).getReader();
-    let done = false;
-    let totalSize = 0;
-    while (!done) {
-      const result = await reader.read();
-      done = result.done;
-      if (result.value) {
-        totalSize += result.value.byteLength;
-        if (totalSize > MAX_PREVIEW_SIZE) {
-          return NextResponse.json(
-            { error: "JSON file too large for inline preview. Use the download endpoint instead." },
-            { status: 413 },
-          );
-        }
-        chunks.push(result.value);
-      }
+    // Read the body into a buffer using SDK's transformToByteArray
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bodyBytes = await (r2Response.body as any).transformToByteArray();
+
+    if (bodyBytes.byteLength > MAX_PREVIEW_SIZE) {
+      return NextResponse.json(
+        { error: "JSON file too large for inline preview. Use the download endpoint instead." },
+        { status: 413 },
+      );
     }
 
-    const text = new TextDecoder().decode(Buffer.concat(chunks));
+    const text = new TextDecoder().decode(bodyBytes);
 
     // Parse and re-serialize to validate
     let parsed: unknown;

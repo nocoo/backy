@@ -49,16 +49,9 @@ export async function POST(
       );
     }
 
-    // Read the stream into a buffer
-    const chunks: Uint8Array[] = [];
-    const reader = (r2Response.body as ReadableStream<Uint8Array>).getReader();
-    let done = false;
-    while (!done) {
-      const result = await reader.read();
-      done = result.done;
-      if (result.value) chunks.push(result.value);
-    }
-    const zipBuffer = Buffer.concat(chunks);
+    // Read the body into a buffer using SDK's transformToByteArray
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const zipBuffer = await (r2Response.body as any).transformToByteArray();
 
     // Parse the zip
     const zip = await JSZip.loadAsync(zipBuffer);
