@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { isValidCidr, validateAllowedIps, normalizeAllowedIps } from "@/lib/ip";
+import { isValidCidr, validateAllowedIps, normalizeAllowedIps, isIpAllowed, getClientIp } from "@/lib/ip";
 
 describe("isValidCidr", () => {
   test("accepts plain IPv4 address", () => {
@@ -73,5 +73,88 @@ describe("normalizeAllowedIps", () => {
 
   test("single entry", () => {
     expect(normalizeAllowedIps("192.168.0.0/24")).toBe("192.168.0.0/24");
+  });
+});
+
+describe("isIpAllowed", () => {
+  test("exact IP match (implicit /32)", () => {
+    expect(isIpAllowed("1.2.3.4", "1.2.3.4")).toBe(true);
+    expect(isIpAllowed("1.2.3.5", "1.2.3.4")).toBe(false);
+  });
+
+  test("CIDR /24 match", () => {
+    expect(isIpAllowed("192.168.1.100", "192.168.1.0/24")).toBe(true);
+    expect(isIpAllowed("192.168.1.255", "192.168.1.0/24")).toBe(true);
+    expect(isIpAllowed("192.168.2.1", "192.168.1.0/24")).toBe(false);
+  });
+
+  test("CIDR /16 match", () => {
+    expect(isIpAllowed("10.0.99.1", "10.0.0.0/16")).toBe(true);
+    expect(isIpAllowed("10.1.0.1", "10.0.0.0/16")).toBe(false);
+  });
+
+  test("CIDR /8 match", () => {
+    expect(isIpAllowed("10.255.255.255", "10.0.0.0/8")).toBe(true);
+    expect(isIpAllowed("11.0.0.1", "10.0.0.0/8")).toBe(false);
+  });
+
+  test("/0 matches everything", () => {
+    expect(isIpAllowed("1.2.3.4", "0.0.0.0/0")).toBe(true);
+    expect(isIpAllowed("255.255.255.255", "0.0.0.0/0")).toBe(true);
+  });
+
+  test("/32 is exact match", () => {
+    expect(isIpAllowed("10.0.0.1", "10.0.0.1/32")).toBe(true);
+    expect(isIpAllowed("10.0.0.2", "10.0.0.1/32")).toBe(false);
+  });
+
+  test("multiple ranges — matches if any range matches", () => {
+    const ranges = "192.168.1.0/24,10.0.0.0/8";
+    expect(isIpAllowed("192.168.1.50", ranges)).toBe(true);
+    expect(isIpAllowed("10.5.5.5", ranges)).toBe(true);
+    expect(isIpAllowed("172.16.0.1", ranges)).toBe(false);
+  });
+
+  test("empty allowedIps string allows all", () => {
+    expect(isIpAllowed("1.2.3.4", "")).toBe(true);
+    expect(isIpAllowed("1.2.3.4", "  ,  ")).toBe(true);
+  });
+
+  test("invalid client IP is rejected", () => {
+    expect(isIpAllowed("not-an-ip", "10.0.0.0/8")).toBe(false);
+    expect(isIpAllowed("", "10.0.0.0/8")).toBe(false);
+  });
+
+  test("handles high-octet IPs correctly (no sign issues)", () => {
+    expect(isIpAllowed("200.100.50.25", "200.100.50.0/24")).toBe(true);
+    expect(isIpAllowed("255.255.255.254", "255.255.255.0/24")).toBe(true);
+  });
+});
+
+describe("getClientIp", () => {
+  test("extracts first IP from x-forwarded-for", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "1.2.3.4, 5.6.7.8" },
+    });
+    expect(getClientIp(req)).toBe("1.2.3.4");
+  });
+
+  test("extracts single IP from x-forwarded-for", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "10.0.0.1" },
+    });
+    expect(getClientIp(req)).toBe("10.0.0.1");
+  });
+
+  test("returns null when no x-forwarded-for header", () => {
+    const req = new Request("http://localhost");
+    expect(getClientIp(req)).toBeNull();
+  });
+
+  test("returns null for empty x-forwarded-for", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "" },
+    });
+    expect(getClientIp(req)).toBeNull();
   });
 });
