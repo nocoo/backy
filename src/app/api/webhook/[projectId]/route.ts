@@ -73,8 +73,9 @@ export async function POST(
       );
     }
 
-    // Determine content type from file
-    const contentType = file.type || "application/octet-stream";
+    // Determine content type from file (strip charset params like ";charset=utf-8")
+    const rawType = file.type || "application/octet-stream";
+    const contentType = rawType.split(";")[0]!.trim();
     if (!ALLOWED_TYPES.has(contentType)) {
       return NextResponse.json(
         { error: `Unsupported file type: ${contentType}. Allowed: .zip, .json` },
