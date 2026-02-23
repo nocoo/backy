@@ -22,12 +22,15 @@
 
 - 📦 **Webhook 接收** — AI Agent 通过 webhook 发送备份文件（ZIP / JSON）
 - 🔑 **API Key 验证** — HEAD 请求轻量验证 API key 正确性
+- 📊 **备份状态查询** — GET 请求查询备份总数和最近记录
 - 🗂️ **项目管理** — 按项目组织备份，独立 webhook token
 - 🔍 **JSON 预览** — 在线树形查看 JSON 备份内容
-- 📥 **一键恢复** — 生成临时签名 URL 供 Agent 下载
+- 📥 **一键恢复** — 生成临时签名 URL 供 Agent 下载（Bearer token 或 query param）
 - 🏷️ **标签 & 环境** — 按 dev/prod/staging/test 环境和标签分类
 - 🛡️ **IP 白名单** — 可选的 CIDR 范围限制
-- 🤖 **Prompt 生成** — 一键生成 AI Agent 集成提示词
+- 🤖 **Prompt 生成** — 一键生成 AI Agent 集成提示词（含真实凭据）
+- 📈 **仪表盘图表** — 按项目统计备份数量/存储用量 + 每日活动趋势
+- 🔔 **Toast 通知** — 操作反馈通过 sonner toast 展示
 
 ## 🚀 快速开始
 
@@ -92,9 +95,9 @@ backy/
 │   ├── check-coverage.ts           # 测试覆盖率检查
 │   └── resize-logo.py              # Logo 处理脚本
 ├── 📂 src/
-│   ├── 📂 __tests__/               # 单元测试 (61 tests)
+│   ├── 📂 __tests__/               # 单元测试 (71 tests)
 │   │   ├── d1-client.test.ts       # D1 REST 客户端
-│   │   ├── webhook.test.ts         # Webhook 端点 (POST + HEAD)
+│   │   ├── webhook.test.ts         # Webhook 端点 (HEAD + GET + POST)
 │   │   ├── proxy.test.ts           # 认证代理中间件
 │   │   ├── ip.test.ts              # IP/CIDR 验证
 │   │   ├── id.test.ts              # nanoid 生成
@@ -102,11 +105,11 @@ backy/
 │   │   └── utils.test.ts           # 工具函数
 │   ├── 📂 app/                     # Next.js App Router
 │   │   ├── 📂 api/                 # API 路由
-│   │   │   ├── 📂 webhook/         # Webhook 接收 (POST + HEAD)
+│   │   │   ├── 📂 webhook/         # Webhook 接收 (HEAD + GET + POST)
 │   │   │   ├── 📂 projects/        # 项目 CRUD + token + prompt
 │   │   │   ├── 📂 backups/         # 备份管理 + 预览 + 下载 + 提取
 │   │   │   ├── 📂 restore/         # 恢复端点 (公开, token 认证)
-│   │   │   ├── 📂 stats/           # 仪表盘统计
+│   │   │   ├── 📂 stats/           # 仪表盘统计 + 图表数据
 │   │   │   ├── 📂 auth/            # NextAuth 处理
 │   │   │   └── 📂 live/            # 健康检查
 │   │   ├── 📂 backups/             # 备份列表 + 详情页
@@ -116,6 +119,7 @@ backy/
 │   │   └── page.tsx                # 仪表盘 (首页)
 │   ├── 📂 components/              # UI 组件
 │   │   ├── 📂 layout/              # 布局组件 (Sidebar 等)
+│   │   ├── 📂 charts/              # 仪表盘图表 (Recharts)
 │   │   ├── 📂 ui/                  # shadcn/ui 基础组件
 │   │   ├── json-tree-viewer.tsx    # JSON 树形预览
 │   │   └── loading-screen.tsx      # 加载画面
@@ -140,7 +144,9 @@ backy/
 
 ## 🔌 Webhook 协议
 
-### 验证 API Key
+所有 webhook 端点均使用 Bearer token 认证：`Authorization: Bearer {webhook_token}`
+
+### 验证 API Key (HEAD)
 
 ```bash
 curl -I https://backy.hexly.ai/api/webhook/{projectId} \
@@ -153,7 +159,46 @@ curl -I https://backy.hexly.ai/api/webhook/{projectId} \
 | `401` | 缺少或格式错误的 Authorization header |
 | `403` | 无效的 API key 或项目不匹配 |
 
-### 发送备份
+成功响应包含 `X-Project-Name` header。
+
+### 查询备份状态 (GET)
+
+```bash
+curl https://backy.hexly.ai/api/webhook/{projectId} \
+  -H "Authorization: Bearer {webhook_token}"
+
+# 按环境过滤
+curl https://backy.hexly.ai/api/webhook/{projectId}?environment=prod \
+  -H "Authorization: Bearer {webhook_token}"
+```
+
+返回 JSON：
+
+```json
+{
+  "project_name": "My Project",
+  "environment": null,
+  "total_backups": 42,
+  "recent_backups": [
+    {
+      "id": "abc123",
+      "tag": "daily-backup",
+      "environment": "prod",
+      "file_size": 1048576,
+      "is_single_json": 1,
+      "created_at": "2026-02-23T10:00:00Z"
+    }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `total_backups` | 该项目的备份总数 |
+| `recent_backups` | 最近 5 条备份记录 |
+| `environment` | 过滤条件（null 表示未过滤） |
+
+### 发送备份 (POST)
 
 ```bash
 curl -X POST https://backy.hexly.ai/api/webhook/{projectId} \
@@ -169,11 +214,27 @@ curl -X POST https://backy.hexly.ai/api/webhook/{projectId} \
 | `environment` | String? | `dev` / `prod` / `staging` / `test` |
 | `tag` | String? | 描述性标签 |
 
-### 恢复备份
+### 恢复备份 (Restore)
 
+```bash
+# 方式 1: query param
+curl https://backy.hexly.ai/api/restore/{backupId}?token={webhook_token}
+
+# 方式 2: Bearer token
+curl https://backy.hexly.ai/api/restore/{backupId} \
+  -H "Authorization: Bearer {webhook_token}"
 ```
-GET /api/restore/{backupId}?token={webhook_token}
-→ 返回临时签名下载 URL (15 分钟有效)
+
+返回临时签名下载 URL（15 分钟有效）：
+
+```json
+{
+  "url": "https://r2.example.com/signed-url...",
+  "backup_id": "abc123",
+  "project_id": "xyz789",
+  "file_size": 1048576,
+  "expires_in": 900
+}
 ```
 
 ## 🛠️ 技术栈
@@ -196,7 +257,7 @@ GET /api/restore/{backupId}?token={webhook_token}
 | `bun dev` | 启动开发服务器 (端口 7026) |
 | `bun run build` | 生产构建 |
 | `bun start` | 启动生产服务器 |
-| `bun test` | 运行单元测试 (61 tests) |
+| `bun test` | 运行单元测试 (71 tests) |
 | `bun run test:coverage` | 测试覆盖率报告 |
 | `bun run test:e2e` | 运行 E2E 端到端测试 (34 tests, port 17026) |
 | `bun run lint` | ESLint 检查 |
