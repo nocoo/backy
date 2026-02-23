@@ -255,7 +255,7 @@ export default function BackupDetailPage() {
         { label: backup.tag || backup.id.slice(0, 8) },
       ]}
     >
-      <div className="flex flex-col gap-6 max-w-4xl">
+      <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -326,185 +326,196 @@ export default function BackupDetailPage() {
           </div>
         </div>
 
-        {/* Metadata grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <MetadataItem
-            icon={<FolderOpen className="h-4 w-4" />}
-            label="Project"
-            value={backup.project_name}
-            href={`/projects/${backup.project_id}`}
-          />
-          <MetadataItem
-            icon={<HardDrive className="h-4 w-4" />}
-            label="Size"
-            value={formatBytes(backup.file_size)}
-          />
-          <MetadataItem
-            icon={<Clock className="h-4 w-4" />}
-            label="Created"
-            value={formatDate(backup.created_at)}
-          />
-          <MetadataItem
-            icon={<Globe className="h-4 w-4" />}
-            label="Sender"
-            value={backup.sender_ip}
-          />
-          {backup.environment && (
-            <MetadataItem
-              icon={<Unplug className="h-4 w-4" />}
-              label="Environment"
-              value={
-                <Badge variant="secondary" className="text-xs">
-                  {backup.environment}
-                </Badge>
-              }
-            />
-          )}
-          {backup.tag && (
-            <MetadataItem
-              icon={<Tag className="h-4 w-4" />}
-              label="Tag"
-              value={backup.tag}
-            />
-          )}
-        </div>
-
-        {/* File info */}
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Type:</span>
-            <Badge variant={isZip ? "secondary" : "default"} className="text-xs">
-              {isZip ? "ZIP Archive" : "JSON"}
-            </Badge>
-            <span className="text-muted-foreground ml-4">Key:</span>
-            <code className="text-xs font-mono text-muted-foreground truncate">
-              {backup.file_key}
-            </code>
-          </div>
-          {backup.json_key && (
-            <div className="flex items-center gap-2 text-sm mt-2">
-              <span className="text-muted-foreground">Preview key:</span>
-              <code className="text-xs font-mono text-muted-foreground truncate">
-                {backup.json_key}
-              </code>
-              {backup.json_extracted ? (
-                <Badge variant="secondary" className="text-xs">extracted</Badge>
-              ) : null}
-            </div>
-          )}
-        </div>
-
-        {/* JSON Preview section */}
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-foreground">
-              JSON Preview
-            </h2>
-            {canExtract && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void handleExtract()}
-                disabled={extracting}
-              >
-                {extracting ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                ) : (
-                  <FileJson className="h-3.5 w-3.5 mr-1.5" />
+        {/* Main content: left-right layout (8:4) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left column (8/12): JSON Preview + Restore URL */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            {/* JSON Preview section */}
+            <section className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-foreground">
+                  JSON Preview
+                </h2>
+                {canExtract && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleExtract()}
+                    disabled={extracting}
+                  >
+                    {extracting ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <FileJson className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Extract JSON from ZIP
+                  </Button>
                 )}
-                Extract JSON from ZIP
-              </Button>
-            )}
-          </div>
+              </div>
 
-          {/* Preview content */}
-          {previewLoading ? (
-            <div className="flex items-center justify-center py-8 rounded-lg border bg-secondary">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Loading preview...</span>
-            </div>
-          ) : previewError !== null ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-              <p className="text-sm text-destructive">{previewError}</p>
-            </div>
-          ) : previewData ? (
-            <JsonTreeViewer data={previewData} />
-          ) : canExtract && !extracting ? (
-            <div className="rounded-lg border bg-secondary p-6 text-center">
-              <FileArchive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                This is a ZIP archive. Click &ldquo;Extract JSON from ZIP&rdquo; to preview
-                the JSON content.
-              </p>
-            </div>
-          ) : !hasPreview ? (
-            <div className="rounded-lg border bg-secondary p-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                No JSON preview available for this backup.
-              </p>
-            </div>
-          ) : null}
-        </section>
+              {/* Preview content */}
+              {previewLoading ? (
+                <div className="flex items-center justify-center py-8 rounded-lg border bg-secondary">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading preview...</span>
+                </div>
+              ) : previewError !== null ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                  <p className="text-sm text-destructive">{previewError}</p>
+                </div>
+              ) : previewData ? (
+                <JsonTreeViewer data={previewData} />
+              ) : canExtract && !extracting ? (
+                <div className="rounded-lg border bg-secondary p-6 text-center">
+                  <FileArchive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    This is a ZIP archive. Click &ldquo;Extract JSON from ZIP&rdquo; to preview
+                    the JSON content.
+                  </p>
+                </div>
+              ) : !hasPreview ? (
+                <div className="rounded-lg border bg-secondary p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No JSON preview available for this backup.
+                  </p>
+                </div>
+              ) : null}
+            </section>
 
-        {/* Restore URL section */}
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-foreground">
-              Restore URL
-            </h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void handleGenerateRestoreUrl()}
-              disabled={restoreLoading}
-            >
-              {restoreLoading ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Link2 className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              {restoreUrl ? "Regenerate" : "Generate URL"}
-            </Button>
-          </div>
-
-          {restoreUrl ? (
-            <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground break-all">
-                  {restoreUrl}
-                </code>
+            {/* Restore URL section */}
+            <section className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-foreground">
+                  Restore URL
+                </h2>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => void handleCopyRestoreUrl()}
-                  className="shrink-0"
+                  onClick={() => void handleGenerateRestoreUrl()}
+                  disabled={restoreLoading}
                 >
-                  {copied ? (
-                    <Check className="h-3.5 w-3.5" />
+                  {restoreLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                   ) : (
-                    <Copy className="h-3.5 w-3.5" />
+                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
                   )}
+                  {restoreUrl ? "Regenerate" : "Generate URL"}
                 </Button>
               </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>
-                  This URL contains the project&apos;s webhook token. The presigned download
-                  link returned expires after <strong>15 minutes</strong>.
-                </p>
-                <p className="font-mono bg-muted/50 rounded px-2 py-1 break-all">
-                  curl &quot;{restoreUrl}&quot;
-                </p>
+
+              {restoreUrl ? (
+                <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground break-all">
+                      {restoreUrl}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleCopyRestoreUrl()}
+                      className="shrink-0"
+                    >
+                      {copied ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>
+                      This URL contains the project&apos;s webhook token. The presigned download
+                      link returned expires after <strong>15 minutes</strong>.
+                    </p>
+                    <p className="font-mono bg-muted/50 rounded px-2 py-1 break-all">
+                      curl &quot;{restoreUrl}&quot;
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border bg-secondary p-6 text-center">
+                  <Link2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Generate a restore URL for your AI agent to download this backup.
+                  </p>
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Right column (4/12): Metadata + File info */}
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <MetadataItem
+              icon={<FolderOpen className="h-4 w-4" />}
+              label="Project"
+              value={backup.project_name}
+              href={`/projects/${backup.project_id}`}
+            />
+            <MetadataItem
+              icon={<HardDrive className="h-4 w-4" />}
+              label="Size"
+              value={formatBytes(backup.file_size)}
+            />
+            <MetadataItem
+              icon={<Clock className="h-4 w-4" />}
+              label="Created"
+              value={formatDate(backup.created_at)}
+            />
+            <MetadataItem
+              icon={<Globe className="h-4 w-4" />}
+              label="Sender"
+              value={backup.sender_ip}
+            />
+            {backup.environment && (
+              <MetadataItem
+                icon={<Unplug className="h-4 w-4" />}
+                label="Environment"
+                value={
+                  <Badge variant="secondary" className="text-xs">
+                    {backup.environment}
+                  </Badge>
+                }
+              />
+            )}
+            {backup.tag && (
+              <MetadataItem
+                icon={<Tag className="h-4 w-4" />}
+                label="Tag"
+                value={backup.tag}
+              />
+            )}
+
+            {/* File info */}
+            <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="text-xs">File Info</span>
               </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground text-xs">Type:</span>
+                <Badge variant={isZip ? "secondary" : "default"} className="text-xs">
+                  {isZip ? "ZIP Archive" : "JSON"}
+                </Badge>
+              </div>
+              <div className="text-xs">
+                <span className="text-muted-foreground">Key:</span>
+                <code className="ml-1 font-mono text-muted-foreground break-all">
+                  {backup.file_key}
+                </code>
+              </div>
+              {backup.json_key && (
+                <div className="text-xs">
+                  <span className="text-muted-foreground">Preview:</span>
+                  <code className="ml-1 font-mono text-muted-foreground break-all">
+                    {backup.json_key}
+                  </code>
+                  {backup.json_extracted ? (
+                    <Badge variant="secondary" className="text-xs ml-1">extracted</Badge>
+                  ) : null}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="rounded-lg border bg-secondary p-6 text-center">
-              <Link2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Generate a restore URL for your AI agent to download this backup.
-              </p>
-            </div>
-          )}
-        </section>
+          </div>
+        </div>
 
         {/* Error display */}
         {error && (
