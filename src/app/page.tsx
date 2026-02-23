@@ -5,6 +5,11 @@ import Link from "next/link";
 import { Archive, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
+import {
+  BackupsByProjectChart,
+  StorageByProjectChart,
+} from "@/components/charts/project-charts";
+import { DailyBackupsChart } from "@/components/charts/activity-chart";
 
 interface Stats {
   totalProjects: number;
@@ -21,6 +26,24 @@ interface RecentBackup {
   file_size: number;
   is_single_json: number;
   created_at: string;
+}
+
+interface ProjectStat {
+  project_id: string;
+  project_name: string;
+  backup_count: number;
+  total_size: number;
+  latest_backup: string | null;
+}
+
+interface DailyBackup {
+  date: string;
+  count: number;
+}
+
+interface ChartData {
+  projectStats: ProjectStat[];
+  dailyBackups: DailyBackup[];
 }
 
 function formatBytes(bytes: number): string {
@@ -43,14 +66,16 @@ function formatDate(dateStr: string): string {
 export default function HomePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentBackups, setRecentBackups] = useState<RecentBackup[]>([]);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [statsRes, backupsRes] = await Promise.all([
+      const [statsRes, backupsRes, chartsRes] = await Promise.all([
         fetch("/api/stats"),
         fetch("/api/backups"),
+        fetch("/api/stats/charts"),
       ]);
 
       if (statsRes.ok) {
@@ -61,6 +86,11 @@ export default function HomePage() {
       if (backupsRes.ok) {
         const data = await backupsRes.json();
         setRecentBackups((data.items as RecentBackup[]).slice(0, 5));
+      }
+
+      if (chartsRes.ok) {
+        const data: ChartData = await chartsRes.json();
+        setChartData(data);
       }
     } catch {
       // Silently fail — dashboard is best-effort
@@ -104,6 +134,18 @@ export default function HomePage() {
                 value={formatBytes(stats?.totalStorageBytes ?? 0)}
               />
             </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <BackupsByProjectChart
+                data={chartData?.projectStats ?? []}
+              />
+              <StorageByProjectChart
+                data={chartData?.projectStats ?? []}
+              />
+            </div>
+
+            <DailyBackupsChart data={chartData?.dailyBackups ?? []} />
 
             {/* Recent backups */}
             <div>

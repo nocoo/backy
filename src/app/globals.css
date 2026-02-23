@@ -50,6 +50,13 @@
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
 
+  /* Chart colors */
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
   /* Radius tokens */
   --radius-card: 14px;
   --radius-widget: 10px;
@@ -124,6 +131,13 @@
   /* Semantic */
   --success: 142 71% 35%;
   --success-foreground: 0 0% 100%;
+
+  /* Chart palette */
+  --chart-1: 146 49% 35%;
+  --chart-2: 199 59% 45%;
+  --chart-3: 262 47% 50%;
+  --chart-4: 32 80% 50%;
+  --chart-5: 340 65% 50%;
 }
 
 .dark {
@@ -171,6 +185,13 @@
   /* Semantic */
   --success: 142 65% 38%;
   --success-foreground: 142 60% 90%;
+
+  /* Chart palette */
+  --chart-1: 146 40% 30%;
+  --chart-2: 199 50% 40%;
+  --chart-3: 262 40% 45%;
+  --chart-4: 32 70% 45%;
+  --chart-5: 340 55% 45%;
 }
 
 /*
