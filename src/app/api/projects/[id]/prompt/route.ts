@@ -16,9 +16,13 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Derive base URL from request
+    // Derive base URL respecting reverse proxy headers
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
     const url = new URL(request.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const baseUrl = forwardedHost
+      ? `${forwardedProto}://${forwardedHost}`
+      : `${url.protocol}//${url.host}`;
 
     const prompt = `## Backup Integration for "${project.name}"
 
