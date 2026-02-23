@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Archive, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -93,7 +94,7 @@ export default function HomePage() {
         setChartData(data);
       }
     } catch {
-      // Silently fail — dashboard is best-effort
+      toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
