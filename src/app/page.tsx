@@ -1,33 +1,46 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import Image from "next/image";
+"use client";
 
-export default async function HomePage() {
-  const session = await auth();
+import { AppShell } from "@/components/layout/app-shell";
 
-  if (!session) {
-    redirect("/login");
-  }
-
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <Image
-          src="/logo-80.png"
-          alt="Backy"
-          width={64}
-          height={64}
-          className="rounded-2xl"
-          priority
-        />
-        <h1 className="text-2xl font-semibold text-foreground">Backy</h1>
-        <p className="text-sm text-muted-foreground">
-          Welcome, {session.user?.name ?? session.user?.email}
-        </p>
-        <p className="text-xs text-muted-foreground/60">
-          Dashboard coming soon
-        </p>
+    <AppShell>
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Overview of your backup activity
+          </p>
+        </div>
+
+        {/* Stats cards - placeholder */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StatsCard label="Total Projects" value="—" />
+          <StatsCard label="Total Backups" value="—" />
+          <StatsCard label="Storage Used" value="—" />
+        </div>
+
+        {/* Recent backups - placeholder */}
+        <div>
+          <h2 className="text-sm font-medium text-muted-foreground mb-3">
+            Recent Backups
+          </h2>
+          <div className="rounded-lg border border-border bg-background/50 p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              No backups yet. Create a project and configure your AI agent to start sending backups.
+            </p>
+          </div>
+        </div>
       </div>
+    </AppShell>
+  );
+}
+
+function StatsCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/50 p-4">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-2xl font-semibold text-foreground mt-1">{value}</p>
     </div>
   );
 }
