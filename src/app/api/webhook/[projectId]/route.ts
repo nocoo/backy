@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProjectByToken } from "@/lib/db/projects";
-import { createBackup } from "@/lib/db/backups";
+import { createBackup, listBackups, countBackups } from "@/lib/db/backups";
 import { uploadToR2 } from "@/lib/r2/client";
 
 /** Max upload size: 50 MB */
@@ -48,6 +48,84 @@ export async function HEAD(
   } catch (error) {
     console.error("Webhook HEAD error:", error);
     return new Response(null, { status: 500 });
+  }
+}
+
+/**
+ * GET /api/webhook/[projectId] — Query backup status for a project.
+ *
+ * Authentication: Bearer token in Authorization header.
+ * Query params:
+ *   - environment: filter by environment (optional)
+ *
+ * Returns:
+ *   - project_name: string
+ *   - environment: string | null (filter applied)
+ *   - total_backups: number
+ *   - recent_backups: last 5 backups with time, tag, environment, size
+ */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
+  try {
+    const { projectId } = await params;
+
+    // --- Auth ---
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Missing or invalid Authorization header" },
+        { status: 401 },
+      );
+    }
+
+    const token = authHeader.slice(7);
+    const project = await getProjectByToken(token);
+
+    if (!project || project.id !== projectId) {
+      return NextResponse.json(
+        { error: "Invalid token or project mismatch" },
+        { status: 403 },
+      );
+    }
+
+    // --- Parse query params ---
+    const url = new URL(request.url);
+    const environment = url.searchParams.get("environment") ?? undefined;
+
+    // --- Fetch data ---
+    const [total, backups] = await Promise.all([
+      countBackups(projectId),
+      listBackups({
+        projectId,
+        environment,
+        sortBy: "created_at",
+        sortOrder: "desc",
+        page: 1,
+        pageSize: 5,
+      }),
+    ]);
+
+    return NextResponse.json({
+      project_name: project.name,
+      environment: environment ?? null,
+      total_backups: total,
+      recent_backups: backups.items.map((b) => ({
+        id: b.id,
+        tag: b.tag,
+        environment: b.environment,
+        file_size: b.file_size,
+        is_single_json: b.is_single_json,
+        created_at: b.created_at,
+      })),
+    });
+  } catch (error) {
+    console.error("Webhook GET error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 

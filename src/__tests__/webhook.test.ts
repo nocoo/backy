@@ -32,13 +32,52 @@ mock.module("@/lib/db/backups", () => ({
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
   }),
+  listBackups: async (options: Record<string, unknown>) => ({
+    items: [
+      {
+        id: "b1",
+        project_id: "proj-123",
+        project_name: "Test Project",
+        environment: options.environment ?? "prod",
+        tag: "daily-backup",
+        file_key: "backups/proj-123/2026-01-01.json",
+        json_key: "previews/proj-123/2026-01-01.json",
+        file_size: 1024,
+        is_single_json: 1,
+        json_extracted: 0,
+        sender_ip: "1.2.3.4",
+        created_at: "2026-01-15T10:00:00.000Z",
+        updated_at: "2026-01-15T10:00:00.000Z",
+      },
+      {
+        id: "b2",
+        project_id: "proj-123",
+        project_name: "Test Project",
+        environment: options.environment ?? "dev",
+        tag: null,
+        file_key: "backups/proj-123/2026-01-02.zip",
+        json_key: null,
+        file_size: 2048,
+        is_single_json: 0,
+        json_extracted: 0,
+        sender_ip: "5.6.7.8",
+        created_at: "2026-01-14T10:00:00.000Z",
+        updated_at: "2026-01-14T10:00:00.000Z",
+      },
+    ],
+    total: 2,
+    page: 1,
+    pageSize: 5,
+    totalPages: 1,
+  }),
+  countBackups: async () => 7,
 }));
 
 mock.module("@/lib/r2/client", () => ({
   uploadToR2: async () => {},
 }));
 
-const { POST, HEAD } = await import("@/app/api/webhook/[projectId]/route");
+const { POST, HEAD, GET } = await import("@/app/api/webhook/[projectId]/route");
 
 function createRequest(options: {
   token?: string;
@@ -214,5 +253,83 @@ describe("HEAD /api/webhook/[projectId]", () => {
     const res = await HEAD(req, { params });
     expect(res.status).toBe(401);
     expect(res.body).toBeNull();
+  });
+});
+
+describe("GET /api/webhook/[projectId]", () => {
+  const params = Promise.resolve({ projectId: "proj-123" });
+
+  test("returns 401 without Authorization header", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123");
+    const res = await GET(req, { params });
+    expect(res.status).toBe(401);
+  });
+
+  test("returns 403 with invalid token", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      headers: { Authorization: "Bearer wrong-token" },
+    });
+    const res = await GET(req, { params });
+    expect(res.status).toBe(403);
+  });
+
+  test("returns 403 with project ID mismatch", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/wrong-id", {
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const wrongParams = Promise.resolve({ projectId: "wrong-id" });
+    const res = await GET(req, { params: wrongParams });
+    expect(res.status).toBe(403);
+  });
+
+  test("returns backup status with valid token", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const res = await GET(req, { params });
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.project_name).toBe("Test Project");
+    expect(body.environment).toBeNull();
+    expect(body.total_backups).toBe(7);
+    expect(body.recent_backups).toHaveLength(2);
+    expect(body.recent_backups[0].id).toBe("b1");
+    expect(body.recent_backups[0].tag).toBe("daily-backup");
+    expect(body.recent_backups[0].file_size).toBe(1024);
+    expect(body.recent_backups[0].created_at).toBeDefined();
+  });
+
+  test("passes environment filter to query", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123?environment=prod", {
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const res = await GET(req, { params });
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.environment).toBe("prod");
+    expect(body.recent_backups).toHaveLength(2);
+  });
+
+  test("returns only essential fields in recent_backups", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const res = await GET(req, { params });
+    const body = await res.json();
+
+    const backup = body.recent_backups[0];
+    // Should include these fields
+    expect(backup).toHaveProperty("id");
+    expect(backup).toHaveProperty("tag");
+    expect(backup).toHaveProperty("environment");
+    expect(backup).toHaveProperty("file_size");
+    expect(backup).toHaveProperty("is_single_json");
+    expect(backup).toHaveProperty("created_at");
+    // Should NOT include internal fields
+    expect(backup).not.toHaveProperty("file_key");
+    expect(backup).not.toHaveProperty("json_key");
+    expect(backup).not.toHaveProperty("sender_ip");
   });
 });
