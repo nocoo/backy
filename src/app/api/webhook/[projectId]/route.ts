@@ -14,6 +14,44 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 /**
+ * HEAD /api/webhook/[projectId] — Verify API key validity.
+ *
+ * Senders can use this lightweight check to confirm their API key
+ * is correct before attempting a full backup upload. Returns:
+ *   - 200: valid token, project matched
+ *   - 401: missing or malformed Authorization header
+ *   - 403: invalid token or project mismatch
+ */
+export async function HEAD(
+  request: Request,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
+  try {
+    const { projectId } = await params;
+
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(null, { status: 401 });
+    }
+
+    const token = authHeader.slice(7);
+    const project = await getProjectByToken(token);
+
+    if (!project || project.id !== projectId) {
+      return new Response(null, { status: 403 });
+    }
+
+    return new Response(null, {
+      status: 200,
+      headers: { "X-Project-Name": project.name },
+    });
+  } catch (error) {
+    console.error("Webhook HEAD error:", error);
+    return new Response(null, { status: 500 });
+  }
+}
+
+/**
  * POST /api/webhook/[projectId] — Receive a backup from an AI agent.
  *
  * Authentication: Bearer token in Authorization header.

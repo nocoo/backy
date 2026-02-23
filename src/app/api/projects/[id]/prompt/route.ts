@@ -26,6 +26,19 @@ export async function GET(
 
     const prompt = `## Backup Integration for "${project.name}"
 
+### Verifying Your API Key
+
+Before sending backups, you can verify your API key is correct with a lightweight HEAD request:
+
+\`\`\`
+HEAD ${baseUrl}/api/webhook/${project.id}
+Authorization: Bearer ${project.webhook_token}
+\`\`\`
+
+- **200**: API key is valid, you are ready to send backups.
+- **401**: Missing or malformed Authorization header.
+- **403**: Invalid API key or project mismatch.
+
 ### Sending a Backup
 
 Send a POST request to the webhook endpoint with your backup file:
@@ -44,6 +57,11 @@ Fields:
 ### Example (curl)
 
 \`\`\`bash
+# Verify API key first
+curl -I ${baseUrl}/api/webhook/${project.id} \\
+  -H "Authorization: Bearer ${project.webhook_token}"
+
+# Send a backup
 curl -X POST ${baseUrl}/api/webhook/${project.id} \\
   -H "Authorization: Bearer ${project.webhook_token}" \\
   -F "file=@backup.zip" \\

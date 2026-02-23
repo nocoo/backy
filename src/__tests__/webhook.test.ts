@@ -38,7 +38,7 @@ mock.module("@/lib/r2/client", () => ({
   uploadToR2: async () => {},
 }));
 
-const { POST } = await import("@/app/api/webhook/[projectId]/route");
+const { POST, HEAD } = await import("@/app/api/webhook/[projectId]/route");
 
 function createRequest(options: {
   token?: string;
@@ -159,5 +159,60 @@ describe("POST /api/webhook/[projectId]", () => {
     });
     const res = await POST(req, { params });
     expect(res.status).toBe(201);
+  });
+});
+
+describe("HEAD /api/webhook/[projectId]", () => {
+  const params = Promise.resolve({ projectId: "proj-123" });
+
+  test("returns 200 with valid token and matching project", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      method: "HEAD",
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const res = await HEAD(req, { params });
+    expect(res.status).toBe(200);
+    expect(res.body).toBeNull();
+    expect(res.headers.get("X-Project-Name")).toBe("Test Project");
+  });
+
+  test("returns 401 without Authorization header", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      method: "HEAD",
+    });
+    const res = await HEAD(req, { params });
+    expect(res.status).toBe(401);
+    expect(res.body).toBeNull();
+  });
+
+  test("returns 403 with invalid token", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      method: "HEAD",
+      headers: { Authorization: "Bearer wrong-token" },
+    });
+    const res = await HEAD(req, { params });
+    expect(res.status).toBe(403);
+    expect(res.body).toBeNull();
+  });
+
+  test("returns 403 with project ID mismatch", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/wrong-id", {
+      method: "HEAD",
+      headers: { Authorization: "Bearer valid-token" },
+    });
+    const wrongParams = Promise.resolve({ projectId: "wrong-id" });
+    const res = await HEAD(req, { params: wrongParams });
+    expect(res.status).toBe(403);
+    expect(res.body).toBeNull();
+  });
+
+  test("returns 401 with malformed Authorization header", async () => {
+    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      method: "HEAD",
+      headers: { Authorization: "Basic dXNlcjpwYXNz" },
+    });
+    const res = await HEAD(req, { params });
+    expect(res.status).toBe(401);
+    expect(res.body).toBeNull();
   });
 });

@@ -329,6 +329,38 @@ async function suiteHappyPathZip(): Promise<void> {
 async function suiteErrorPaths(): Promise<void> {
   console.log("\n📋 Suite: Error Paths");
 
+  // HEAD — API key verification
+  await test("GIVEN valid token WHEN sending HEAD to webhook THEN returns 200 with project name header", async () => {
+    const res = await fetch(webhookUrl(), {
+      method: "HEAD",
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
+    assertEqual(res.status, 200, "status");
+    const projectName = res.headers.get("X-Project-Name");
+    assert(projectName === "backy-test", `X-Project-Name should be backy-test, got ${projectName}`);
+  });
+
+  await test("GIVEN no Authorization header WHEN sending HEAD to webhook THEN returns 401", async () => {
+    const res = await fetch(webhookUrl(), { method: "HEAD" });
+    assertEqual(res.status, 401, "status");
+  });
+
+  await test("GIVEN wrong token WHEN sending HEAD to webhook THEN returns 403", async () => {
+    const res = await fetch(webhookUrl(), {
+      method: "HEAD",
+      headers: { Authorization: "Bearer wrong-token-12345" },
+    });
+    assertEqual(res.status, 403, "status");
+  });
+
+  await test("GIVEN valid token but wrong project ID WHEN sending HEAD THEN returns 403", async () => {
+    const res = await fetch(`${baseUrl}/api/webhook/wrong-project-id`, {
+      method: "HEAD",
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
+    assertEqual(res.status, 403, "status");
+  });
+
   // Auth errors
   await test("GIVEN no Authorization header WHEN uploading THEN returns 401", async () => {
     const formData = new FormData();
