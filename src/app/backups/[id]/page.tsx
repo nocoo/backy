@@ -15,6 +15,9 @@ import {
   Globe,
   Tag,
   FolderOpen,
+  Link2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -83,6 +86,11 @@ export default function BackupDetailPage() {
   // Delete state
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Restore URL state
+  const [restoreUrl, setRestoreUrl] = useState<string | null>(null);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const fetchBackup = useCallback(async () => {
     try {
@@ -175,6 +183,33 @@ export default function BackupDetailPage() {
       setError(err instanceof Error ? err.message : "Delete failed");
       setDeleting(false);
     }
+  }
+
+  async function handleGenerateRestoreUrl() {
+    if (!backup) return;
+    try {
+      setRestoreLoading(true);
+      // Fetch the project to get its webhook token
+      const res = await fetch(`/api/projects/${backup.project_id}`);
+      if (!res.ok) throw new Error("Failed to fetch project");
+      const project: { webhook_token: string } = await res.json();
+
+      // Construct the restore URL
+      const baseUrl = window.location.origin;
+      const url = `${baseUrl}/api/restore/${backup.id}?token=${project.webhook_token}`;
+      setRestoreUrl(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate restore URL");
+    } finally {
+      setRestoreLoading(false);
+    }
+  }
+
+  async function handleCopyRestoreUrl() {
+    if (!restoreUrl) return;
+    await navigator.clipboard.writeText(restoreUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   // --- Loading state ---
@@ -409,6 +444,66 @@ export default function BackupDetailPage() {
               </p>
             </div>
           ) : null}
+        </section>
+
+        {/* Restore URL section */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-foreground">
+              Restore URL
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleGenerateRestoreUrl()}
+              disabled={restoreLoading}
+            >
+              {restoreLoading ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Link2 className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              {restoreUrl ? "Regenerate" : "Generate URL"}
+            </Button>
+          </div>
+
+          {restoreUrl ? (
+            <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground break-all">
+                  {restoreUrl}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleCopyRestoreUrl()}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>
+                  This URL contains the project&apos;s webhook token. The presigned download
+                  link returned expires after <strong>15 minutes</strong>.
+                </p>
+                <p className="font-mono bg-muted/50 rounded px-2 py-1 break-all">
+                  curl &quot;{restoreUrl}&quot;
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-secondary p-6 text-center">
+              <Link2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Generate a restore URL for your AI agent to download this backup.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* Error display */}
