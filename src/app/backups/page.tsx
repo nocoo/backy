@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Archive, Download, Trash2, Loader2, ExternalLink } from "lucide-react";
+import { Archive, Download, Trash2, Loader2, Eye } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -189,13 +189,11 @@ export default function BackupsPage() {
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  {backup.is_single_json === 1 && backup.json_key && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/backups/${backup.id}/preview`}>
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/backups/${backup.id}`}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
