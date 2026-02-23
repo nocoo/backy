@@ -40,3 +40,7 @@ bun run lint         # ESLint
 ```
 
 ## Retrospective
+
+- **AWS SDK v3 Body is not ReadableStream**: When using `@aws-sdk/client-s3` `GetObjectCommand`, the `response.Body` is a `SdkStreamMixin` (not a Web `ReadableStream`). Must use `body.transformToByteArray()` or `body.transformToString()` instead of `body.getReader()`. This caused 500 errors in preview and extract routes — caught by E2E.
+- **Bun's `typeof fetch` requires `preconnect`**: When mocking `globalThis.fetch` in Bun tests, the type includes a `preconnect` property. Use a helper function that adds `fn.preconnect = () => {}` to satisfy the type.
+- **E2E self-bootstrap pattern**: The `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`) is permanently available in D1 for E2E testing. Tests upload real data, verify round-trip, then clean up. Uses `E2E_SKIP_AUTH=true` to bypass OAuth for protected routes during local testing.
