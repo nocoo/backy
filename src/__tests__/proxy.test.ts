@@ -61,6 +61,11 @@ describe("proxy auth rules", () => {
       const res = await callProxy(createRequest("/api/restore/backup-123"));
       expect(res.status).not.toBe(307);
     });
+
+    test("allows /api/db/init without auth", async () => {
+      const res = await callProxy(createRequest("/api/db/init"));
+      expect(res.status).not.toBe(307);
+    });
   });
 
   // Protected routes — should redirect to /login when not authenticated
