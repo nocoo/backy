@@ -125,6 +125,9 @@ export function Sidebar() {
                   className="shrink-0"
                 />
                 <span className="text-lg font-bold tracking-tighter">backy</span>
+                <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  v{process.env.NEXT_PUBLIC_APP_VERSION}
+                </span>
               </div>
               <button
                 onClick={toggle}
