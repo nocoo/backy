@@ -26,6 +26,8 @@ export function Sidebar() {
   const { data: session } = useSession();
 
   const userName = session?.user?.name ?? "User";
+  const userEmail = session?.user?.email ?? "";
+  const userImage = session?.user?.image;
   const userInitial = userName[0] ?? "?";
 
   return (
@@ -90,9 +92,21 @@ export function Sidebar() {
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               title={`${userName} - Sign out`}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium cursor-pointer hover:bg-primary/20 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
             >
-              {userInitial}
+              {userImage ? (
+                <Image
+                  src={userImage}
+                  alt={userName}
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  {userInitial}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -153,12 +167,24 @@ export function Sidebar() {
           {/* User info + sign out */}
           <div className="px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
-                {userInitial}
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full overflow-hidden">
+                {userImage ? (
+                  <Image
+                    src={userImage}
+                    alt={userName}
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
+                    {userInitial}
+                  </span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{userName}</p>
-                <p className="text-xs text-muted-foreground truncate">Administrator</p>
+                <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
