@@ -16,6 +16,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -196,7 +197,7 @@ export default function BackupsPage() {
       const result: { url: string } = await res.json();
       window.open(result.url, "_blank");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      toast.error(err instanceof Error ? err.message : "Download failed");
     } finally {
       setDownloading(null);
     }
@@ -211,9 +212,10 @@ export default function BackupsPage() {
       });
       if (!res.ok) throw new Error("Failed to delete backup");
       setDeleteTarget(null);
+      toast.success("Backup deleted");
       await fetchBackups();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      toast.error(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setDeleting(false);
     }
@@ -231,9 +233,10 @@ export default function BackupsPage() {
       if (!res.ok) throw new Error("Failed to delete backups");
       setBatchDeleteOpen(false);
       setSelected(new Set());
+      toast.success(`${selected.size} backup${selected.size !== 1 ? "s" : ""} deleted`);
       await fetchBackups();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      toast.error(err instanceof Error ? err.message : "Batch delete failed");
     } finally {
       setDeleting(false);
     }
@@ -385,7 +388,7 @@ export default function BackupsPage() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : error ? (
+        ) : error && !data ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
             <p className="text-sm text-destructive">{error}</p>
             <Button
