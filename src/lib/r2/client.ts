@@ -12,6 +12,7 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   ListObjectsV2Command,
+  HeadBucketCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -207,4 +208,21 @@ export async function listR2Objects(prefix?: string): Promise<R2Object[]> {
 /** Reset the cached S3 client (for testing). */
 export function resetR2Client(): void {
   _client = null;
+}
+
+/** Check if R2 environment variables are configured. */
+export function isR2Configured(): boolean {
+  return !!(
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY &&
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_BUCKET_NAME
+  );
+}
+
+/** Lightweight R2 connectivity check via HeadBucket. */
+export async function pingR2(): Promise<void> {
+  const client = getR2Client();
+  const { bucket } = getR2Config();
+  await client.send(new HeadBucketCommand({ Bucket: bucket }));
 }

@@ -87,6 +87,9 @@ mock.module("@/lib/db/backups", () => ({
 
 mock.module("@/lib/r2/client", () => ({
   uploadToR2: async () => {},
+  isR2Configured: () => true,
+  pingR2: async () => {},
+  resetR2Client: () => {},
 }));
 
 const { POST, HEAD, GET } = await import("@/app/api/webhook/[projectId]/route");

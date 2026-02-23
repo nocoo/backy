@@ -61,6 +61,9 @@ mock.module("@/lib/r2/client", () => ({
   // Stub exports used by other test files
   uploadToR2: async () => {},
   deleteFromR2: async () => {},
+  isR2Configured: () => true,
+  pingR2: async () => {},
+  resetR2Client: () => {},
 }));
 
 const { GET } = await import("@/app/api/restore/[id]/route");
