@@ -19,6 +19,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +170,7 @@ export default function BackupDetailPage() {
       const data = await res.json() as { url: string };
       window.open(data.url, "_blank");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Download failed");
+      toast.error(err instanceof Error ? err.message : "Download failed");
     }
   }
 
@@ -180,7 +181,7 @@ export default function BackupDetailPage() {
       if (!res.ok) throw new Error("Failed to delete backup");
       router.push("/backups");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : "Delete failed");
       setDeleting(false);
     }
   }
@@ -199,7 +200,7 @@ export default function BackupDetailPage() {
       const url = `${baseUrl}/api/restore/${backup.id}?token=${project.webhook_token}`;
       setRestoreUrl(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate restore URL");
+      toast.error(err instanceof Error ? err.message : "Failed to generate restore URL");
     } finally {
       setRestoreLoading(false);
     }
@@ -517,13 +518,6 @@ export default function BackupDetailPage() {
             </div>
           </div>
         </div>
-
-        {/* Error display */}
-        {error && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
 
         {/* Metadata footer */}
         <section className="text-xs text-muted-foreground/60 flex items-center gap-4">
