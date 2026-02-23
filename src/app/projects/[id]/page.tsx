@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Copy,
   Check,
@@ -11,6 +12,8 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Archive,
+  Download,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -35,6 +38,43 @@ interface Project {
   webhook_token: string;
   created_at: string;
   updated_at: string;
+}
+
+interface BackupItem {
+  id: string;
+  project_id: string;
+  project_name: string;
+  environment: string | null;
+  tag: string | null;
+  file_size: number;
+  is_single_json: number;
+  created_at: string;
+}
+
+interface BackupListResponse {
+  items: BackupItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function ProjectDetailPage() {
@@ -62,6 +102,11 @@ export default function ProjectDetailPage() {
   const [promptText, setPromptText] = useState<string | null>(null);
   const [promptLoading, setPromptLoading] = useState(false);
 
+  // Backups
+  const [backups, setBackups] = useState<BackupListResponse | null>(null);
+  const [backupsLoading, setBackupsLoading] = useState(true);
+  const [downloading, setDownloading] = useState<string | null>(null);
+
   const fetchProject = useCallback(async () => {
     try {
       setLoading(true);
@@ -83,9 +128,24 @@ export default function ProjectDetailPage() {
     }
   }, [id]);
 
+  const fetchBackups = useCallback(async () => {
+    try {
+      setBackupsLoading(true);
+      const res = await fetch(`/api/backups?projectId=${id}&pageSize=10`);
+      if (!res.ok) return;
+      const data: BackupListResponse = await res.json();
+      setBackups(data);
+    } catch {
+      // Non-critical, silently fail
+    } finally {
+      setBackupsLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     void fetchProject();
-  }, [fetchProject]);
+    void fetchBackups();
+  }, [fetchProject, fetchBackups]);
 
   // Track dirty state
   useEffect(() => {
@@ -151,6 +211,20 @@ export default function ProjectDetailPage() {
     await navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
+  }
+
+  async function handleBackupDownload(backupId: string) {
+    try {
+      setDownloading(backupId);
+      const res = await fetch(`/api/backups/${backupId}/download`);
+      if (!res.ok) throw new Error("Failed to generate download URL");
+      const data: { url: string } = await res.json();
+      window.open(data.url, "_blank");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setDownloading(null);
+    }
   }
 
   async function handleShowPrompt() {
@@ -398,6 +472,106 @@ export default function ProjectDetailPage() {
                   <Copy className="h-3.5 w-3.5" />
                 )}
               </Button>
+            </div>
+          )}
+        </section>
+
+        {/* Recent Backups */}
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">
+                Recent Backups
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {backups
+                  ? `${backups.total} backup${backups.total !== 1 ? "s" : ""} in this project`
+                  : "Loading..."}
+              </p>
+            </div>
+            {backups && backups.total > 0 && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/backups?projectId=${project.id}`}>
+                  View All
+                </Link>
+              </Button>
+            )}
+          </div>
+
+          {backupsLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : backups && backups.items.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {backups.items.map((backup) => (
+                <div
+                  key={backup.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3 gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Archive className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {backup.tag && (
+                          <span className="text-sm font-medium text-foreground">
+                            {backup.tag}
+                          </span>
+                        )}
+                        {backup.environment && (
+                          <Badge variant="secondary" className="text-xs">
+                            {backup.environment}
+                          </Badge>
+                        )}
+                        {backup.is_single_json === 1 && (
+                          <Badge variant="secondary" className="text-xs">
+                            JSON
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(backup.created_at)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatBytes(backup.file_size)}
+                        </span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">
+                          {backup.id.slice(0, 8)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/backups/${backup.id}`}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleBackupDownload(backup.id)}
+                      disabled={downloading === backup.id}
+                    >
+                      {downloading === backup.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-background/50 p-8 text-center">
+              <Archive className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No backups yet. Configure your AI agent using the webhook above.
+              </p>
             </div>
           )}
         </section>
