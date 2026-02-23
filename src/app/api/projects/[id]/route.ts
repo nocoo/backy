@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getProject, updateProject, deleteProject } from "@/lib/db/projects";
+import { validateAllowedIps, normalizeAllowedIps } from "@/lib/ip";
 import { z } from "zod";
 
 const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
+  allowed_ips: z.string().max(2000).nullable().optional(),
 });
 
 /**
@@ -51,7 +53,28 @@ export async function PUT(
       );
     }
 
-    const project = await updateProject(id, parsed.data);
+    // Validate and normalize allowed_ips if provided
+    const updateData: { name?: string | undefined; description?: string | undefined; allowed_ips?: string | null | undefined } = {
+      name: parsed.data.name,
+      description: parsed.data.description,
+    };
+
+    if (parsed.data.allowed_ips !== undefined) {
+      if (parsed.data.allowed_ips === null || parsed.data.allowed_ips.trim() === "") {
+        updateData.allowed_ips = null;
+      } else {
+        const validation = validateAllowedIps(parsed.data.allowed_ips);
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: "Invalid IP/CIDR format", invalid: validation.invalid },
+            { status: 400 },
+          );
+        }
+        updateData.allowed_ips = normalizeAllowedIps(parsed.data.allowed_ips);
+      }
+    }
+
+    const project = await updateProject(id, updateData);
 
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });

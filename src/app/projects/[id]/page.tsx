@@ -36,6 +36,7 @@ interface Project {
   name: string;
   description: string | null;
   webhook_token: string;
+  allowed_ips: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +89,8 @@ export default function ProjectDetailPage() {
   // Edit state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [allowedIps, setAllowedIps] = useState("");
+  const [ipError, setIpError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -121,6 +124,7 @@ export default function ProjectDetailPage() {
       setProject(data);
       setName(data.name);
       setDescription(data.description ?? "");
+      setAllowedIps(data.allowed_ips ?? "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -152,11 +156,13 @@ export default function ProjectDetailPage() {
     if (!project) return;
     const nameChanged = name.trim() !== project.name;
     const descChanged = (description.trim() || null) !== (project.description ?? null);
-    setDirty(nameChanged || descChanged);
-  }, [name, description, project]);
+    const ipsChanged = (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
+    setDirty(nameChanged || descChanged || ipsChanged);
+  }, [name, description, allowedIps, project]);
 
   async function handleSave() {
     if (!project || !dirty) return;
+    setIpError(null);
     try {
       setSaving(true);
       const res = await fetch(`/api/projects/${id}`, {
@@ -165,13 +171,22 @@ export default function ProjectDetailPage() {
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || undefined,
+          allowed_ips: allowedIps.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error("Failed to update project");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to update project" })) as { error: string; invalid?: string[] };
+        if (data.invalid) {
+          setIpError(`Invalid CIDR: ${data.invalid.join(", ")}`);
+          return;
+        }
+        throw new Error(data.error);
+      }
       const updated: Project = await res.json();
       setProject(updated);
       setName(updated.name);
       setDescription(updated.description ?? "");
+      setAllowedIps(updated.allowed_ips ?? "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -315,6 +330,27 @@ export default function ProjectDetailPage() {
               />
             </div>
 
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="allowed-ips">
+                Allowed IP Ranges{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Textarea
+                id="allowed-ips"
+                value={allowedIps}
+                onChange={(e) => { setAllowedIps(e.target.value); setIpError(null); }}
+                placeholder="e.g. 1.2.3.4/8, 10.0.0.0/16, 192.168.1.100"
+                rows={2}
+                disabled={saving}
+              />
+              <p className="text-xs text-muted-foreground">
+                Comma-separated list of IP or CIDR ranges allowed to send backups via webhook. Leave empty to allow all.
+              </p>
+              {ipError && (
+                <p className="text-xs text-destructive">{ipError}</p>
+              )}
+            </div>
+
             {dirty && (
               <div className="flex items-center gap-3">
                 <Button
@@ -331,6 +367,8 @@ export default function ProjectDetailPage() {
                   onClick={() => {
                     setName(project.name);
                     setDescription(project.description ?? "");
+                    setAllowedIps(project.allowed_ips ?? "");
+                    setIpError(null);
                   }}
                   disabled={saving}
                 >

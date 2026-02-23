@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS projects (
   name TEXT NOT NULL,
   description TEXT,
   webhook_token TEXT NOT NULL UNIQUE,
+  allowed_ips TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -46,5 +47,17 @@ export async function initializeSchema(): Promise<void> {
 
   for (const sql of statements) {
     await executeD1Query(sql);
+  }
+
+  // Migrations: add columns idempotently (D1 doesn't support IF NOT EXISTS for ALTER)
+  const migrations = [
+    "ALTER TABLE projects ADD COLUMN allowed_ips TEXT",
+  ];
+  for (const sql of migrations) {
+    try {
+      await executeD1Query(sql);
+    } catch {
+      // Column already exists — safe to ignore
+    }
   }
 }
