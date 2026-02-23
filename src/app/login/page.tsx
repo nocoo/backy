@@ -3,7 +3,8 @@
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { HardDrive, Github } from "lucide-react";
+import { Github } from "lucide-react";
+import Image from "next/image";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import LoadingScreen from "@/components/loading-screen";
 
@@ -96,9 +97,12 @@ function LoginContent() {
                 }}
               />
               <div className="flex items-center gap-2">
-                <HardDrive
-                  className="h-4 w-4 text-primary-foreground"
-                  strokeWidth={1.5}
+                <Image
+                  src="/logo-24.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="brightness-0 invert"
                 />
                 <span className="text-sm font-semibold text-primary-foreground">
                   backy
@@ -121,11 +125,14 @@ function LoginContent() {
 
           {/* Badge content */}
           <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
-            {/* Logo placeholder */}
+            {/* Logo */}
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-secondary dark:bg-[#171717] ring-1 ring-border">
-              <HardDrive
-                className="h-10 w-10 text-primary"
-                strokeWidth={1.5}
+              <Image
+                src="/logo-80.png"
+                alt="Backy"
+                width={56}
+                height={56}
+                priority
               />
             </div>
 
