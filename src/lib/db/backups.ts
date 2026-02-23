@@ -25,27 +25,126 @@ export interface BackupWithProject extends Backup {
   project_name: string;
 }
 
+/** Query options for listing backups. */
+export interface ListBackupsOptions {
+  projectId?: string | undefined;
+  search?: string | undefined;
+  environment?: string | undefined;
+  sortBy?: "created_at" | "file_size" | "project_name" | undefined;
+  sortOrder?: "asc" | "desc" | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+}
+
+/** Paginated result for backup listings. */
+export interface PaginatedBackups {
+  items: BackupWithProject[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 /**
- * List all backups, optionally filtered by project, ordered by creation date descending.
+ * List backups with filtering, search, sorting, and pagination.
  */
-export async function listBackups(projectId?: string): Promise<BackupWithProject[]> {
+export async function listBackups(options: ListBackupsOptions = {}): Promise<PaginatedBackups> {
+  const {
+    projectId,
+    search,
+    environment,
+    sortBy = "created_at",
+    sortOrder = "desc",
+    page = 1,
+    pageSize = 20,
+  } = options;
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
   if (projectId) {
-    return executeD1Query<BackupWithProject>(
-      `SELECT b.*, p.name as project_name
-       FROM backups b
-       JOIN projects p ON b.project_id = p.id
-       WHERE b.project_id = ?
-       ORDER BY b.created_at DESC`,
-      [projectId],
-    );
+    conditions.push("b.project_id = ?");
+    params.push(projectId);
+  }
+  if (environment) {
+    conditions.push("b.environment = ?");
+    params.push(environment);
+  }
+  if (search) {
+    conditions.push("(p.name LIKE ? OR b.tag LIKE ? OR b.id LIKE ?)");
+    const pattern = `%${search}%`;
+    params.push(pattern, pattern, pattern);
   }
 
-  return executeD1Query<BackupWithProject>(
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  // Sort column mapping (prevent SQL injection by allowlisting)
+  const sortColumnMap: Record<string, string> = {
+    created_at: "b.created_at",
+    file_size: "b.file_size",
+    project_name: "p.name",
+  };
+  const sortColumn = sortColumnMap[sortBy] ?? "b.created_at";
+  const order = sortOrder === "asc" ? "ASC" : "DESC";
+
+  // Count total
+  const countRows = await executeD1Query<{ count: number }>(
+    `SELECT COUNT(*) as count FROM backups b JOIN projects p ON b.project_id = p.id ${whereClause}`,
+    params,
+  );
+  const total = countRows[0]?.count ?? 0;
+
+  // Fetch page
+  const offset = (page - 1) * pageSize;
+  const items = await executeD1Query<BackupWithProject>(
     `SELECT b.*, p.name as project_name
      FROM backups b
      JOIN projects p ON b.project_id = p.id
-     ORDER BY b.created_at DESC`,
+     ${whereClause}
+     ORDER BY ${sortColumn} ${order}
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset],
   );
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+/**
+ * List all distinct environments across all backups.
+ */
+export async function listEnvironments(): Promise<string[]> {
+  const rows = await executeD1Query<{ environment: string }>(
+    "SELECT DISTINCT environment FROM backups WHERE environment IS NOT NULL ORDER BY environment",
+  );
+  return rows.map((r) => r.environment);
+}
+
+/**
+ * Delete multiple backups by IDs. Returns file keys for R2 cleanup.
+ */
+export async function deleteBackups(ids: string[]): Promise<Array<{ fileKey: string; jsonKey: string | null }>> {
+  if (ids.length === 0) return [];
+
+  const placeholders = ids.map(() => "?").join(", ");
+  const rows = await executeD1Query<Backup>(
+    `SELECT id, file_key, json_key FROM backups WHERE id IN (${placeholders})`,
+    ids,
+  );
+
+  if (rows.length === 0) return [];
+
+  await executeD1Query(
+    `DELETE FROM backups WHERE id IN (${placeholders})`,
+    ids,
+  );
+
+  return rows.map((r) => ({ fileKey: r.file_key, jsonKey: r.json_key }));
 }
 
 /**
