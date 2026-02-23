@@ -10,6 +10,7 @@ import {
   Archive,
   PanelLeft,
   LogOut,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./sidebar-context";
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/backups", label: "Backups", icon: Archive },
+  { href: "/logs", label: "Logs", icon: ScrollText },
 ];
 
 export function Sidebar() {

@@ -92,6 +92,10 @@ mock.module("@/lib/r2/client", () => ({
   resetR2Client: () => {},
 }));
 
+mock.module("@/lib/db/webhook-logs", () => ({
+  createWebhookLog: async () => {},
+}));
+
 const { POST, HEAD, GET } = await import("@/app/api/webhook/[projectId]/route");
 
 function createRequest(options: {

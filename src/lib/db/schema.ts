@@ -32,9 +32,27 @@ CREATE TABLE IF NOT EXISTS backups (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS webhook_logs (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  status_code INTEGER NOT NULL,
+  client_ip TEXT,
+  user_agent TEXT,
+  error_code TEXT,
+  error_message TEXT,
+  duration_ms INTEGER,
+  metadata TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_backups_project_id ON backups(project_id);
 CREATE INDEX IF NOT EXISTS idx_backups_created_at ON backups(created_at);
 CREATE INDEX IF NOT EXISTS idx_projects_webhook_token ON projects(webhook_token);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_project_id ON webhook_logs(project_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at ON webhook_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_status_code ON webhook_logs(status_code);
 `;
 
 /**
