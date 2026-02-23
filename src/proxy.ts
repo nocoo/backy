@@ -25,12 +25,15 @@ const authHandler = auth((req) => {
   }
 
   const isLoggedIn = !!req.auth;
-  const isLoginPage = req.nextUrl.pathname === "/login";
-  const isAuthRoute = req.nextUrl.pathname.startsWith("/api/auth");
-  const isLiveRoute = req.nextUrl.pathname === "/api/live";
+  const { pathname } = req.nextUrl;
+  const isLoginPage = pathname === "/login";
+  const isAuthRoute = pathname.startsWith("/api/auth");
+  const isLiveRoute = pathname === "/api/live";
+  const isWebhookRoute = pathname.startsWith("/api/webhook");
+  const isRestoreRoute = pathname.startsWith("/api/restore");
 
-  // Allow auth routes and health check
-  if (isAuthRoute || isLiveRoute) {
+  // Allow public routes: auth handlers, health check, webhook ingestion, restore downloads
+  if (isAuthRoute || isLiveRoute || isWebhookRoute || isRestoreRoute) {
     return NextResponse.next();
   }
 
@@ -54,7 +57,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static files and non-auth API routes
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.ico$|.*\\.svg$|api/(?!auth)).*)",
+    // Match all paths except static files
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.ico$|.*\\.svg$).*)",
   ],
 };
