@@ -115,6 +115,47 @@ export async function createBackup(data: {
 }
 
 /**
+ * Update a backup record (for setting json_key after extraction, etc.).
+ */
+export async function updateBackup(
+  id: string,
+  data: {
+    jsonKey?: string | undefined;
+    jsonExtracted?: boolean | undefined;
+  },
+): Promise<Backup | undefined> {
+  const sets: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (data.jsonKey !== undefined) {
+    sets.push("json_key = ?");
+    params.push(data.jsonKey);
+  }
+  if (data.jsonExtracted !== undefined) {
+    sets.push("json_extracted = ?");
+    params.push(data.jsonExtracted ? 1 : 0);
+  }
+
+  if (sets.length === 0) return getBackup(id) as Promise<Backup | undefined>;
+
+  const now = new Date().toISOString();
+  sets.push("updated_at = ?");
+  params.push(now);
+  params.push(id);
+
+  await executeD1Query(
+    `UPDATE backups SET ${sets.join(", ")} WHERE id = ?`,
+    params,
+  );
+
+  const rows = await executeD1Query<Backup>(
+    "SELECT * FROM backups WHERE id = ?",
+    [id],
+  );
+  return rows[0];
+}
+
+/**
  * Delete a backup by ID. Returns the file keys that need to be cleaned up from R2.
  */
 export async function deleteBackup(id: string): Promise<{ fileKey: string; jsonKey: string | null } | undefined> {
