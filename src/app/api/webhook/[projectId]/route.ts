@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProjectByToken } from "@/lib/db/projects";
 import { createBackup, listBackups, countBackups } from "@/lib/db/backups";
 import { uploadToR2 } from "@/lib/r2/client";
+import { isIpAllowed, getClientIp } from "@/lib/ip";
 
 /** Max upload size: 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -39,6 +40,14 @@ export async function HEAD(
 
     if (!project || project.id !== projectId) {
       return new Response(null, { status: 403 });
+    }
+
+    // --- IP restriction ---
+    if (project.allowed_ips) {
+      const clientIp = getClientIp(request);
+      if (!clientIp || !isIpAllowed(clientIp, project.allowed_ips)) {
+        return new Response(null, { status: 403 });
+      }
     }
 
     return new Response(null, {
@@ -88,6 +97,17 @@ export async function GET(
         { error: "Invalid token or project mismatch" },
         { status: 403 },
       );
+    }
+
+    // --- IP restriction ---
+    if (project.allowed_ips) {
+      const clientIp = getClientIp(request);
+      if (!clientIp || !isIpAllowed(clientIp, project.allowed_ips)) {
+        return NextResponse.json(
+          { error: "IP address not allowed" },
+          { status: 403 },
+        );
+      }
     }
 
     // --- Parse query params ---
@@ -164,6 +184,17 @@ export async function POST(
       );
     }
 
+    // --- IP restriction ---
+    if (project.allowed_ips) {
+      const clientIp = getClientIp(request);
+      if (!clientIp || !isIpAllowed(clientIp, project.allowed_ips)) {
+        return NextResponse.json(
+          { error: "IP address not allowed" },
+          { status: 403 },
+        );
+      }
+    }
+
     // --- Parse multipart form ---
     const formData = await request.formData();
     const file = formData.get("file");
@@ -230,8 +261,7 @@ export async function POST(
     }
 
     // --- Extract sender IP ---
-    const forwarded = request.headers.get("x-forwarded-for");
-    const senderIp = forwarded?.split(",")[0]?.trim() ?? "unknown";
+    const senderIp = getClientIp(request) ?? "unknown";
 
     // --- Save metadata to D1 ---
     const backup = await createBackup({

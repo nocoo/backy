@@ -9,6 +9,18 @@ mock.module("@/lib/db/projects", () => ({
         name: "Test Project",
         description: null,
         webhook_token: "valid-token",
+        allowed_ips: null,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
+      };
+    }
+    if (token === "ip-restricted-token") {
+      return {
+        id: "proj-456",
+        name: "IP Restricted Project",
+        description: null,
+        webhook_token: "ip-restricted-token",
+        allowed_ips: "10.0.0.0/8,192.168.1.0/24",
         created_at: "2026-01-01T00:00:00.000Z",
         updated_at: "2026-01-01T00:00:00.000Z",
       };
@@ -331,5 +343,131 @@ describe("GET /api/webhook/[projectId]", () => {
     expect(backup).not.toHaveProperty("file_key");
     expect(backup).not.toHaveProperty("json_key");
     expect(backup).not.toHaveProperty("sender_ip");
+  });
+});
+
+describe("IP restriction enforcement", () => {
+  const ipParams = Promise.resolve({ projectId: "proj-456" });
+
+  describe("HEAD — IP check", () => {
+    test("returns 200 when IP is in allowed range", async () => {
+      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+        method: "HEAD",
+        headers: {
+          Authorization: "Bearer ip-restricted-token",
+          "x-forwarded-for": "10.1.2.3",
+        },
+      });
+      const res = await HEAD(req, { params: ipParams });
+      expect(res.status).toBe(200);
+    });
+
+    test("returns 403 when IP is outside allowed range", async () => {
+      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+        method: "HEAD",
+        headers: {
+          Authorization: "Bearer ip-restricted-token",
+          "x-forwarded-for": "172.16.0.1",
+        },
+      });
+      const res = await HEAD(req, { params: ipParams });
+      expect(res.status).toBe(403);
+    });
+
+    test("returns 403 when no x-forwarded-for header on IP-restricted project", async () => {
+      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+        method: "HEAD",
+        headers: { Authorization: "Bearer ip-restricted-token" },
+      });
+      const res = await HEAD(req, { params: ipParams });
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("GET — IP check", () => {
+    test("returns 200 when IP is in allowed range", async () => {
+      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+        headers: {
+          Authorization: "Bearer ip-restricted-token",
+          "x-forwarded-for": "192.168.1.100",
+        },
+      });
+      const res = await GET(req, { params: ipParams });
+      expect(res.status).toBe(200);
+    });
+
+    test("returns 403 when IP is outside allowed range", async () => {
+      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+        headers: {
+          Authorization: "Bearer ip-restricted-token",
+          "x-forwarded-for": "8.8.8.8",
+        },
+      });
+      const res = await GET(req, { params: ipParams });
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.error).toContain("IP");
+    });
+  });
+
+  describe("POST — IP check", () => {
+    test("returns 201 when IP is in allowed range", async () => {
+      const formData = new FormData();
+      formData.append("file", new File(["data"], "backup.json", { type: "application/json" }));
+      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer ip-restricted-token",
+          "x-forwarded-for": "10.0.0.1",
+        },
+        body: formData,
+      });
+      const res = await POST(req, { params: ipParams });
+      expect(res.status).toBe(201);
+    });
+
+    test("returns 403 when IP is outside allowed range", async () => {
+      const formData = new FormData();
+      formData.append("file", new File(["data"], "backup.json", { type: "application/json" }));
+      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer ip-restricted-token",
+          "x-forwarded-for": "1.2.3.4",
+        },
+        body: formData,
+      });
+      const res = await POST(req, { params: ipParams });
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.error).toContain("IP");
+    });
+  });
+
+  describe("project without IP restriction is unaffected", () => {
+    const openParams = Promise.resolve({ projectId: "proj-123" });
+
+    test("HEAD allows any IP when allowed_ips is null", async () => {
+      const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+        method: "HEAD",
+        headers: {
+          Authorization: "Bearer valid-token",
+          "x-forwarded-for": "1.2.3.4",
+        },
+      });
+      const res = await HEAD(req, { params: openParams });
+      expect(res.status).toBe(200);
+    });
+
+    test("GET allows any IP when allowed_ips is null", async () => {
+      const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+        headers: {
+          Authorization: "Bearer valid-token",
+          "x-forwarded-for": "1.2.3.4",
+        },
+      });
+      const res = await GET(req, { params: openParams });
+      expect(res.status).toBe(200);
+    });
   });
 });
