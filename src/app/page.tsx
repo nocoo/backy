@@ -59,8 +59,8 @@ export default function HomePage() {
       }
 
       if (backupsRes.ok) {
-        const data: RecentBackup[] = await backupsRes.json();
-        setRecentBackups(data.slice(0, 5));
+        const data = await backupsRes.json();
+        setRecentBackups((data.items as RecentBackup[]).slice(0, 5));
       }
     } catch {
       // Silently fail — dashboard is best-effort
