@@ -18,6 +18,8 @@ import {
   Link2,
   Copy,
   Check,
+  MapPin,
+  Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
@@ -48,6 +50,23 @@ interface BackupDetail {
   json_extracted: number;
   created_at: string;
   updated_at: string;
+}
+
+interface IpInfoLocation {
+  country: string;
+  province: string;
+  city: string;
+  isp: string;
+  iso2: string;
+}
+
+interface IpInfo {
+  ip: string;
+  version: number;
+  location: IpInfoLocation;
+  latencyMs: number;
+  source: string;
+  attribution: string;
 }
 
 function formatBytes(bytes: number): string {
@@ -93,6 +112,10 @@ export default function BackupDetailPage() {
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // IP info state
+  const [ipInfo, setIpInfo] = useState<IpInfo | null>(null);
+  const [ipInfoLoading, setIpInfoLoading] = useState(false);
+
   const fetchBackup = useCallback(async () => {
     try {
       setLoading(true);
@@ -122,6 +145,29 @@ export default function BackupDetailPage() {
     if (backup.json_key) {
       void loadPreview();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backup]);
+
+  // Auto-load IP info when backup is available
+  useEffect(() => {
+    if (!backup || ipInfo || ipInfoLoading) return;
+    if (backup.sender_ip === "unknown") return;
+
+    async function fetchIpInfo() {
+      try {
+        setIpInfoLoading(true);
+        const res = await fetch(`/api/ip-info?ip=${encodeURIComponent(backup!.sender_ip)}`);
+        if (!res.ok) return; // Silently fail — IP info is supplementary
+        const data: IpInfo = await res.json();
+        setIpInfo(data);
+      } catch {
+        // Non-critical — just don't show IP details
+      } finally {
+        setIpInfoLoading(false);
+      }
+    }
+
+    void fetchIpInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backup]);
 
@@ -463,11 +509,42 @@ export default function BackupDetailPage() {
               label="Created"
               value={formatDate(backup.created_at)}
             />
-            <MetadataItem
-              icon={<Globe className="h-4 w-4" />}
-              label="Sender"
-              value={backup.sender_ip}
-            />
+
+            {/* Sender IP card with geo info */}
+            <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Globe className="h-4 w-4" />
+                <span className="text-xs">Sender</span>
+              </div>
+              <div className="text-sm font-medium text-foreground font-mono">
+                {backup.sender_ip}
+              </div>
+              {ipInfoLoading ? (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-xs">Loading IP info...</span>
+                </div>
+              ) : ipInfo?.location ? (
+                <div className="flex flex-col gap-1.5 pt-1 border-t border-border">
+                  {(ipInfo.location.city || ipInfo.location.province || ipInfo.location.country) && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground">
+                        {[ipInfo.location.city, ipInfo.location.province, ipInfo.location.country]
+                          .filter((s) => s && s !== "0")
+                          .join(", ")}
+                      </span>
+                    </div>
+                  )}
+                  {ipInfo.location.isp && ipInfo.location.isp !== "0" && (
+                    <div className="flex items-center gap-1.5">
+                      <Wifi className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground">{ipInfo.location.isp}</span>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
             {backup.environment && (
               <MetadataItem
                 icon={<Unplug className="h-4 w-4" />}
