@@ -3,7 +3,7 @@ import { executeD1Query, isD1Configured } from "@/lib/db/d1-client";
 import { pingR2, isR2Configured } from "@/lib/r2/client";
 
 const HEALTH_CHECK_TIMEOUT_MS = 5_000;
-const APP_VERSION = process.env.npm_package_version ?? "unknown";
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown";
 
 interface DependencyStatus {
   status: "up" | "down";

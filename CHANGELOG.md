@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-02-23
+
+### Features
+
+- **Liveness probe** — Upgraded `GET /api/live` to a full health check endpoint with D1 and R2 connectivity verification, per-dependency latency reporting, timeout protection, and no-cache headers
+- **IP geolocation** — Integrated IP geolocation lookup in backup detail sender card, showing country, region, city, and ISP info
+- **IP restriction** — Enforced CIDR-based IP restriction on all webhook and restore endpoints with fail-closed policy
+- **CIDR matching** — Added `isIpAllowed` helper with support for IPv4/IPv6 CIDR notation and `getClientIp` with Envoy/XFF header parsing
+
+### Fixed
+
+- **IP enforcement hardening** — Use rightmost XFF entry, prefer Envoy `x-envoy-external-address` header, fail-closed on parse errors, generic error messages to prevent information leakage
+
+### Changed
+
+- **Webhook docs** — Updated README and AI prompt with full webhook protocol documentation
+- **Version source** — Unified version reporting in `/api/live` to use `NEXT_PUBLIC_APP_VERSION` (from `package.json` via `next.config.ts`) instead of `npm_package_version`
+- **Unit test count** — 71 → 126 unit tests
+
 ## [1.1.0] - 2026-02-23
 
 ### Features
@@ -52,5 +71,6 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.1.1]: https://github.com/nocoo/backy/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/nocoo/backy/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nocoo/backy/releases/tag/v1.0.0
