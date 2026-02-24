@@ -544,6 +544,16 @@ async function suiteWebhookLogs(): Promise<void> {
 async function suiteCleanup(): Promise<void> {
   console.log("\n📋 Suite: Cleanup");
 
+  // Clean up any remaining categories
+  if (createdCategoryIds.length > 0) {
+    await test(`GIVEN ${createdCategoryIds.length} test categories WHEN deleting THEN all are removed`, async () => {
+      for (const id of createdCategoryIds) {
+        const res = await fetch(`${baseUrl}/api/categories/${id}`, { method: "DELETE" });
+        assert(res.status === 200 || res.status === 404, `category ${id} delete should return 200 or 404`);
+      }
+    });
+  }
+
   if (createdBackupIds.length === 0) {
     console.log("  ⚠️  No backups to clean up");
     return;
@@ -581,6 +591,290 @@ async function suiteCleanup(): Promise<void> {
   });
 }
 
+// IDs of categories created during the test — cleaned up at the end
+const createdCategoryIds: string[] = [];
+
+async function suiteCategoryCrud(): Promise<void> {
+  console.log("\n📋 Suite: Category CRUD Lifecycle");
+
+  let categoryId = "";
+
+  // Step 1: Create a category
+  await test("GIVEN valid category data WHEN creating via POST THEN returns 201 with category object", async () => {
+    const res = await fetch(`${baseUrl}/api/categories`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "E2E Test Category", color: "#ef4444", icon: "shield" }),
+    });
+    assertEqual(res.status, 201, "status");
+    const body = await res.json();
+    assert(typeof body.id === "string" && body.id.length > 0, "id should be a non-empty string");
+    assertEqual(body.name, "E2E Test Category", "name");
+    assertEqual(body.color, "#ef4444", "color");
+    assertEqual(body.icon, "shield", "icon");
+    assertEqual(body.sort_order, 0, "sort_order default");
+    categoryId = body.id;
+    createdCategoryIds.push(categoryId);
+  });
+
+  // Step 2: Verify category appears in list
+  await test("GIVEN a created category WHEN listing all categories THEN the new category appears", async () => {
+    const res = await fetch(`${baseUrl}/api/categories`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(Array.isArray(body), "response should be an array");
+    const found = body.find((c: { id: string }) => c.id === categoryId);
+    assert(found !== undefined, "category should appear in list");
+    assertEqual(found.name, "E2E Test Category", "name");
+  });
+
+  // Step 3: Get category by ID
+  await test("GIVEN a created category WHEN getting by ID THEN returns full category data", async () => {
+    const res = await fetch(`${baseUrl}/api/categories/${categoryId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.id, categoryId, "id");
+    assertEqual(body.name, "E2E Test Category", "name");
+    assertEqual(body.color, "#ef4444", "color");
+    assertEqual(body.icon, "shield", "icon");
+  });
+
+  // Step 4: Update category
+  await test("GIVEN a created category WHEN updating name/color/icon THEN returns updated data", async () => {
+    const res = await fetch(`${baseUrl}/api/categories/${categoryId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "E2E Updated", color: "#10b981", icon: "star" }),
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.name, "E2E Updated", "name");
+    assertEqual(body.color, "#10b981", "color");
+    assertEqual(body.icon, "star", "icon");
+  });
+
+  // Step 5: Verify update persisted
+  await test("GIVEN an updated category WHEN getting by ID THEN returns updated values", async () => {
+    const res = await fetch(`${baseUrl}/api/categories/${categoryId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.name, "E2E Updated", "name");
+    assertEqual(body.color, "#10b981", "color");
+    assertEqual(body.icon, "star", "icon");
+  });
+
+  // Step 6: Assign category to backy-test project
+  await test("GIVEN a category and project WHEN assigning category to project THEN project shows category_id", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${PROJECT_ID}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category_id: categoryId }),
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.category_id, categoryId, "category_id");
+  });
+
+  // Step 7: Verify project has category
+  await test("GIVEN a project with category WHEN getting project THEN category_id is set", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${PROJECT_ID}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.category_id, categoryId, "category_id");
+  });
+
+  // Step 8: Delete category — should cascade (set project category_id to null)
+  await test("GIVEN a category assigned to project WHEN deleting category THEN returns success", async () => {
+    const res = await fetch(`${baseUrl}/api/categories/${categoryId}`, { method: "DELETE" });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.success, true, "success");
+    // Remove from cleanup list since we just deleted it
+    const idx = createdCategoryIds.indexOf(categoryId);
+    if (idx !== -1) createdCategoryIds.splice(idx, 1);
+  });
+
+  // Step 9: Verify project's category_id is now null (CASCADE ON DELETE SET NULL)
+  await test("GIVEN a deleted category WHEN getting project THEN category_id is null", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${PROJECT_ID}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.category_id, null, "category_id should be null after category deletion");
+  });
+
+  // Step 10: Verify category is gone from list
+  await test("GIVEN a deleted category WHEN listing categories THEN it no longer appears", async () => {
+    const res = await fetch(`${baseUrl}/api/categories`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    const found = body.find((c: { id: string }) => c.id === categoryId);
+    assertEqual(found, undefined, "deleted category should not appear in list");
+  });
+
+  // Step 11: Verify 404 on GET for deleted category
+  await test("GIVEN a deleted category WHEN getting by ID THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/categories/${categoryId}`);
+    assertEqual(res.status, 404, "status");
+  });
+
+  // Step 12: Validation errors
+  await test("GIVEN invalid category data WHEN creating THEN returns 400", async () => {
+    const res = await fetch(`${baseUrl}/api/categories`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "", color: "invalid" }),
+    });
+    assertEqual(res.status, 400, "status");
+  });
+}
+
+async function suiteManualUpload(): Promise<void> {
+  console.log("\n📋 Suite: Manual Upload Round-Trip");
+
+  let jsonBackupId = "";
+  let zipBackupId = "";
+  const uploadTag = `${E2E_TAG_PREFIX}upload-${Date.now()}`;
+
+  // Step 1: Upload JSON file via manual upload endpoint
+  await test("GIVEN a valid JSON file WHEN uploading via manual upload THEN returns 201 with backup metadata", async () => {
+    const formData = new FormData();
+    const jsonBlob = new Blob([JSON.stringify(TEST_JSON_DATA)], { type: "application/json" });
+    formData.append("file", new File([jsonBlob], "manual-backup.json", { type: "application/json" }));
+    formData.append("projectId", PROJECT_ID);
+    formData.append("tag", uploadTag);
+    formData.append("environment", "test");
+
+    const res = await fetch(`${baseUrl}/api/backups/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    assertEqual(res.status, 201, "status");
+    const body = await res.json();
+    assert(typeof body.id === "string" && body.id.length > 0, "id should be a non-empty string");
+    assertEqual(body.project_id, PROJECT_ID, "project_id");
+    assert(body.file_size > 0, "file_size should be positive");
+    jsonBackupId = body.id;
+    createdBackupIds.push(jsonBackupId);
+  });
+
+  // Step 2: Verify backup metadata — should be auto-compressed to ZIP with preview
+  await test("GIVEN a manually uploaded JSON WHEN querying metadata THEN shows is_single_json=1 with json_key", async () => {
+    const res = await fetch(`${baseUrl}/api/backups/${jsonBackupId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.id, jsonBackupId, "id");
+    assertEqual(body.project_id, PROJECT_ID, "project_id");
+    assertEqual(body.environment, "test", "environment");
+    assertEqual(body.tag, uploadTag, "tag");
+    assertEqual(body.is_single_json, 1, "is_single_json");
+    assert(body.json_key !== null, "json_key should be set for JSON upload");
+    assertEqual(body.sender_ip, "manual-upload", "sender_ip should be manual-upload");
+  });
+
+  // Step 3: Preview the uploaded JSON content
+  await test("GIVEN a manually uploaded JSON WHEN previewing THEN returns original content", async () => {
+    const res = await fetch(`${baseUrl}/api/backups/${jsonBackupId}/preview`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.backup_id, jsonBackupId, "backup_id");
+    assertDeepEqual(body.content, TEST_JSON_DATA, "preview content should match original upload");
+  });
+
+  // Step 4: Download and verify content
+  await test("GIVEN a manually uploaded JSON WHEN downloading THEN returns original content via presigned URL", async () => {
+    const res = await fetch(`${baseUrl}/api/backups/${jsonBackupId}/download`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(typeof body.url === "string", "url should be a string");
+
+    const downloadRes = await fetch(body.url);
+    assertEqual(downloadRes.status, 200, "download status");
+    const downloaded = await downloadRes.json();
+    assertDeepEqual(downloaded, TEST_JSON_DATA, "downloaded content should match original");
+  });
+
+  // Step 5: Upload ZIP file via manual upload
+  await test("GIVEN a valid ZIP file WHEN uploading via manual upload THEN returns 201", async () => {
+    const zipData = await createZipWithJson(TEST_JSON_DATA, "manual-data.json");
+    const formData = new FormData();
+    formData.append("file", new File([zipData as BlobPart], "manual-backup.zip", { type: "application/zip" }));
+    formData.append("projectId", PROJECT_ID);
+    formData.append("environment", "test");
+
+    const res = await fetch(`${baseUrl}/api/backups/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    assertEqual(res.status, 201, "status");
+    const body = await res.json();
+    zipBackupId = body.id;
+    createdBackupIds.push(zipBackupId);
+  });
+
+  // Step 6: Verify ZIP metadata
+  await test("GIVEN a manually uploaded ZIP WHEN querying metadata THEN shows is_single_json=0", async () => {
+    const res = await fetch(`${baseUrl}/api/backups/${zipBackupId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.is_single_json, 0, "is_single_json");
+    assertEqual(body.json_key, null, "json_key should be null for ZIP upload");
+    assertEqual(body.sender_ip, "manual-upload", "sender_ip");
+  });
+
+  // Step 7: Error — missing projectId
+  await test("GIVEN no projectId WHEN uploading manually THEN returns 400", async () => {
+    const formData = new FormData();
+    formData.append("file", new File(["data"], "backup.json", { type: "application/json" }));
+    const res = await fetch(`${baseUrl}/api/backups/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    assertEqual(res.status, 400, "status");
+    const body = await res.json();
+    assert(body.error.includes("projectId"), "error should mention projectId");
+  });
+
+  // Step 8: Error — invalid project
+  await test("GIVEN nonexistent projectId WHEN uploading manually THEN returns 404", async () => {
+    const formData = new FormData();
+    formData.append("file", new File(["data"], "backup.json", { type: "application/json" }));
+    formData.append("projectId", "nonexistent-project-id");
+    const res = await fetch(`${baseUrl}/api/backups/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    assertEqual(res.status, 404, "status");
+  });
+
+  // Step 9: Error — empty file
+  await test("GIVEN an empty file WHEN uploading manually THEN returns 400", async () => {
+    const formData = new FormData();
+    formData.append("file", new File([], "empty.json", { type: "application/json" }));
+    formData.append("projectId", PROJECT_ID);
+    const res = await fetch(`${baseUrl}/api/backups/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    assertEqual(res.status, 400, "status");
+    const body = await res.json();
+    assert(body.error.includes("empty"), "error should mention empty");
+  });
+
+  // Step 10: Error — unsupported file type
+  await test("GIVEN a .txt file WHEN uploading manually THEN returns 400", async () => {
+    const formData = new FormData();
+    formData.append("file", new File(["data"], "backup.txt", { type: "text/plain" }));
+    formData.append("projectId", PROJECT_ID);
+    const res = await fetch(`${baseUrl}/api/backups/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    assertEqual(res.status, 400, "status");
+    const body = await res.json();
+    assert(body.error.includes("Unsupported"), "error should mention unsupported type");
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Main runner
 // ---------------------------------------------------------------------------
@@ -589,6 +883,7 @@ export async function runE2ETests(url: string): Promise<{ passed: number; failed
   baseUrl = url;
   results.length = 0;
   createdBackupIds.length = 0;
+  createdCategoryIds.length = 0;
 
   console.log("🎯 E2E Tests — Backy Self-Bootstrap via backy-test project");
   console.log(`   Base URL: ${baseUrl}`);
@@ -610,6 +905,8 @@ export async function runE2ETests(url: string): Promise<{ passed: number; failed
   await suiteHappyPathZip();
   await suiteErrorPaths();
   await suiteWebhookLogs();
+  await suiteCategoryCrud();
+  await suiteManualUpload();
   await suiteCleanup();
 
   const passed = results.filter((r) => r.passed).length;
