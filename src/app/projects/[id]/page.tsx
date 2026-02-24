@@ -31,6 +31,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ManualUploadDialog } from "@/components/manual-upload-dialog";
 
 interface Project {
   id: string;
@@ -531,11 +532,17 @@ export default function ProjectDetailPage() {
               </p>
             </div>
             {backups && backups.total > 0 && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/backups?projectId=${project.id}`}>
-                  View All
-                </Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <ManualUploadDialog
+                  projectId={project.id}
+                  onSuccess={() => void fetchBackups()}
+                />
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/backups?projectId=${project.id}`}>
+                    View All
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
 

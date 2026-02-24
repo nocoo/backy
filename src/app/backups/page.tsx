@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ManualUploadDialog } from "@/components/manual-upload-dialog";
 import {
   Select,
   SelectContent,
@@ -283,7 +284,7 @@ export default function BackupsPage() {
           </div>
 
           {/* Batch actions */}
-          {selected.size > 0 && (
+          {selected.size > 0 ? (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
                 {selected.size} selected
@@ -304,6 +305,8 @@ export default function BackupsPage() {
                 Clear
               </Button>
             </div>
+          ) : (
+            <ManualUploadDialog onSuccess={() => void fetchBackups()} />
           )}
         </div>
 
