@@ -781,16 +781,21 @@ async function suiteManualUpload(): Promise<void> {
   });
 
   // Step 4: Download and verify content
-  await test("GIVEN a manually uploaded JSON WHEN downloading THEN returns original content via presigned URL", async () => {
+  await test("GIVEN a manually uploaded JSON WHEN downloading THEN returns auto-compressed ZIP with original content", async () => {
     const res = await fetch(`${baseUrl}/api/backups/${jsonBackupId}/download`);
     assertEqual(res.status, 200, "status");
     const body = await res.json();
     assert(typeof body.url === "string", "url should be a string");
 
+    // Download is a ZIP (JSON was auto-compressed on upload)
     const downloadRes = await fetch(body.url);
     assertEqual(downloadRes.status, 200, "download status");
-    const downloaded = await downloadRes.json();
-    assertDeepEqual(downloaded, TEST_JSON_DATA, "downloaded content should match original");
+    const zipBuffer = await downloadRes.arrayBuffer();
+    const zip = await JSZip.loadAsync(zipBuffer);
+    const jsonFile = zip.file("manual-backup.json");
+    assert(jsonFile !== null, "zip should contain manual-backup.json");
+    const text = await jsonFile!.async("text");
+    assertDeepEqual(JSON.parse(text), TEST_JSON_DATA, "zip content should match original");
   });
 
   // Step 5: Upload ZIP file via manual upload
