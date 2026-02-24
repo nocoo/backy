@@ -60,6 +60,9 @@ const PAGE_SIZE = 50;
 /** The project name to exclude by default (automated testing). */
 const EXCLUDED_PROJECT_NAMES = ["GunTest", "backy-test"];
 
+/** Client IPs to exclude by default (localhost / test traffic). */
+const EXCLUDED_CLIENT_IPS = ["::1"];
+
 interface IpInfoLocation {
   country: string;
   province: string;
@@ -346,12 +349,18 @@ export default function LogsPage() {
       if (projectFilter === "default" && excludedProjectIds.length > 0) {
         // Exclude test projects by default
         params.set("excludeProjectIds", excludedProjectIds.join(","));
+      } else if (projectFilter === "default") {
+        // Projects not yet loaded but still apply IP filter below
       } else if (
-        projectFilter !== "all" &&
-        projectFilter !== "default"
+        projectFilter !== "all"
       ) {
         // Specific project selected
         params.set("projectId", projectFilter);
+      }
+
+      // Always exclude localhost IPs in default mode
+      if (projectFilter === "default") {
+        params.set("excludeClientIps", EXCLUDED_CLIENT_IPS.join(","));
       }
 
       const res = await fetch(`/api/logs?${params.toString()}`);
@@ -489,7 +498,7 @@ export default function LogsPage() {
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Exclude Test Projects</SelectItem>
+              <SelectItem value="default">Exclude Test Traffic</SelectItem>
               <SelectItem value="all">All Projects</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>

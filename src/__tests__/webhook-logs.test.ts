@@ -422,6 +422,73 @@ describe("webhook-logs", () => {
     });
   });
 
+  describe("listWebhookLogs — excludeClientIps", () => {
+    test("adds exclude condition when excludeClientIps has one entry", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({ excludeClientIps: ["::1"] });
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).toContain("l.client_ip NOT IN (?)");
+      expect(countBody.params).toContain("::1");
+    });
+
+    test("adds exclude condition with multiple IPs", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({ excludeClientIps: ["::1", "127.0.0.1"] });
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).toContain("l.client_ip NOT IN (?, ?)");
+      expect(countBody.params).toContain("::1");
+      expect(countBody.params).toContain("127.0.0.1");
+    });
+
+    test("does not add exclude condition when excludeClientIps is empty", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({ excludeClientIps: [] });
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).not.toContain("client_ip NOT IN");
+    });
+
+    test("combines excludeProjectIds and excludeClientIps", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({
+        excludeProjectIds: ["proj-test"],
+        excludeClientIps: ["::1"],
+      });
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).toContain("l.project_id NOT IN (?)");
+      expect(countBody.sql).toContain("l.client_ip NOT IN (?)");
+      expect(countBody.params).toContain("proj-test");
+      expect(countBody.params).toContain("::1");
+    });
+  });
+
   describe("deleteWebhookLogs", () => {
     test("deletes all logs when no filters provided", async () => {
       let capturedBody = "";

@@ -100,6 +100,7 @@ export async function createWebhookLog(
 export interface ListWebhookLogsOptions {
   projectId?: string | undefined;
   excludeProjectIds?: string[] | undefined;
+  excludeClientIps?: string[] | undefined;
   method?: string | undefined;
   statusCode?: number | undefined;
   errorCode?: string | undefined;
@@ -126,6 +127,7 @@ export async function listWebhookLogs(
   const {
     projectId,
     excludeProjectIds,
+    excludeClientIps,
     method,
     statusCode,
     errorCode,
@@ -147,6 +149,13 @@ export async function listWebhookLogs(
       `(l.project_id IS NULL OR l.project_id NOT IN (${placeholders}))`,
     );
     params.push(...excludeProjectIds);
+  }
+  if (excludeClientIps && excludeClientIps.length > 0) {
+    const placeholders = excludeClientIps.map(() => "?").join(", ");
+    conditions.push(
+      `(l.client_ip IS NULL OR l.client_ip NOT IN (${placeholders}))`,
+    );
+    params.push(...excludeClientIps);
   }
   if (method) {
     conditions.push("l.method = ?");
