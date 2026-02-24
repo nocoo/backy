@@ -11,6 +11,8 @@ import {
   XCircle,
   AlertTriangle,
   Trash2,
+  MapPin,
+  Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
@@ -56,7 +58,19 @@ interface ProjectInfo {
 const PAGE_SIZE = 50;
 
 /** The project name to exclude by default (automated testing). */
-const EXCLUDED_PROJECT_NAME = "GunTest";
+const EXCLUDED_PROJECT_NAMES = ["GunTest", "backy-test"];
+
+interface IpInfoLocation {
+  country: string;
+  province: string;
+  city: string;
+  isp: string;
+}
+
+interface IpInfo {
+  ip: string;
+  location: IpInfoLocation;
+}
 
 /** Compact single-line date: "Feb 24, 14:03:21" */
 function formatDate(dateStr: string): string {
@@ -125,6 +139,151 @@ function MethodBadge({ method }: { method: string }) {
   );
 }
 
+/** Expanded detail panel for a single log entry — fetches IP geo info. */
+function LogDetail({ log }: { log: WebhookLogEntry }) {
+  const [ipInfo, setIpInfo] = useState<IpInfo | null>(null);
+  const [ipLoading, setIpLoading] = useState(false);
+
+  useEffect(() => {
+    if (!log.client_ip || ipInfo || ipLoading) return;
+
+    async function fetchIpInfo() {
+      try {
+        setIpLoading(true);
+        const res = await fetch(
+          `/api/ip-info?ip=${encodeURIComponent(log.client_ip!)}`,
+        );
+        if (!res.ok) return;
+        const data: IpInfo = await res.json();
+        setIpInfo(data);
+      } catch {
+        // Non-critical
+      } finally {
+        setIpLoading(false);
+      }
+    }
+
+    void fetchIpInfo();
+  }, [log.client_ip]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const locationParts = ipInfo?.location
+    ? [
+        ipInfo.location.city,
+        ipInfo.location.province,
+        ipInfo.location.country,
+      ].filter((s) => s && s !== "0")
+    : [];
+
+  const isp =
+    ipInfo?.location?.isp && ipInfo.location.isp !== "0"
+      ? ipInfo.location.isp
+      : null;
+
+  return (
+    <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-border bg-muted/30 px-4 py-3 text-sm">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* IP + Geo info */}
+        <div>
+          <span className="text-xs text-muted-foreground block mb-0.5">
+            Client IP
+          </span>
+          <span className="text-xs font-mono text-foreground">
+            {log.client_ip ?? "\u2014"}
+          </span>
+          {ipLoading && (
+            <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="text-xs">Loading IP info...</span>
+            </div>
+          )}
+          {!ipLoading && (locationParts.length > 0 || isp) && (
+            <div className="flex flex-col gap-1 mt-1.5 pt-1.5 border-t border-border">
+              {locationParts.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-xs text-muted-foreground">
+                    {locationParts.join(", ")}
+                  </span>
+                </div>
+              )}
+              {isp && (
+                <div className="flex items-center gap-1.5">
+                  <Wifi className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-xs text-muted-foreground">{isp}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* User Agent */}
+        <div>
+          <span className="text-xs text-muted-foreground block mb-0.5">
+            User Agent
+          </span>
+          <span className="text-xs font-mono text-foreground break-all">
+            {log.user_agent ?? "\u2014"}
+          </span>
+        </div>
+
+        {/* Path */}
+        <div>
+          <span className="text-xs text-muted-foreground block mb-0.5">
+            Path
+          </span>
+          <span className="text-xs font-mono text-foreground">{log.path}</span>
+        </div>
+
+        {/* Error */}
+        {log.error_message && (
+          <div>
+            <span className="text-xs text-muted-foreground block mb-0.5">
+              Error
+            </span>
+            <span className="text-xs text-destructive">
+              {log.error_message}
+            </span>
+          </div>
+        )}
+
+        {/* Metadata */}
+        {log.metadata && (
+          <div className="md:col-span-2">
+            <span className="text-xs text-muted-foreground block mb-0.5">
+              Metadata
+            </span>
+            <pre className="text-xs font-mono text-foreground bg-background/50 rounded p-2 overflow-x-auto">
+              {JSON.stringify(JSON.parse(log.metadata), null, 2)}
+            </pre>
+          </div>
+        )}
+
+        {/* Log ID */}
+        <div>
+          <span className="text-xs text-muted-foreground block mb-0.5">
+            Log ID
+          </span>
+          <span className="text-xs font-mono text-foreground/60">
+            {log.id}
+          </span>
+        </div>
+
+        {/* Project ID */}
+        {log.project_id && (
+          <div>
+            <span className="text-xs text-muted-foreground block mb-0.5">
+              Project ID
+            </span>
+            <span className="text-xs font-mono text-foreground/60">
+              {log.project_id}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LogsPage() {
   // Data
   const [data, setData] = useState<PaginatedLogs | null>(null);
@@ -140,8 +299,8 @@ export default function LogsPage() {
   const [projectFilter, setProjectFilter] = useState<string>("default");
   // "default" = exclude GunTest, "all" = show all, "<projectId>" = specific project
 
-  // The GunTest project ID (resolved from projects list)
-  const [gunTestProjectId, setGunTestProjectId] = useState<string | null>(null);
+  // The GunTest/backy-test project IDs (resolved from projects list)
+  const [excludedProjectIds, setExcludedProjectIds] = useState<string[]>([]);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -160,8 +319,10 @@ export default function LogsPage() {
         if (!res.ok) return;
         const list: ProjectInfo[] = await res.json();
         setProjects(list);
-        const gunTest = list.find((p) => p.name === EXCLUDED_PROJECT_NAME);
-        if (gunTest) setGunTestProjectId(gunTest.id);
+        const ids = list
+          .filter((p) => EXCLUDED_PROJECT_NAMES.includes(p.name))
+          .map((p) => p.id);
+        setExcludedProjectIds(ids);
       } catch {
         // Non-critical — filter just won't have project options
       }
@@ -182,9 +343,9 @@ export default function LogsPage() {
       if (successFilter === "success") params.set("success", "true");
       else if (successFilter === "failure") params.set("success", "false");
 
-      if (projectFilter === "default" && gunTestProjectId) {
-        // Exclude GunTest by default
-        params.set("excludeProjectId", gunTestProjectId);
+      if (projectFilter === "default" && excludedProjectIds.length > 0) {
+        // Exclude test projects by default
+        params.set("excludeProjectIds", excludedProjectIds.join(","));
       } else if (
         projectFilter !== "all" &&
         projectFilter !== "default"
@@ -204,7 +365,7 @@ export default function LogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, methodFilter, successFilter, projectFilter, gunTestProjectId]);
+  }, [page, methodFilter, successFilter, projectFilter, excludedProjectIds]);
 
   useEffect(() => {
     void fetchLogs();
@@ -238,7 +399,7 @@ export default function LogsPage() {
     if (projectFilter !== "all" && projectFilter !== "default") {
       const proj = projects.find((p) => p.id === projectFilter);
       filterDesc.push(proj?.name ?? projectFilter);
-    } else if (projectFilter === "default" && gunTestProjectId) {
+    } else if (projectFilter === "default" && excludedProjectIds.length > 0) {
       // "default" shows everything except GunTest — clearing "default" is ambiguous.
       // We'll clear all logs (user can filter first if they want specific).
     }
@@ -328,9 +489,7 @@ export default function LogsPage() {
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">
-                Exclude {EXCLUDED_PROJECT_NAME}
-              </SelectItem>
+              <SelectItem value="default">Exclude Test Projects</SelectItem>
               <SelectItem value="all">All Projects</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
@@ -508,70 +667,7 @@ export default function LogsPage() {
                   </button>
 
                   {/* Expanded detail */}
-                  {expandedId === log.id && (
-                    <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-border bg-muted/30 px-4 py-3 text-sm">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <span className="text-xs text-muted-foreground block mb-0.5">
-                            User Agent
-                          </span>
-                          <span className="text-xs font-mono text-foreground break-all">
-                            {log.user_agent ?? "\u2014"}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-xs text-muted-foreground block mb-0.5">
-                            Path
-                          </span>
-                          <span className="text-xs font-mono text-foreground">
-                            {log.path}
-                          </span>
-                        </div>
-                        {log.error_message && (
-                          <div className="md:col-span-2">
-                            <span className="text-xs text-muted-foreground block mb-0.5">
-                              Error
-                            </span>
-                            <span className="text-xs text-destructive">
-                              {log.error_message}
-                            </span>
-                          </div>
-                        )}
-                        {log.metadata && (
-                          <div className="md:col-span-2">
-                            <span className="text-xs text-muted-foreground block mb-0.5">
-                              Metadata
-                            </span>
-                            <pre className="text-xs font-mono text-foreground bg-background/50 rounded p-2 overflow-x-auto">
-                              {JSON.stringify(
-                                JSON.parse(log.metadata),
-                                null,
-                                2,
-                              )}
-                            </pre>
-                          </div>
-                        )}
-                        <div>
-                          <span className="text-xs text-muted-foreground block mb-0.5">
-                            Log ID
-                          </span>
-                          <span className="text-xs font-mono text-foreground/60">
-                            {log.id}
-                          </span>
-                        </div>
-                        {log.project_id && (
-                          <div>
-                            <span className="text-xs text-muted-foreground block mb-0.5">
-                              Project ID
-                            </span>
-                            <span className="text-xs font-mono text-foreground/60">
-                              {log.project_id}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {expandedId === log.id && <LogDetail log={log} />}
                 </div>
               ))}
             </div>

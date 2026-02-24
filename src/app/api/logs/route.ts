@@ -6,7 +6,7 @@ import { listWebhookLogs, deleteWebhookLogs } from "@/lib/db/webhook-logs";
  *
  * Query params:
  *   - projectId: filter by project (optional)
- *   - excludeProjectId: exclude a specific project (optional)
+ *   - excludeProjectIds: comma-separated project IDs to exclude (optional)
  *   - method: filter by HTTP method (optional)
  *   - statusCode: filter by exact status code (optional)
  *   - errorCode: filter by error code (optional)
@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
     const sp = request.nextUrl.searchParams;
 
     const projectId = sp.get("projectId") ?? undefined;
-    const excludeProjectId = sp.get("excludeProjectId") ?? undefined;
+    const excludeRaw = sp.get("excludeProjectIds");
+    const excludeProjectIds = excludeRaw
+      ? excludeRaw.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined;
     const method = sp.get("method") ?? undefined;
     const statusCodeRaw = sp.get("statusCode");
     const statusCode = statusCodeRaw ? parseInt(statusCodeRaw, 10) : undefined;
@@ -35,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     const result = await listWebhookLogs({
       projectId,
-      excludeProjectId,
+      excludeProjectIds,
       method,
       statusCode: statusCode && !isNaN(statusCode) ? statusCode : undefined,
       errorCode,

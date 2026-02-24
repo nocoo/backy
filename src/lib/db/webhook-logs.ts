@@ -99,7 +99,7 @@ export async function createWebhookLog(
 /** Query options for listing webhook logs. */
 export interface ListWebhookLogsOptions {
   projectId?: string | undefined;
-  excludeProjectId?: string | undefined;
+  excludeProjectIds?: string[] | undefined;
   method?: string | undefined;
   statusCode?: number | undefined;
   errorCode?: string | undefined;
@@ -125,7 +125,7 @@ export async function listWebhookLogs(
 ): Promise<PaginatedWebhookLogs> {
   const {
     projectId,
-    excludeProjectId,
+    excludeProjectIds,
     method,
     statusCode,
     errorCode,
@@ -141,9 +141,12 @@ export async function listWebhookLogs(
     conditions.push("l.project_id = ?");
     params.push(projectId);
   }
-  if (excludeProjectId) {
-    conditions.push("(l.project_id IS NULL OR l.project_id != ?)");
-    params.push(excludeProjectId);
+  if (excludeProjectIds && excludeProjectIds.length > 0) {
+    const placeholders = excludeProjectIds.map(() => "?").join(", ");
+    conditions.push(
+      `(l.project_id IS NULL OR l.project_id NOT IN (${placeholders}))`,
+    );
+    params.push(...excludeProjectIds);
   }
   if (method) {
     conditions.push("l.method = ?");

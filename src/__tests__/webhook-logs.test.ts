@@ -361,8 +361,8 @@ describe("webhook-logs", () => {
     });
   });
 
-  describe("listWebhookLogs — excludeProjectId", () => {
-    test("adds exclude condition when excludeProjectId is set", async () => {
+  describe("listWebhookLogs — excludeProjectIds", () => {
+    test("adds exclude condition when excludeProjectIds has one entry", async () => {
       const capturedBodies: string[] = [];
 
       globalThis.fetch = mockFetch(async (_input, init) => {
@@ -370,14 +370,30 @@ describe("webhook-logs", () => {
         return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
       });
 
-      await listWebhookLogs({ excludeProjectId: "proj-guntest" });
+      await listWebhookLogs({ excludeProjectIds: ["proj-guntest"] });
 
       const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.project_id != ?");
+      expect(countBody.sql).toContain("l.project_id NOT IN (?)");
       expect(countBody.params).toContain("proj-guntest");
     });
 
-    test("does not add exclude condition when excludeProjectId is undefined", async () => {
+    test("adds exclude condition with multiple IDs", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({ excludeProjectIds: ["proj-a", "proj-b"] });
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).toContain("l.project_id NOT IN (?, ?)");
+      expect(countBody.params).toContain("proj-a");
+      expect(countBody.params).toContain("proj-b");
+    });
+
+    test("does not add exclude condition when excludeProjectIds is undefined", async () => {
       const capturedBodies: string[] = [];
 
       globalThis.fetch = mockFetch(async (_input, init) => {
@@ -388,7 +404,21 @@ describe("webhook-logs", () => {
       await listWebhookLogs({});
 
       const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).not.toContain("project_id != ?");
+      expect(countBody.sql).not.toContain("NOT IN");
+    });
+
+    test("does not add exclude condition when excludeProjectIds is empty", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({ excludeProjectIds: [] });
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).not.toContain("NOT IN");
     });
   });
 
