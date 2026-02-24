@@ -72,6 +72,7 @@ describe("GET /api/stats/charts", () => {
 
   test("returns 500 on D1 error", async () => {
     const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+    const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
 
     globalThis.fetch = mockFetch(async () =>
       new Response("Internal Server Error", { status: 500 }),
@@ -85,5 +86,6 @@ describe("GET /api/stats/charts", () => {
     expect(body.error).toBe("Failed to fetch chart data");
 
     consoleSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 });

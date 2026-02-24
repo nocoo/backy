@@ -92,18 +92,71 @@ describe("D1 client", () => {
       expect(results).toEqual([]);
     });
 
-    test("throws on HTTP error", async () => {
+    test("throws on HTTP error after retrying transient 5xx", async () => {
+      let callCount = 0;
       const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
 
-      globalThis.fetch = mockFetch(async () =>
-        new Response("Internal Server Error", { status: 500 }),
-      );
+      globalThis.fetch = mockFetch(async () => {
+        callCount++;
+        return new Response("Internal Server Error", { status: 500 });
+      });
 
       await expect(executeD1Query("SELECT 1")).rejects.toThrow("D1 query failed");
+      // 1 initial + 3 retries = 4 total
+      expect(callCount).toBe(4);
+      consoleSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    test("retries on transient D1 timeout and succeeds", async () => {
+      let callCount = 0;
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+      const successBody = JSON.stringify({
+        success: true,
+        result: [{ results: [{ id: "1" }], success: true, meta: { changes: 1, last_row_id: 1 } }],
+        errors: [],
+      });
+
+      globalThis.fetch = mockFetch(async () => {
+        callCount++;
+        if (callCount <= 2) {
+          // First two calls: D1 timeout (code 7429)
+          return new Response(
+            JSON.stringify({
+              errors: [{ code: 7429, message: "D1 DB storage operation exceeded timeout which caused object to be reset." }],
+              success: false,
+              messages: [],
+              result: null,
+            }),
+            { status: 500 },
+          );
+        }
+        return new Response(successBody, { status: 200 });
+      });
+
+      const results = await executeD1Query<{ id: string }>("INSERT INTO backups ...");
+      expect(results).toEqual([{ id: "1" }]);
+      expect(callCount).toBe(3);
+      warnSpy.mockRestore();
+    });
+
+    test("does not retry non-transient HTTP errors (e.g. 400)", async () => {
+      let callCount = 0;
+      const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+
+      globalThis.fetch = mockFetch(async () => {
+        callCount++;
+        return new Response("Bad Request", { status: 400 });
+      });
+
+      await expect(executeD1Query("SELECT 1")).rejects.toThrow("D1 query failed");
+      expect(callCount).toBe(1);
       consoleSpy.mockRestore();
     });
 
-    test("throws on D1 API error response", async () => {
+    test("throws on D1 API error response (non-transient)", async () => {
       const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
 
       globalThis.fetch = mockFetch(async () =>
@@ -121,21 +174,55 @@ describe("D1 client", () => {
       consoleSpy.mockRestore();
     });
 
-    test("throws UNIQUE constraint error when D1 reports unique violation", async () => {
+    test("retries on transient API-level error (timeout in response body)", async () => {
+      let callCount = 0;
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+      const successBody = JSON.stringify({
+        success: true,
+        result: [{ results: [], success: true, meta: { changes: 1, last_row_id: 1 } }],
+        errors: [],
+      });
+
+      globalThis.fetch = mockFetch(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              result: [],
+              errors: [{ message: "D1 DB storage operation exceeded timeout" }],
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(successBody, { status: 200 });
+      });
+
+      const results = await executeD1Query("INSERT INTO backups ...");
+      expect(results).toEqual([]);
+      expect(callCount).toBe(2);
+      warnSpy.mockRestore();
+    });
+
+    test("throws UNIQUE constraint error without retrying", async () => {
+      let callCount = 0;
       const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
 
-      globalThis.fetch = mockFetch(async () =>
-        new Response(
+      globalThis.fetch = mockFetch(async () => {
+        callCount++;
+        return new Response(
           JSON.stringify({
             success: false,
             result: [],
             errors: [{ message: "UNIQUE constraint failed: projects.name" }],
           }),
           { status: 200 },
-        ),
-      );
+        );
+      });
 
       await expect(executeD1Query("INSERT INTO projects ...")).rejects.toThrow("UNIQUE constraint failed");
+      expect(callCount).toBe(1);
       consoleSpy.mockRestore();
     });
 
