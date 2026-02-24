@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-24
+
+### Features
+
+- **Project Categories** — Organize projects into categories with custom name, color (10 presets), and icon (20 Lucide icons). Full CRUD via REST API (`/api/categories`) with Zod validation
+- **Category Grouping** — Projects page groups projects by category with colored section headers, themed card borders, and icon badges
+- **Category Selector** — Assign categories to projects from the project detail page via dropdown selector
+- **Category Management Dialog** — Create, edit, and delete categories with color picker and icon selector from the projects page
+- **Manual Backup Upload** — Upload JSON or ZIP backup files directly from the UI via drag-and-drop dialog. JSON files are auto-compressed to ZIP with a preview copy stored for instant viewing
+- **Webhook Audit Logging** — Full audit trail for all webhook requests with method, status, IP, duration, and metadata. Dashboard UI with filtering by project, method, status, and pagination
+- **Log Management** — Project filter, compact date display, duration column header, and bulk log clearing from the logs page
+- **Log Filtering** — Exclude localhost (`::1`) traffic and `backy-test` project from logs by default
+- **IP Geolocation in Logs** — Show country, region, city, and ISP info in log detail view
+
+### Fixed
+
+- **Schema migration ordering** — Indexes referencing columns added by `ALTER TABLE` migrations now execute after the migration, fixing `SQLITE_ERROR: no such column` on existing databases
+- **D1 transient timeout retry** — Added exponential backoff retry (3 attempts) to `executeD1Query` for D1 timeout errors (code 7429)
+
+### Changed
+
+- **Unit test count** — 126 → 215 unit tests across 15 files (640 expect() calls)
+- **E2E test suites** — Added category CRUD lifecycle and manual upload round-trip E2E suites
+
 ## [1.1.1] - 2026-02-23
 
 ### Features
@@ -71,6 +95,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.2.0]: https://github.com/nocoo/backy/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/nocoo/backy/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/nocoo/backy/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nocoo/backy/releases/tag/v1.0.0
