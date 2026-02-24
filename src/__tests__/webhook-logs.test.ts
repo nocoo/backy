@@ -4,6 +4,7 @@ import {
   listWebhookLogs,
   getWebhookLog,
   purgeWebhookLogs,
+  deleteWebhookLogs,
 } from "@/lib/db/webhook-logs";
 
 /** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
@@ -357,6 +358,130 @@ describe("webhook-logs", () => {
       const diffDays = (now.getTime() - cutoff.getTime()) / (1000 * 60 * 60 * 24);
       expect(diffDays).toBeGreaterThan(89);
       expect(diffDays).toBeLessThan(91);
+    });
+  });
+
+  describe("listWebhookLogs — excludeProjectId", () => {
+    test("adds exclude condition when excludeProjectId is set", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({ excludeProjectId: "proj-guntest" });
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).toContain("l.project_id != ?");
+      expect(countBody.params).toContain("proj-guntest");
+    });
+
+    test("does not add exclude condition when excludeProjectId is undefined", async () => {
+      const capturedBodies: string[] = [];
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBodies.push(init?.body as string);
+        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
+      });
+
+      await listWebhookLogs({});
+
+      const countBody = JSON.parse(capturedBodies[0]!);
+      expect(countBody.sql).not.toContain("project_id != ?");
+    });
+  });
+
+  describe("deleteWebhookLogs", () => {
+    test("deletes all logs when no filters provided", async () => {
+      let capturedBody = "";
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBody = init?.body as string;
+        return d1Success();
+      });
+
+      await deleteWebhookLogs();
+
+      const body = JSON.parse(capturedBody);
+      expect(body.sql).toBe("DELETE FROM webhook_logs ");
+      expect(body.params).toEqual([]);
+    });
+
+    test("deletes logs filtered by projectId", async () => {
+      let capturedBody = "";
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBody = init?.body as string;
+        return d1Success();
+      });
+
+      await deleteWebhookLogs({ projectId: "proj-123" });
+
+      const body = JSON.parse(capturedBody);
+      expect(body.sql).toContain("WHERE project_id = ?");
+      expect(body.params).toContain("proj-123");
+    });
+
+    test("deletes logs filtered by method", async () => {
+      let capturedBody = "";
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBody = init?.body as string;
+        return d1Success();
+      });
+
+      await deleteWebhookLogs({ method: "post" });
+
+      const body = JSON.parse(capturedBody);
+      expect(body.sql).toContain("method = ?");
+      expect(body.params).toContain("POST");
+    });
+
+    test("deletes logs filtered by success=true", async () => {
+      let capturedBody = "";
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBody = init?.body as string;
+        return d1Success();
+      });
+
+      await deleteWebhookLogs({ success: true });
+
+      const body = JSON.parse(capturedBody);
+      expect(body.sql).toContain("status_code < 400");
+    });
+
+    test("deletes logs filtered by success=false", async () => {
+      let capturedBody = "";
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBody = init?.body as string;
+        return d1Success();
+      });
+
+      await deleteWebhookLogs({ success: false });
+
+      const body = JSON.parse(capturedBody);
+      expect(body.sql).toContain("status_code >= 400");
+    });
+
+    test("combines multiple filters", async () => {
+      let capturedBody = "";
+
+      globalThis.fetch = mockFetch(async (_input, init) => {
+        capturedBody = init?.body as string;
+        return d1Success();
+      });
+
+      await deleteWebhookLogs({ projectId: "proj-123", method: "HEAD", success: false });
+
+      const body = JSON.parse(capturedBody);
+      expect(body.sql).toContain("project_id = ?");
+      expect(body.sql).toContain("method = ?");
+      expect(body.sql).toContain("status_code >= 400");
+      expect(body.params).toContain("proj-123");
+      expect(body.params).toContain("HEAD");
     });
   });
 });

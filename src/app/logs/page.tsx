@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
@@ -47,17 +48,25 @@ interface PaginatedLogs {
   totalPages: number;
 }
 
+interface ProjectInfo {
+  id: string;
+  name: string;
+}
+
 const PAGE_SIZE = 50;
 
+/** The project name to exclude by default (automated testing). */
+const EXCLUDED_PROJECT_NAME = "GunTest";
+
+/** Compact single-line date: "Feb 24, 14:03:21" */
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  const d = new Date(dateStr);
+  const month = d.toLocaleString("en-US", { month: "short" });
+  const day = d.getDate();
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
+  return `${month} ${day}, ${h}:${m}:${s}`;
 }
 
 /** Human-readable error code labels. */
@@ -82,8 +91,24 @@ function StatusIcon({ code }: { code: number }) {
 }
 
 function StatusBadge({ code }: { code: number }) {
-  if (code < 300) return <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{code}</Badge>;
-  if (code < 400) return <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">{code}</Badge>;
+  if (code < 300)
+    return (
+      <Badge
+        variant="secondary"
+        className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+      >
+        {code}
+      </Badge>
+    );
+  if (code < 400)
+    return (
+      <Badge
+        variant="secondary"
+        className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+      >
+        {code}
+      </Badge>
+    );
   return <Badge variant="destructive">{code}</Badge>;
 }
 
@@ -106,15 +131,43 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Projects list for filter dropdown
+  const [projects, setProjects] = useState<ProjectInfo[]>([]);
+
   // Filters
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [successFilter, setSuccessFilter] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>("default");
+  // "default" = exclude GunTest, "all" = show all, "<projectId>" = specific project
+
+  // The GunTest project ID (resolved from projects list)
+  const [gunTestProjectId, setGunTestProjectId] = useState<string | null>(null);
 
   // Pagination
   const [page, setPage] = useState(1);
 
   // Expanded row
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Deleting state
+  const [deleting, setDeleting] = useState(false);
+
+  // Fetch projects list once
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        const res = await fetch("/api/projects");
+        if (!res.ok) return;
+        const list: ProjectInfo[] = await res.json();
+        setProjects(list);
+        const gunTest = list.find((p) => p.name === EXCLUDED_PROJECT_NAME);
+        if (gunTest) setGunTestProjectId(gunTest.id);
+      } catch {
+        // Non-critical — filter just won't have project options
+      }
+    }
+    void loadProjects();
+  }, []);
 
   // Fetch logs
   const fetchLogs = useCallback(async () => {
@@ -129,6 +182,17 @@ export default function LogsPage() {
       if (successFilter === "success") params.set("success", "true");
       else if (successFilter === "failure") params.set("success", "false");
 
+      if (projectFilter === "default" && gunTestProjectId) {
+        // Exclude GunTest by default
+        params.set("excludeProjectId", gunTestProjectId);
+      } else if (
+        projectFilter !== "all" &&
+        projectFilter !== "default"
+      ) {
+        // Specific project selected
+        params.set("projectId", projectFilter);
+      }
+
       const res = await fetch(`/api/logs?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch logs");
       const result: PaginatedLogs = await res.json();
@@ -140,39 +204,142 @@ export default function LogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, methodFilter, successFilter]);
+  }, [page, methodFilter, successFilter, projectFilter, gunTestProjectId]);
 
   useEffect(() => {
     void fetchLogs();
   }, [fetchLogs]);
 
-  function handleFilterChange(type: "method" | "success", value: string) {
+  function handleFilterChange(
+    type: "method" | "success" | "project",
+    value: string,
+  ) {
     if (type === "method") setMethodFilter(value);
-    else setSuccessFilter(value);
+    else if (type === "success") setSuccessFilter(value);
+    else setProjectFilter(value);
     setPage(1);
   }
 
   function clearFilters() {
     setMethodFilter("all");
     setSuccessFilter("all");
+    setProjectFilter("default");
     setPage(1);
   }
 
-  const hasFilters = methodFilter !== "all" || successFilter !== "all";
+  const hasFilters =
+    methodFilter !== "all" ||
+    successFilter !== "all" ||
+    projectFilter !== "default";
+
+  // Clear (delete) logs matching current filters
+  async function handleClearLogs() {
+    const filterDesc: string[] = [];
+    if (projectFilter !== "all" && projectFilter !== "default") {
+      const proj = projects.find((p) => p.id === projectFilter);
+      filterDesc.push(proj?.name ?? projectFilter);
+    } else if (projectFilter === "default" && gunTestProjectId) {
+      // "default" shows everything except GunTest — clearing "default" is ambiguous.
+      // We'll clear all logs (user can filter first if they want specific).
+    }
+    if (methodFilter !== "all") filterDesc.push(methodFilter);
+    if (successFilter === "success") filterDesc.push("successful");
+    else if (successFilter === "failure") filterDesc.push("failed");
+
+    const desc =
+      filterDesc.length > 0
+        ? `${filterDesc.join(", ")} logs`
+        : "all visible logs";
+
+    if (!confirm(`Delete ${desc}? This action cannot be undone.`)) return;
+
+    try {
+      setDeleting(true);
+      const body: Record<string, unknown> = {};
+      if (
+        projectFilter !== "all" &&
+        projectFilter !== "default"
+      ) {
+        body.projectId = projectFilter;
+      }
+      if (methodFilter !== "all") body.method = methodFilter;
+      if (successFilter === "success") body.success = true;
+      else if (successFilter === "failure") body.success = false;
+
+      const res = await fetch("/api/logs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete logs");
+      toast.success("Logs cleared");
+      setPage(1);
+      await fetchLogs();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(msg);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <AppShell breadcrumbs={[{ label: "Logs" }]}>
       <div className="flex flex-col gap-4">
         {/* Header */}
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Webhook Logs</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {data ? `${data.total} log${data.total !== 1 ? "s" : ""} total` : "Loading..."}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">
+              Webhook Logs
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {data
+                ? `${data.total} log${data.total !== 1 ? "s" : ""} total`
+                : "Loading..."}
+            </p>
+          </div>
+          {data && data.total > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleClearLogs()}
+              disabled={deleting || loading}
+              className="text-destructive hover:text-destructive"
+            >
+              {deleting ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Clear
+            </Button>
+          )}
         </div>
 
         {/* Filters bar */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Project filter */}
+          <Select
+            value={projectFilter}
+            onValueChange={(v) => handleFilterChange("project", v)}
+          >
+            <SelectTrigger className="w-[160px] h-9 text-sm">
+              <SelectValue placeholder="All Projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">
+                Exclude {EXCLUDED_PROJECT_NAME}
+              </SelectItem>
+              <SelectItem value="all">All Projects</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           {/* Method filter */}
           <Select
             value={methodFilter}
@@ -238,7 +405,9 @@ export default function LogsPage() {
           <div className="rounded-lg border border-border bg-background/50 p-12 text-center">
             <ScrollText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm font-medium text-foreground">
-              {hasFilters ? "No logs match your filters" : "No webhook logs yet"}
+              {hasFilters
+                ? "No logs match your filters"
+                : "No webhook logs yet"}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               {hasFilters
@@ -265,8 +434,8 @@ export default function LogsPage() {
               <div className="w-[60px] shrink-0">Method</div>
               <div className="min-w-0 flex-1">Project / Path</div>
               <div className="w-[120px] shrink-0">IP</div>
-              <div className="w-[60px] shrink-0 text-right">Time</div>
-              <div className="w-[150px] shrink-0">Date</div>
+              <div className="w-[60px] shrink-0 text-right">Duration</div>
+              <div className="w-[130px] shrink-0">Date</div>
             </div>
 
             {/* Log rows */}
@@ -317,20 +486,22 @@ export default function LogsPage() {
                     {/* IP */}
                     <div className="w-[120px] shrink-0">
                       <span className="text-xs text-muted-foreground font-mono truncate block">
-                        {log.client_ip ?? "—"}
+                        {log.client_ip ?? "\u2014"}
                       </span>
                     </div>
 
                     {/* Duration */}
                     <div className="w-[60px] shrink-0 text-right">
                       <span className="text-xs text-muted-foreground">
-                        {log.duration_ms !== null ? `${log.duration_ms}ms` : "—"}
+                        {log.duration_ms !== null
+                          ? `${log.duration_ms}ms`
+                          : "\u2014"}
                       </span>
                     </div>
 
-                    {/* Date */}
-                    <div className="w-[150px] shrink-0">
-                      <span className="text-xs text-muted-foreground">
+                    {/* Date (compact single-line) */}
+                    <div className="w-[130px] shrink-0">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDate(log.created_at)}
                       </span>
                     </div>
@@ -341,20 +512,26 @@ export default function LogsPage() {
                     <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-border bg-muted/30 px-4 py-3 text-sm">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <span className="text-xs text-muted-foreground block mb-0.5">User Agent</span>
+                          <span className="text-xs text-muted-foreground block mb-0.5">
+                            User Agent
+                          </span>
                           <span className="text-xs font-mono text-foreground break-all">
-                            {log.user_agent ?? "—"}
+                            {log.user_agent ?? "\u2014"}
                           </span>
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block mb-0.5">Path</span>
+                          <span className="text-xs text-muted-foreground block mb-0.5">
+                            Path
+                          </span>
                           <span className="text-xs font-mono text-foreground">
                             {log.path}
                           </span>
                         </div>
                         {log.error_message && (
                           <div className="md:col-span-2">
-                            <span className="text-xs text-muted-foreground block mb-0.5">Error</span>
+                            <span className="text-xs text-muted-foreground block mb-0.5">
+                              Error
+                            </span>
                             <span className="text-xs text-destructive">
                               {log.error_message}
                             </span>
@@ -362,21 +539,31 @@ export default function LogsPage() {
                         )}
                         {log.metadata && (
                           <div className="md:col-span-2">
-                            <span className="text-xs text-muted-foreground block mb-0.5">Metadata</span>
+                            <span className="text-xs text-muted-foreground block mb-0.5">
+                              Metadata
+                            </span>
                             <pre className="text-xs font-mono text-foreground bg-background/50 rounded p-2 overflow-x-auto">
-                              {JSON.stringify(JSON.parse(log.metadata), null, 2)}
+                              {JSON.stringify(
+                                JSON.parse(log.metadata),
+                                null,
+                                2,
+                              )}
                             </pre>
                           </div>
                         )}
                         <div>
-                          <span className="text-xs text-muted-foreground block mb-0.5">Log ID</span>
+                          <span className="text-xs text-muted-foreground block mb-0.5">
+                            Log ID
+                          </span>
                           <span className="text-xs font-mono text-foreground/60">
                             {log.id}
                           </span>
                         </div>
                         {log.project_id && (
                           <div>
-                            <span className="text-xs text-muted-foreground block mb-0.5">Project ID</span>
+                            <span className="text-xs text-muted-foreground block mb-0.5">
+                              Project ID
+                            </span>
                             <span className="text-xs font-mono text-foreground/60">
                               {log.project_id}
                             </span>
@@ -394,7 +581,7 @@ export default function LogsPage() {
               <div className="flex items-center justify-between pt-2">
                 <span className="text-xs text-muted-foreground">
                   Page {data.page} of {data.totalPages}
-                  {" · "}
+                  {" \u00b7 "}
                   {data.total} log{data.total !== 1 ? "s" : ""}
                 </span>
                 <div className="flex items-center gap-1">
@@ -406,26 +593,27 @@ export default function LogsPage() {
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
-                  {generatePageNumbers(data.page, data.totalPages).map((p, i) =>
-                    p === "..." ? (
-                      <span
-                        key={`ellipsis-${i}`}
-                        className="px-2 text-xs text-muted-foreground"
-                      >
-                        ...
-                      </span>
-                    ) : (
-                      <Button
-                        key={p}
-                        variant={p === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setPage(p as number)}
-                        disabled={loading}
-                        className="min-w-[32px]"
-                      >
-                        {p}
-                      </Button>
-                    ),
+                  {generatePageNumbers(data.page, data.totalPages).map(
+                    (p, i) =>
+                      p === "..." ? (
+                        <span
+                          key={`ellipsis-${i}`}
+                          className="px-2 text-xs text-muted-foreground"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <Button
+                          key={p}
+                          variant={p === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPage(p as number)}
+                          disabled={loading}
+                          className="min-w-[32px]"
+                        >
+                          {p}
+                        </Button>
+                      ),
                   )}
                   <Button
                     variant="outline"

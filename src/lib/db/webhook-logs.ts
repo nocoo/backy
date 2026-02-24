@@ -99,6 +99,7 @@ export async function createWebhookLog(
 /** Query options for listing webhook logs. */
 export interface ListWebhookLogsOptions {
   projectId?: string | undefined;
+  excludeProjectId?: string | undefined;
   method?: string | undefined;
   statusCode?: number | undefined;
   errorCode?: string | undefined;
@@ -124,6 +125,7 @@ export async function listWebhookLogs(
 ): Promise<PaginatedWebhookLogs> {
   const {
     projectId,
+    excludeProjectId,
     method,
     statusCode,
     errorCode,
@@ -138,6 +140,10 @@ export async function listWebhookLogs(
   if (projectId) {
     conditions.push("l.project_id = ?");
     params.push(projectId);
+  }
+  if (excludeProjectId) {
+    conditions.push("(l.project_id IS NULL OR l.project_id != ?)");
+    params.push(excludeProjectId);
   }
   if (method) {
     conditions.push("l.method = ?");
@@ -221,4 +227,43 @@ export async function purgeWebhookLogs(olderThanDays: number): Promise<number> {
   // D1 DELETE doesn't return changes in results — count via a follow-up isn't needed
   // since this is a maintenance operation. Return 0 as a safe default.
   return rows.length;
+}
+
+/** Options for deleting webhook logs matching filters. */
+export interface DeleteWebhookLogsOptions {
+  projectId?: string | undefined;
+  method?: string | undefined;
+  success?: boolean | undefined;
+}
+
+/**
+ * Delete webhook logs matching the given filters.
+ * If no filters are provided, deletes ALL logs.
+ */
+export async function deleteWebhookLogs(
+  options: DeleteWebhookLogsOptions = {},
+): Promise<void> {
+  const { projectId, method, success } = options;
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (projectId) {
+    conditions.push("project_id = ?");
+    params.push(projectId);
+  }
+  if (method) {
+    conditions.push("method = ?");
+    params.push(method.toUpperCase());
+  }
+  if (success === true) {
+    conditions.push("status_code < 400");
+  } else if (success === false) {
+    conditions.push("status_code >= 400");
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  await executeD1Query(`DELETE FROM webhook_logs ${whereClause}`, params);
 }
