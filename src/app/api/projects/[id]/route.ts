@@ -7,6 +7,7 @@ const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
   allowed_ips: z.string().max(2000).nullable().optional(),
+  category_id: z.string().nullable().optional(),
 });
 
 /**
@@ -54,10 +55,14 @@ export async function PUT(
     }
 
     // Validate and normalize allowed_ips if provided
-    const updateData: { name?: string | undefined; description?: string | undefined; allowed_ips?: string | null | undefined } = {
+    const updateData: { name?: string | undefined; description?: string | undefined; allowed_ips?: string | null | undefined; category_id?: string | null | undefined } = {
       name: parsed.data.name,
       description: parsed.data.description,
     };
+
+    if (parsed.data.category_id !== undefined) {
+      updateData.category_id = parsed.data.category_id;
+    }
 
     if (parsed.data.allowed_ips !== undefined) {
       if (parsed.data.allowed_ips === null || parsed.data.allowed_ips.trim() === "") {
