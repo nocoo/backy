@@ -61,7 +61,6 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
 CREATE INDEX IF NOT EXISTS idx_backups_project_id ON backups(project_id);
 CREATE INDEX IF NOT EXISTS idx_backups_created_at ON backups(created_at);
 CREATE INDEX IF NOT EXISTS idx_projects_webhook_token ON projects(webhook_token);
-CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_project_id ON webhook_logs(project_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at ON webhook_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_status_code ON webhook_logs(status_code);
@@ -90,5 +89,13 @@ export async function initializeSchema(): Promise<void> {
     } catch {
       // Column already exists — safe to ignore
     }
+  }
+
+  // Create indexes that depend on migration columns (must run after ALTER TABLE)
+  const postMigrationIndexes = [
+    "CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id)",
+  ];
+  for (const sql of postMigrationIndexes) {
+    await executeD1Query(sql);
   }
 }
