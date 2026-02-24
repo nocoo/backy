@@ -1,18 +1,29 @@
 /**
  * D1 schema definitions and initialization.
  *
- * Tables: projects, backups
+ * Tables: categories, projects, backups, webhook_logs
  */
 
 import { executeD1Query } from "./d1-client";
 
 const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '#6b7280',
+  icon TEXT NOT NULL DEFAULT 'folder',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
   webhook_token TEXT NOT NULL UNIQUE,
   allowed_ips TEXT,
+  category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -50,6 +61,7 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
 CREATE INDEX IF NOT EXISTS idx_backups_project_id ON backups(project_id);
 CREATE INDEX IF NOT EXISTS idx_backups_created_at ON backups(created_at);
 CREATE INDEX IF NOT EXISTS idx_projects_webhook_token ON projects(webhook_token);
+CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_project_id ON webhook_logs(project_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at ON webhook_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_status_code ON webhook_logs(status_code);
@@ -70,6 +82,7 @@ export async function initializeSchema(): Promise<void> {
   // Migrations: add columns idempotently (D1 doesn't support IF NOT EXISTS for ALTER)
   const migrations = [
     "ALTER TABLE projects ADD COLUMN allowed_ips TEXT",
+    "ALTER TABLE projects ADD COLUMN category_id TEXT REFERENCES categories(id) ON DELETE SET NULL",
   ];
   for (const sql of migrations) {
     try {
