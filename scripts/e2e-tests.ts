@@ -541,6 +541,573 @@ async function suiteWebhookLogs(): Promise<void> {
   });
 }
 
+async function suiteHealthCheck(): Promise<void> {
+  console.log("\n📋 Suite: Health Check");
+
+  await test("GIVEN a running server WHEN requesting /api/live THEN returns 200 with health status", async () => {
+    const res = await fetch(`${baseUrl}/api/live`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.status, "ok", "status field");
+    assert(typeof body.version === "string" && body.version.length > 0, "version should be a non-empty string");
+    assert(typeof body.timestamp === "string", "timestamp should be a string");
+    assert(typeof body.uptime_s === "number" && body.uptime_s >= 0, "uptime_s should be a non-negative number");
+    // Verify dependencies
+    assert(body.dependencies !== undefined, "dependencies should exist");
+    assertEqual(body.dependencies.d1.status, "up", "d1 status");
+    assertEqual(body.dependencies.r2.status, "up", "r2 status");
+    assert(typeof body.dependencies.d1.latency_ms === "number", "d1 latency_ms should be a number");
+    assert(typeof body.dependencies.r2.latency_ms === "number", "r2 latency_ms should be a number");
+  });
+
+  await test("GIVEN a running server WHEN requesting /api/live THEN has no-cache headers", async () => {
+    const res = await fetch(`${baseUrl}/api/live`);
+    assertEqual(res.status, 200, "status");
+    const cacheControl = res.headers.get("cache-control");
+    assert(cacheControl !== null && cacheControl.includes("no-store"), "should have no-store cache control");
+  });
+}
+
+async function suiteDashboardStats(): Promise<void> {
+  console.log("\n📋 Suite: Dashboard Stats");
+
+  await test("GIVEN existing data WHEN requesting /api/stats THEN returns aggregate statistics", async () => {
+    const res = await fetch(`${baseUrl}/api/stats`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(typeof body.totalProjects === "number" && body.totalProjects > 0, "totalProjects should be > 0");
+    assert(typeof body.totalBackups === "number" && body.totalBackups >= 0, "totalBackups should be >= 0");
+    assert(typeof body.totalStorageBytes === "number" && body.totalStorageBytes >= 0, "totalStorageBytes should be >= 0");
+  });
+
+  await test("GIVEN existing data WHEN requesting /api/stats/charts THEN returns chart data", async () => {
+    const res = await fetch(`${baseUrl}/api/stats/charts`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(Array.isArray(body.projectStats), "projectStats should be an array");
+    assert(Array.isArray(body.dailyBackups), "dailyBackups should be an array");
+  });
+
+  await test("GIVEN chart data WHEN inspecting projectStats THEN each entry has expected fields", async () => {
+    const res = await fetch(`${baseUrl}/api/stats/charts`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(body.projectStats.length > 0, "projectStats should have entries");
+    const entry = body.projectStats[0];
+    assert(typeof entry.project_id === "string", "project_id should be a string");
+    assert(typeof entry.project_name === "string", "project_name should be a string");
+    assert(typeof entry.backup_count === "number", "backup_count should be a number");
+    assert(typeof entry.total_size === "number", "total_size should be a number");
+  });
+
+  await test("GIVEN chart data WHEN inspecting dailyBackups THEN entries have date and count", async () => {
+    const res = await fetch(`${baseUrl}/api/stats/charts`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    // dailyBackups may be empty if no recent backups, but if populated, verify structure
+    if (body.dailyBackups.length > 0) {
+      const entry = body.dailyBackups[0];
+      assert(typeof entry.date === "string", "date should be a string");
+      assert(typeof entry.count === "number", "count should be a number");
+    }
+  });
+}
+
+async function suiteProjectCrud(): Promise<void> {
+  console.log("\n📋 Suite: Project CRUD Lifecycle");
+
+  let projectId = "";
+
+  // Step 1: Create project
+  await test("GIVEN valid project data WHEN creating via POST THEN returns 201 with project object", async () => {
+    const res = await fetch(`${baseUrl}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "E2E Test Project", description: "Created by E2E tests" }),
+    });
+    assertEqual(res.status, 201, "status");
+    const body = await res.json();
+    assert(typeof body.id === "string" && body.id.length > 0, "id should be a non-empty string");
+    assertEqual(body.name, "E2E Test Project", "name");
+    assertEqual(body.description, "Created by E2E tests", "description");
+    assert(typeof body.webhook_token === "string" && body.webhook_token.length > 0, "webhook_token should exist");
+    projectId = body.id;
+    createdProjectIds.push(projectId);
+  });
+
+  // Step 2: List projects
+  await test("GIVEN a created project WHEN listing all projects THEN the new project appears", async () => {
+    const res = await fetch(`${baseUrl}/api/projects`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(Array.isArray(body), "response should be an array");
+    const found = body.find((p: { id: string }) => p.id === projectId);
+    assert(found !== undefined, "project should appear in list");
+    assertEqual(found.name, "E2E Test Project", "name");
+  });
+
+  // Step 3: Get project by ID
+  await test("GIVEN a created project WHEN getting by ID THEN returns full project data", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.id, projectId, "id");
+    assertEqual(body.name, "E2E Test Project", "name");
+    assertEqual(body.description, "Created by E2E tests", "description");
+    assert(typeof body.webhook_token === "string", "webhook_token should be a string");
+    assertEqual(body.allowed_ips, null, "allowed_ips should be null by default");
+    assertEqual(body.category_id, null, "category_id should be null by default");
+  });
+
+  // Step 4: Update project name + description
+  await test("GIVEN a created project WHEN updating name and description THEN returns updated data", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "E2E Updated Project", description: "Updated description" }),
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.name, "E2E Updated Project", "name");
+    assertEqual(body.description, "Updated description", "description");
+  });
+
+  // Step 5: Verify update persisted
+  await test("GIVEN an updated project WHEN getting by ID THEN returns updated values", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.name, "E2E Updated Project", "name");
+    assertEqual(body.description, "Updated description", "description");
+  });
+
+  // Step 6: Set allowed_ips with valid CIDR
+  await test("GIVEN a project WHEN setting allowed_ips with valid CIDR THEN succeeds", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allowed_ips: "192.168.1.0/24, 10.0.0.1/32" }),
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(body.allowed_ips !== null, "allowed_ips should be set");
+    assert(body.allowed_ips.includes("192.168.1.0"), "should contain first CIDR");
+    assert(body.allowed_ips.includes("10.0.0.1"), "should contain second CIDR");
+  });
+
+  // Step 7: Set allowed_ips with invalid format
+  await test("GIVEN a project WHEN setting allowed_ips with invalid format THEN returns 400", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allowed_ips: "not-a-valid-cidr" }),
+    });
+    assertEqual(res.status, 400, "status");
+    const body = await res.json();
+    assert(body.error.toLowerCase().includes("ip") || body.error.toLowerCase().includes("cidr"), "error should mention IP/CIDR");
+  });
+
+  // Step 8: Clear allowed_ips
+  await test("GIVEN a project with allowed_ips WHEN clearing with null THEN succeeds", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allowed_ips: null }),
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.allowed_ips, null, "allowed_ips should be null");
+  });
+
+  // Step 9: Get nonexistent project
+  await test("GIVEN a nonexistent project ID WHEN getting THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/nonexistent-project-id-xyz`);
+    assertEqual(res.status, 404, "status");
+  });
+
+  // Step 10: Create project with invalid data (empty name)
+  await test("GIVEN invalid project data WHEN creating THEN returns 400", async () => {
+    const res = await fetch(`${baseUrl}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "" }),
+    });
+    assertEqual(res.status, 400, "status");
+  });
+
+  // Step 11: Update nonexistent project
+  await test("GIVEN a nonexistent project ID WHEN updating THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/nonexistent-project-id-xyz`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Ghost" }),
+    });
+    assertEqual(res.status, 404, "status");
+  });
+
+  // Step 12: Delete nonexistent project
+  await test("GIVEN a nonexistent project ID WHEN deleting THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/nonexistent-project-id-xyz`, {
+      method: "DELETE",
+    });
+    assertEqual(res.status, 404, "status");
+  });
+}
+
+async function suiteTokenRegeneration(): Promise<void> {
+  console.log("\n📋 Suite: Token Regeneration");
+
+  // This suite uses the project created by suiteProjectCrud
+  assert(createdProjectIds.length > 0, "suiteProjectCrud must run first");
+  const projectId = createdProjectIds[0]!;
+
+  // Step 1: Get current token
+  let oldToken = "";
+  await test("GIVEN a project WHEN getting it THEN has a webhook_token", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(typeof body.webhook_token === "string" && body.webhook_token.length > 0, "webhook_token should exist");
+    oldToken = body.webhook_token;
+  });
+
+  // Step 2: Regenerate token
+  let newToken = "";
+  await test("GIVEN a project WHEN regenerating token THEN returns new token different from old", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}/token`, { method: "POST" });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(typeof body.webhook_token === "string" && body.webhook_token.length > 0, "new webhook_token should exist");
+    assert(body.webhook_token !== oldToken, "new token should differ from old token");
+    newToken = body.webhook_token;
+  });
+
+  // Step 3: Verify old token fails on HEAD
+  await test("GIVEN a regenerated token WHEN using old token on HEAD THEN returns 403", async () => {
+    const res = await fetch(`${baseUrl}/api/webhook/${projectId}`, {
+      method: "HEAD",
+      headers: { Authorization: `Bearer ${oldToken}` },
+    });
+    assertEqual(res.status, 403, "status");
+  });
+
+  // Step 4: Verify new token works on HEAD
+  await test("GIVEN a regenerated token WHEN using new token on HEAD THEN returns 200", async () => {
+    const res = await fetch(`${baseUrl}/api/webhook/${projectId}`, {
+      method: "HEAD",
+      headers: { Authorization: `Bearer ${newToken}` },
+    });
+    assertEqual(res.status, 200, "status");
+  });
+
+  // Step 5: Regenerate token for nonexistent project
+  await test("GIVEN a nonexistent project WHEN regenerating token THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/nonexistent-project-id-xyz/token`, { method: "POST" });
+    assertEqual(res.status, 404, "status");
+  });
+}
+
+async function suiteWebhookGetStatus(): Promise<void> {
+  console.log("\n📋 Suite: Webhook GET Status");
+
+  // Uses the backy-test project which has backups from previous suites
+
+  await test("GIVEN existing backups WHEN querying GET /api/webhook/:id with valid token THEN returns status", async () => {
+    const res = await fetch(webhookUrl(), {
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.project_name, "backy-test", "project_name");
+    assert(typeof body.total_backups === "number" && body.total_backups > 0, "total_backups should be > 0");
+    assert(Array.isArray(body.recent_backups), "recent_backups should be an array");
+    assert(body.recent_backups.length > 0 && body.recent_backups.length <= 5, "recent_backups should have 1-5 items");
+    // Verify recent backup structure
+    const recent = body.recent_backups[0];
+    assert(typeof recent.id === "string", "backup id");
+    assert(typeof recent.file_size === "number", "file_size");
+    assert(typeof recent.created_at === "string", "created_at");
+  });
+
+  await test("GIVEN existing backups WHEN querying with environment filter THEN filters correctly", async () => {
+    const res = await fetch(`${webhookUrl()}?environment=test`, {
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.environment, "test", "environment filter should be reflected");
+    // All recent backups should be 'test' environment if filter works
+    for (const b of body.recent_backups) {
+      assertEqual(b.environment, "test", `backup ${b.id} environment`);
+    }
+  });
+
+  await test("GIVEN no auth WHEN querying GET webhook THEN returns 401", async () => {
+    const res = await fetch(webhookUrl());
+    assertEqual(res.status, 401, "status");
+  });
+
+  await test("GIVEN wrong token WHEN querying GET webhook THEN returns 403", async () => {
+    const res = await fetch(webhookUrl(), {
+      headers: { Authorization: "Bearer wrong-token-12345" },
+    });
+    assertEqual(res.status, 403, "status");
+  });
+}
+
+async function suiteBackupListAdvanced(): Promise<void> {
+  console.log("\n📋 Suite: Backup List Advanced Filters");
+
+  // Uses backups created by happy path suites
+
+  await test("GIVEN backups WHEN listing with projectId filter THEN returns only matching backups", async () => {
+    const res = await fetch(`${baseUrl}/api/backups?projectId=${PROJECT_ID}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(body.items.length > 0, "should have backups for backy-test");
+    for (const b of body.items) {
+      assertEqual(b.project_id, PROJECT_ID, `backup ${b.id} project_id`);
+    }
+  });
+
+  await test("GIVEN backups WHEN listing with environment filter THEN returns only matching environment", async () => {
+    const res = await fetch(`${baseUrl}/api/backups?environment=test`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    for (const b of body.items) {
+      assertEqual(b.environment, "test", `backup ${b.id} environment`);
+    }
+  });
+
+  await test("GIVEN backups WHEN listing with sortBy=file_size&sortOrder=asc THEN returns sorted results", async () => {
+    const res = await fetch(`${baseUrl}/api/backups?sortBy=file_size&sortOrder=asc&projectId=${PROJECT_ID}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    if (body.items.length > 1) {
+      for (let i = 1; i < body.items.length; i++) {
+        assert(body.items[i].file_size >= body.items[i - 1].file_size,
+          `item ${i} file_size ${body.items[i].file_size} should be >= item ${i - 1} file_size ${body.items[i - 1].file_size}`);
+      }
+    }
+  });
+
+  await test("GIVEN backups WHEN listing with page=1&pageSize=1 THEN returns exactly 1 item", async () => {
+    const res = await fetch(`${baseUrl}/api/backups?page=1&pageSize=1`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.items.length, 1, "should return exactly 1 item");
+    assertEqual(body.page, 1, "page");
+    assertEqual(body.pageSize, 1, "pageSize");
+    assert(body.total > 0, "total should be > 0");
+    assert(body.totalPages >= 1, "totalPages should be >= 1");
+  });
+
+  await test("GIVEN backups WHEN listing with very high page number THEN returns empty items", async () => {
+    const res = await fetch(`${baseUrl}/api/backups?page=9999&pageSize=20`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.items.length, 0, "should return 0 items for out-of-range page");
+    assert(body.total >= 0, "total should still be returned");
+  });
+
+  await test("GIVEN backups WHEN listing THEN response includes environments and projects arrays", async () => {
+    const res = await fetch(`${baseUrl}/api/backups`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(Array.isArray(body.environments), "environments should be an array");
+    assert(Array.isArray(body.projects), "projects should be an array");
+    assert(body.projects.length > 0, "projects should have entries");
+    // Verify project option structure
+    const proj = body.projects[0];
+    assert(typeof proj.id === "string", "project option should have id");
+    assert(typeof proj.name === "string", "project option should have name");
+  });
+}
+
+async function suiteSingleBackupDelete(): Promise<void> {
+  console.log("\n📋 Suite: Single Backup Delete");
+
+  let backupId = "";
+
+  // Step 1: Create a backup to delete
+  await test("GIVEN a new backup WHEN uploading via webhook THEN returns 201", async () => {
+    const res = await uploadJsonBackup({ environment: "test", tag: `${E2E_TAG_PREFIX}delete-test` });
+    assertEqual(res.status, 201, "status");
+    const body = await res.json();
+    backupId = body.id;
+    // Do NOT add to createdBackupIds — we will delete it manually
+  });
+
+  // Step 2: Delete via individual endpoint
+  await test("GIVEN a backup WHEN deleting via DELETE /api/backups/:id THEN returns success", async () => {
+    const res = await fetch(`${baseUrl}/api/backups/${backupId}`, { method: "DELETE" });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.success, true, "success");
+  });
+
+  // Step 3: Verify deletion
+  await test("GIVEN a deleted backup WHEN getting by ID THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/backups/${backupId}`);
+    assertEqual(res.status, 404, "status");
+  });
+
+  // Step 4: Delete nonexistent backup
+  await test("GIVEN a nonexistent backup WHEN deleting THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/backups/nonexistent-backup-id-xyz`, { method: "DELETE" });
+    assertEqual(res.status, 404, "status");
+  });
+}
+
+async function suitePromptGeneration(): Promise<void> {
+  console.log("\n📋 Suite: Prompt Generation");
+
+  await test("GIVEN a valid project WHEN requesting prompt THEN returns 200 with prompt text", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${PROJECT_ID}/prompt`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(typeof body.prompt === "string" && body.prompt.length > 0, "prompt should be a non-empty string");
+    // Verify prompt contains key elements
+    assert(body.prompt.includes("backy-test"), "prompt should contain project name");
+    assert(body.prompt.includes(PROJECT_ID), "prompt should contain project ID");
+    assert(body.prompt.includes(WEBHOOK_TOKEN), "prompt should contain webhook token");
+  });
+
+  await test("GIVEN a valid project WHEN inspecting prompt THEN contains all 4 sections", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${PROJECT_ID}/prompt`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assert(body.prompt.includes("Verify API Key"), "prompt should have Verify section");
+    assert(body.prompt.includes("Query Backup Status"), "prompt should have Query section");
+    assert(body.prompt.includes("Send a Backup"), "prompt should have Send section");
+    assert(body.prompt.includes("Restore a Backup"), "prompt should have Restore section");
+  });
+
+  await test("GIVEN a nonexistent project WHEN requesting prompt THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/nonexistent-project-id-xyz/prompt`);
+    assertEqual(res.status, 404, "status");
+  });
+}
+
+async function suiteLogDeletion(): Promise<void> {
+  console.log("\n📋 Suite: Log Deletion");
+
+  // First verify we have HEAD logs to delete
+  await test("GIVEN HEAD webhook logs WHEN deleting by method=HEAD THEN returns success", async () => {
+    // Verify HEAD logs exist first
+    const checkRes = await fetch(`${baseUrl}/api/logs?method=HEAD&pageSize=1`);
+    const checkBody = await checkRes.json();
+    assert(checkBody.total > 0, "should have HEAD logs to delete");
+
+    const res = await fetch(`${baseUrl}/api/logs`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method: "HEAD" }),
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.success, true, "success");
+  });
+
+  await test("GIVEN deleted HEAD logs WHEN listing by method=HEAD THEN returns zero results", async () => {
+    const res = await fetch(`${baseUrl}/api/logs?method=HEAD`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.total, 0, "HEAD logs should be deleted");
+    assertEqual(body.items.length, 0, "items should be empty");
+  });
+
+  await test("GIVEN remaining logs WHEN deleting with no filters THEN deletes all", async () => {
+    // Delete all remaining logs
+    const res = await fetch(`${baseUrl}/api/logs`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.success, true, "success");
+
+    // Verify all are gone
+    const checkRes = await fetch(`${baseUrl}/api/logs`);
+    const checkBody = await checkRes.json();
+    assertEqual(checkBody.total, 0, "all logs should be deleted");
+  });
+}
+
+async function suiteProjectCascadeDelete(): Promise<void> {
+  console.log("\n📋 Suite: Project Cascade Delete");
+
+  // Uses the project created by suiteProjectCrud (createdProjectIds[0])
+  assert(createdProjectIds.length > 0, "suiteProjectCrud must run first");
+  const projectId = createdProjectIds[0]!;
+
+  // Get the project's token for uploading
+  let projectToken = "";
+  await test("GIVEN a test project WHEN getting it THEN retrieve its token", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`);
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    projectToken = body.webhook_token;
+    assert(projectToken.length > 0, "token should exist");
+  });
+
+  // Upload 2 backups to this project
+  const cascadeBackupIds: string[] = [];
+  await test("GIVEN a test project WHEN uploading 2 backups THEN both succeed", async () => {
+    for (let i = 0; i < 2; i++) {
+      const formData = new FormData();
+      const jsonBlob = new Blob([JSON.stringify({ cascade_test: i })], { type: "application/json" });
+      formData.append("file", new File([jsonBlob], `cascade-${i}.json`, { type: "application/json" }));
+      formData.append("environment", "test");
+      formData.append("tag", `${E2E_TAG_PREFIX}cascade-${i}`);
+
+      const res = await fetch(`${baseUrl}/api/webhook/${projectId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${projectToken}` },
+        body: formData,
+      });
+      assertEqual(res.status, 201, `upload ${i} status`);
+      const body = await res.json();
+      cascadeBackupIds.push(body.id);
+    }
+    assertEqual(cascadeBackupIds.length, 2, "should have 2 backup IDs");
+  });
+
+  // Verify backups exist
+  await test("GIVEN uploaded backups WHEN querying THEN both exist", async () => {
+    for (const id of cascadeBackupIds) {
+      const res = await fetch(`${baseUrl}/api/backups/${id}`);
+      assertEqual(res.status, 200, `backup ${id} should exist`);
+    }
+  });
+
+  // Delete the project
+  await test("GIVEN a project with backups WHEN deleting the project THEN returns success", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`, { method: "DELETE" });
+    assertEqual(res.status, 200, "status");
+    const body = await res.json();
+    assertEqual(body.success, true, "success");
+    // Remove from cleanup list
+    const idx = createdProjectIds.indexOf(projectId);
+    if (idx !== -1) createdProjectIds.splice(idx, 1);
+  });
+
+  // Verify project is gone
+  await test("GIVEN a deleted project WHEN getting by ID THEN returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/${projectId}`);
+    assertEqual(res.status, 404, "status");
+  });
+
+  // Verify backups are gone (CASCADE DELETE)
+  await test("GIVEN a deleted project WHEN querying its backups THEN all return 404", async () => {
+    for (const id of cascadeBackupIds) {
+      const res = await fetch(`${baseUrl}/api/backups/${id}`);
+      assertEqual(res.status, 404, `backup ${id} should be 404 after project delete`);
+    }
+  });
+}
+
 async function suiteCleanup(): Promise<void> {
   console.log("\n📋 Suite: Cleanup");
 
@@ -550,6 +1117,16 @@ async function suiteCleanup(): Promise<void> {
       for (const id of createdCategoryIds) {
         const res = await fetch(`${baseUrl}/api/categories/${id}`, { method: "DELETE" });
         assert(res.status === 200 || res.status === 404, `category ${id} delete should return 200 or 404`);
+      }
+    });
+  }
+
+  // Clean up any remaining projects (not deleted by cascade suite)
+  if (createdProjectIds.length > 0) {
+    await test(`GIVEN ${createdProjectIds.length} test projects WHEN deleting THEN all are removed`, async () => {
+      for (const id of createdProjectIds) {
+        const res = await fetch(`${baseUrl}/api/projects/${id}`, { method: "DELETE" });
+        assert(res.status === 200 || res.status === 404, `project ${id} delete should return 200 or 404`);
       }
     });
   }
@@ -593,6 +1170,9 @@ async function suiteCleanup(): Promise<void> {
 
 // IDs of categories created during the test — cleaned up at the end
 const createdCategoryIds: string[] = [];
+
+// IDs of projects created during the test — cleaned up at the end
+const createdProjectIds: string[] = [];
 
 async function suiteCategoryCrud(): Promise<void> {
   console.log("\n📋 Suite: Category CRUD Lifecycle");
@@ -889,6 +1469,7 @@ export async function runE2ETests(url: string): Promise<{ passed: number; failed
   results.length = 0;
   createdBackupIds.length = 0;
   createdCategoryIds.length = 0;
+  createdProjectIds.length = 0;
 
   console.log("🎯 E2E Tests — Backy Self-Bootstrap via backy-test project");
   console.log(`   Base URL: ${baseUrl}`);
@@ -906,12 +1487,37 @@ export async function runE2ETests(url: string): Promise<{ passed: number; failed
     throw new Error(`Schema init failed: ${initRes.status}`);
   }
 
+  // --- Infrastructure suites ---
+  await suiteHealthCheck();
+  await suiteDashboardStats();
+
+  // --- Core data flow suites ---
   await suiteHappyPathJson();
   await suiteHappyPathZip();
   await suiteErrorPaths();
   await suiteWebhookLogs();
   await suiteCategoryCrud();
   await suiteManualUpload();
+
+  // --- Project lifecycle suites ---
+  await suiteProjectCrud();
+  await suiteTokenRegeneration();
+
+  // --- Public API suites ---
+  await suiteWebhookGetStatus();
+
+  // --- Query & filter suites ---
+  await suiteBackupListAdvanced();
+
+  // --- Delete suites ---
+  await suiteSingleBackupDelete();
+
+  // --- Utility suites ---
+  await suitePromptGeneration();
+  await suiteLogDeletion();
+
+  // --- Cascade & cleanup ---
+  await suiteProjectCascadeDelete();
   await suiteCleanup();
 
   const passed = results.filter((r) => r.passed).length;
