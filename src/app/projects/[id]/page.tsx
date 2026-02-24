@@ -31,7 +31,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ManualUploadDialog } from "@/components/manual-upload-dialog";
+import { getCategoryIcon } from "@/lib/category-icons";
 
 interface Project {
   id: string;
@@ -39,8 +47,16 @@ interface Project {
   description: string | null;
   webhook_token: string;
   allowed_ips: string | null;
+  category_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
 }
 
 interface BackupItem {
@@ -92,9 +108,13 @@ export default function ProjectDetailPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [allowedIps, setAllowedIps] = useState("");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [ipError, setIpError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  // Categories
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Token visibility
   const [tokenVisible, setTokenVisible] = useState(false);
@@ -127,12 +147,24 @@ export default function ProjectDetailPage() {
       setName(data.name);
       setDescription(data.description ?? "");
       setAllowedIps(data.allowed_ips ?? "");
+      setCategoryId(data.category_id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
   }, [id]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch("/api/categories");
+      if (!res.ok) return;
+      const data: Category[] = await res.json();
+      setCategories(data);
+    } catch {
+      // Non-critical
+    }
+  }, []);
 
   const fetchBackups = useCallback(async () => {
     try {
@@ -150,8 +182,9 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     void fetchProject();
+    void fetchCategories();
     void fetchBackups();
-  }, [fetchProject, fetchBackups]);
+  }, [fetchProject, fetchCategories, fetchBackups]);
 
   // Track dirty state
   useEffect(() => {
@@ -159,8 +192,9 @@ export default function ProjectDetailPage() {
     const nameChanged = name.trim() !== project.name;
     const descChanged = (description.trim() || null) !== (project.description ?? null);
     const ipsChanged = (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
-    setDirty(nameChanged || descChanged || ipsChanged);
-  }, [name, description, allowedIps, project]);
+    const catChanged = categoryId !== project.category_id;
+    setDirty(nameChanged || descChanged || ipsChanged || catChanged);
+  }, [name, description, allowedIps, categoryId, project]);
 
   async function handleSave() {
     if (!project || !dirty) return;
@@ -174,6 +208,7 @@ export default function ProjectDetailPage() {
           name: name.trim(),
           description: description.trim() || undefined,
           allowed_ips: allowedIps.trim() || null,
+          category_id: categoryId,
         }),
       });
       if (!res.ok) {
@@ -189,6 +224,7 @@ export default function ProjectDetailPage() {
       setName(updated.name);
       setDescription(updated.description ?? "");
       setAllowedIps(updated.allowed_ips ?? "");
+      setCategoryId(updated.category_id);
       toast.success("Project settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save project");
@@ -355,6 +391,37 @@ export default function ProjectDetailPage() {
               )}
             </div>
 
+            {/* Category selector */}
+            <div className="flex flex-col gap-2">
+              <Label>
+                Category{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Select
+                value={categoryId ?? "__none__"}
+                onValueChange={(v) => setCategoryId(v === "__none__" ? null : v)}
+                disabled={saving}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="No category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No category</SelectItem>
+                  {categories.map((cat) => {
+                    const Icon = getCategoryIcon(cat.icon);
+                    return (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5" style={{ color: cat.color }} />
+                          {cat.name}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
             {dirty && (
               <div className="flex items-center gap-3">
                 <Button
@@ -372,6 +439,7 @@ export default function ProjectDetailPage() {
                     setName(project.name);
                     setDescription(project.description ?? "");
                     setAllowedIps(project.allowed_ips ?? "");
+                    setCategoryId(project.category_id);
                     setIpError(null);
                   }}
                   disabled={saving}
