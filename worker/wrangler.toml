@@ -1,0 +1,9 @@
+name = "backy-cron"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+BACKY_URL = "https://backy.dev.hexly.ai"
