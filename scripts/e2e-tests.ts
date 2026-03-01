@@ -1061,16 +1061,16 @@ async function suiteCronAutoBackup(): Promise<void> {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        auto_backup_enabled: true,
+        auto_backup_enabled: 1,
         auto_backup_interval: 1,
-        auto_backup_webhook: `${baseUrl}/api/live`,
+        auto_backup_webhook: `${baseUrl}/api/db/init`,
       }),
     });
     assertEqual(res.status, 200, "status");
     const body = await res.json();
     assertEqual(body.auto_backup_enabled, 1, "auto_backup_enabled");
     assertEqual(body.auto_backup_interval, 1, "auto_backup_interval");
-    assertEqual(body.auto_backup_webhook, `${baseUrl}/api/live`, "auto_backup_webhook");
+    assertEqual(body.auto_backup_webhook, `${baseUrl}/api/db/init`, "auto_backup_webhook");
   });
 
   // Step 3: Trigger cron — interval=1 always fires (hour%1===0 for any hour)
@@ -1159,7 +1159,7 @@ async function suiteCronAutoBackup(): Promise<void> {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        auto_backup_enabled: false,
+        auto_backup_enabled: 0,
         auto_backup_webhook: null,
         auto_backup_header_key: null,
         auto_backup_header_value: null,
