@@ -14,6 +14,7 @@ import {
   Sparkles,
   Archive,
   Download,
+  Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
@@ -48,6 +49,11 @@ interface Project {
   webhook_token: string;
   allowed_ips: string | null;
   category_id: string | null;
+  auto_backup_enabled: number;
+  auto_backup_interval: number;
+  auto_backup_webhook: string | null;
+  auto_backup_header_key: string | null;
+  auto_backup_header_value: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -113,6 +119,14 @@ export default function ProjectDetailPage() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
+  // Auto-backup state
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(0);
+  const [autoBackupInterval, setAutoBackupInterval] = useState(24);
+  const [autoBackupWebhook, setAutoBackupWebhook] = useState("");
+  const [autoBackupHeaderKey, setAutoBackupHeaderKey] = useState("");
+  const [autoBackupHeaderValue, setAutoBackupHeaderValue] = useState("");
+  const [headerValueVisible, setHeaderValueVisible] = useState(false);
+
   // Categories
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -148,6 +162,11 @@ export default function ProjectDetailPage() {
       setDescription(data.description ?? "");
       setAllowedIps(data.allowed_ips ?? "");
       setCategoryId(data.category_id);
+      setAutoBackupEnabled(data.auto_backup_enabled);
+      setAutoBackupInterval(data.auto_backup_interval);
+      setAutoBackupWebhook(data.auto_backup_webhook ?? "");
+      setAutoBackupHeaderKey(data.auto_backup_header_key ?? "");
+      setAutoBackupHeaderValue(data.auto_backup_header_value ?? "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -193,8 +212,13 @@ export default function ProjectDetailPage() {
     const descChanged = (description.trim() || null) !== (project.description ?? null);
     const ipsChanged = (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
     const catChanged = categoryId !== project.category_id;
-    setDirty(nameChanged || descChanged || ipsChanged || catChanged);
-  }, [name, description, allowedIps, categoryId, project]);
+    const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
+    const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
+    const abWebhookChanged = (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
+    const abHeaderKeyChanged = (autoBackupHeaderKey.trim() || null) !== (project.auto_backup_header_key ?? null);
+    const abHeaderValueChanged = (autoBackupHeaderValue.trim() || null) !== (project.auto_backup_header_value ?? null);
+    setDirty(nameChanged || descChanged || ipsChanged || catChanged || abEnabledChanged || abIntervalChanged || abWebhookChanged || abHeaderKeyChanged || abHeaderValueChanged);
+  }, [name, description, allowedIps, categoryId, autoBackupEnabled, autoBackupInterval, autoBackupWebhook, autoBackupHeaderKey, autoBackupHeaderValue, project]);
 
   async function handleSave() {
     if (!project || !dirty) return;
@@ -209,6 +233,11 @@ export default function ProjectDetailPage() {
           description: description.trim() || undefined,
           allowed_ips: allowedIps.trim() || null,
           category_id: categoryId,
+          auto_backup_enabled: autoBackupEnabled,
+          auto_backup_interval: autoBackupInterval,
+          auto_backup_webhook: autoBackupWebhook.trim() || null,
+          auto_backup_header_key: autoBackupHeaderKey.trim() || null,
+          auto_backup_header_value: autoBackupHeaderValue.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -225,6 +254,11 @@ export default function ProjectDetailPage() {
       setDescription(updated.description ?? "");
       setAllowedIps(updated.allowed_ips ?? "");
       setCategoryId(updated.category_id);
+      setAutoBackupEnabled(updated.auto_backup_enabled);
+      setAutoBackupInterval(updated.auto_backup_interval);
+      setAutoBackupWebhook(updated.auto_backup_webhook ?? "");
+      setAutoBackupHeaderKey(updated.auto_backup_header_key ?? "");
+      setAutoBackupHeaderValue(updated.auto_backup_header_value ?? "");
       toast.success("Project settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save project");
@@ -440,6 +474,11 @@ export default function ProjectDetailPage() {
                     setDescription(project.description ?? "");
                     setAllowedIps(project.allowed_ips ?? "");
                     setCategoryId(project.category_id);
+                    setAutoBackupEnabled(project.auto_backup_enabled);
+                    setAutoBackupInterval(project.auto_backup_interval);
+                    setAutoBackupWebhook(project.auto_backup_webhook ?? "");
+                    setAutoBackupHeaderKey(project.auto_backup_header_key ?? "");
+                    setAutoBackupHeaderValue(project.auto_backup_header_value ?? "");
                     setIpError(null);
                   }}
                   disabled={saving}
@@ -536,6 +575,129 @@ export default function ProjectDetailPage() {
                 Bearer token
               </Badge>
             </div>
+          </div>
+        </section>
+
+        {/* Auto Backup */}
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Timer className="h-4 w-4" />
+              Auto Backup
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Automatically trigger backups on a schedule by calling an external webhook.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {/* Enable toggle */}
+            <div className="flex items-center gap-3">
+              <Label htmlFor="auto-backup-toggle" className="flex-1">
+                Enable Auto Backup
+              </Label>
+              <button
+                id="auto-backup-toggle"
+                role="switch"
+                aria-checked={autoBackupEnabled === 1}
+                onClick={() => setAutoBackupEnabled(autoBackupEnabled === 1 ? 0 : 1)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                  autoBackupEnabled === 1 ? "bg-primary" : "bg-muted"
+                }`}
+                disabled={saving}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                    autoBackupEnabled === 1 ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {autoBackupEnabled === 1 && (
+              <>
+                {/* Interval */}
+                <div className="flex flex-col gap-2">
+                  <Label>Interval</Label>
+                  <Select
+                    value={String(autoBackupInterval)}
+                    onValueChange={(v) => setAutoBackupInterval(Number(v))}
+                    disabled={saving}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Every hour</SelectItem>
+                      <SelectItem value="12">Every 12 hours</SelectItem>
+                      <SelectItem value="24">Every 24 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Webhook URL */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ab-webhook">Webhook URL</Label>
+                  <Input
+                    id="ab-webhook"
+                    type="url"
+                    value={autoBackupWebhook}
+                    onChange={(e) => setAutoBackupWebhook(e.target.value)}
+                    placeholder="https://your-saas.com/api/backup/trigger"
+                    disabled={saving}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The external endpoint to call when triggering a backup.
+                  </p>
+                </div>
+
+                {/* Auth header name */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ab-header-key">
+                    Auth Header Name{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <Input
+                    id="ab-header-key"
+                    value={autoBackupHeaderKey}
+                    onChange={(e) => setAutoBackupHeaderKey(e.target.value)}
+                    placeholder="e.g. X-Api-Key, Authorization"
+                    disabled={saving}
+                  />
+                </div>
+
+                {/* Auth header value */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ab-header-value">
+                    Auth Header Value{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="ab-header-value"
+                      type={headerValueVisible ? "text" : "password"}
+                      value={autoBackupHeaderValue}
+                      onChange={(e) => setAutoBackupHeaderValue(e.target.value)}
+                      placeholder="Your API key or token"
+                      disabled={saving}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setHeaderValueVisible(!headerValueVisible)}
+                      className="shrink-0"
+                    >
+                      {headerValueVisible ? (
+                        <EyeOff className="h-3.5 w-3.5" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
