@@ -11,6 +11,7 @@ import {
   PanelLeft,
   LogOut,
   ScrollText,
+  Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./sidebar-context";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/backups", label: "Backups", icon: Archive },
   { href: "/logs", label: "Logs", icon: ScrollText },
+  { href: "/cron-logs", label: "Cron Logs", icon: Timer },
 ];
 
 export function Sidebar() {
