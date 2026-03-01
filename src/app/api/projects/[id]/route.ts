@@ -8,6 +8,11 @@ const UpdateProjectSchema = z.object({
   description: z.string().max(500).optional(),
   allowed_ips: z.string().max(2000).nullable().optional(),
   category_id: z.string().nullable().optional(),
+  auto_backup_enabled: z.number().int().min(0).max(1).optional(),
+  auto_backup_interval: z.number().int().refine((v) => [1, 12, 24].includes(v), { message: "Interval must be 1, 12, or 24" }).optional(),
+  auto_backup_webhook: z.string().url().max(2000).nullable().optional(),
+  auto_backup_header_key: z.string().max(200).nullable().optional(),
+  auto_backup_header_value: z.string().max(2000).nullable().optional(),
 });
 
 /**
@@ -55,7 +60,7 @@ export async function PUT(
     }
 
     // Validate and normalize allowed_ips if provided
-    const updateData: { name?: string | undefined; description?: string | undefined; allowed_ips?: string | null | undefined; category_id?: string | null | undefined } = {
+    const updateData: Parameters<typeof updateProject>[1] = {
       name: parsed.data.name,
       description: parsed.data.description,
     };
@@ -77,6 +82,23 @@ export async function PUT(
         }
         updateData.allowed_ips = normalizeAllowedIps(parsed.data.allowed_ips);
       }
+    }
+
+    // Auto-backup fields
+    if (parsed.data.auto_backup_enabled !== undefined) {
+      updateData.auto_backup_enabled = parsed.data.auto_backup_enabled;
+    }
+    if (parsed.data.auto_backup_interval !== undefined) {
+      updateData.auto_backup_interval = parsed.data.auto_backup_interval;
+    }
+    if (parsed.data.auto_backup_webhook !== undefined) {
+      updateData.auto_backup_webhook = parsed.data.auto_backup_webhook;
+    }
+    if (parsed.data.auto_backup_header_key !== undefined) {
+      updateData.auto_backup_header_key = parsed.data.auto_backup_header_key;
+    }
+    if (parsed.data.auto_backup_header_value !== undefined) {
+      updateData.auto_backup_header_value = parsed.data.auto_backup_header_value;
     }
 
     const project = await updateProject(id, updateData);
