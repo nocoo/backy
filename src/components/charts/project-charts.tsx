@@ -115,7 +115,7 @@ export function BackupsByProjectChart({ data }: { data: ProjectStat[] }) {
               axisLine={false}
               allowDecimals={false}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
             <Bar dataKey="backup_count" radius={[4, 4, 0, 0]} maxBarSize={40}>
               {chartData.map((_, index) => (
                 <Cell key={index} fill={getChartColor(index)} />
@@ -172,7 +172,7 @@ export function StorageByProjectChart({ data }: { data: ProjectStat[] }) {
               axisLine={false}
               tickFormatter={(v) => formatBytes(v)}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
             <Bar dataKey="total_size" radius={[4, 4, 0, 0]} maxBarSize={40}>
               {chartData.map((_, index) => (
                 <Cell key={index} fill={getChartColor(index)} />

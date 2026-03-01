@@ -29,7 +29,7 @@ describe("GET /api/stats/charts", () => {
     globalThis.fetch = originalFetch;
   });
 
-  test("returns projectStats and dailyBackups", async () => {
+  test("returns projectStats, dailyBackups, and cronStats", async () => {
     const projectStats = [
       { project_id: "p1", project_name: "Alpha", backup_count: 5, total_size: 1024, latest_backup: "2026-02-20T00:00:00Z" },
       { project_id: "p2", project_name: "Beta", backup_count: 3, total_size: 512, latest_backup: "2026-02-19T00:00:00Z" },
@@ -38,12 +38,16 @@ describe("GET /api/stats/charts", () => {
       { date: "2026-02-20", count: 3 },
       { date: "2026-02-21", count: 2 },
     ];
+    const cronStats = [
+      { date: "2026-02-20", success: 2, failed: 0, skipped: 1, triggered: 0 },
+      { date: "2026-02-21", success: 1, failed: 1, skipped: 0, triggered: 0 },
+    ];
 
     let callCount = 0;
     globalThis.fetch = mockFetch(async () => {
       callCount++;
-      // First call returns projectStats, second returns dailyBackups
-      const data = callCount === 1 ? projectStats : dailyBackups;
+      // 1st → projectStats, 2nd → dailyBackups, 3rd → cronStats
+      const data = callCount === 1 ? projectStats : callCount === 2 ? dailyBackups : cronStats;
       return new Response(d1Response(data as Record<string, unknown>[]), { status: 200 });
     });
 
@@ -54,6 +58,7 @@ describe("GET /api/stats/charts", () => {
     expect(response.status).toBe(200);
     expect(body.projectStats).toEqual(projectStats);
     expect(body.dailyBackups).toEqual(dailyBackups);
+    expect(body.cronStats).toEqual(cronStats);
   });
 
   test("returns empty arrays when no data", async () => {
@@ -68,6 +73,7 @@ describe("GET /api/stats/charts", () => {
     expect(response.status).toBe(200);
     expect(body.projectStats).toEqual([]);
     expect(body.dailyBackups).toEqual([]);
+    expect(body.cronStats).toEqual([]);
   });
 
   test("returns 500 on D1 error", async () => {

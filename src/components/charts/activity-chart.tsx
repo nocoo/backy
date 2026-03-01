@@ -105,7 +105,7 @@ export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
               axisLine={false}
               allowDecimals={false}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
             <Area
               type="monotone"
               dataKey="count"

@@ -11,6 +11,7 @@ import {
   StorageByProjectChart,
 } from "@/components/charts/project-charts";
 import { DailyBackupsChart } from "@/components/charts/activity-chart";
+import { CronActivityChart, type DailyCronStat } from "@/components/charts/cron-chart";
 
 interface Stats {
   totalProjects: number;
@@ -45,6 +46,7 @@ interface DailyBackup {
 interface ChartData {
   projectStats: ProjectStat[];
   dailyBackups: DailyBackup[];
+  cronStats: DailyCronStat[];
 }
 
 function formatBytes(bytes: number): string {
@@ -146,7 +148,10 @@ export default function HomePage() {
               />
             </div>
 
-            <DailyBackupsChart data={chartData?.dailyBackups ?? []} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <DailyBackupsChart data={chartData?.dailyBackups ?? []} />
+              <CronActivityChart data={chartData?.cronStats ?? []} />
+            </div>
 
             {/* Recent backups */}
             <div>

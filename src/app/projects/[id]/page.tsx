@@ -15,6 +15,7 @@ import {
   Archive,
   Download,
   Timer,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
@@ -134,6 +135,7 @@ export default function ProjectDetailPage() {
   const [autoBackupHeaderKey, setAutoBackupHeaderKey] = useState("");
   const [autoBackupHeaderValue, setAutoBackupHeaderValue] = useState("");
   const [headerValueVisible, setHeaderValueVisible] = useState(false);
+  const [testingTrigger, setTestingTrigger] = useState(false);
 
   // Categories
   const [categories, setCategories] = useState<Category[]>([]);
@@ -336,6 +338,28 @@ export default function ProjectDetailPage() {
       toast.error(err instanceof Error ? err.message : "Failed to load prompt");
     } finally {
       setPromptLoading(false);
+    }
+  }
+
+  async function handleTestTrigger() {
+    try {
+      setTestingTrigger(true);
+      const res = await fetch(`/api/cron/trigger/${id}`, { method: "POST" });
+      const data: { status: string; responseCode?: number; error?: string; durationMs?: number } = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to trigger backup");
+      }
+
+      if (data.status === "success") {
+        toast.success(`Trigger successful (${data.responseCode}, ${data.durationMs}ms)`);
+      } else {
+        toast.error(`Trigger failed: ${data.error ?? `HTTP ${data.responseCode}`}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to trigger backup");
+    } finally {
+      setTestingTrigger(false);
     }
   }
 
@@ -642,6 +666,31 @@ export default function ProjectDetailPage() {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Test trigger button — only when saved config has a webhook */}
+                    {project.auto_backup_enabled === 1 && project.auto_backup_webhook && !dirty && (
+                      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">Test Trigger</p>
+                          <p className="text-xs text-muted-foreground">
+                            Manually fire the webhook once. The result will appear in Cron Logs.
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleTestTrigger()}
+                          disabled={testingTrigger}
+                        >
+                          {testingTrigger ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5 mr-1.5" />
+                          )}
+                          {testingTrigger ? "Triggering..." : "Test Now"}
+                        </Button>
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
