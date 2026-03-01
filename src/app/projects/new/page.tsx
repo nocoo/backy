@@ -53,7 +53,7 @@ export default function NewProjectPage() {
 
   return (
     <AppShell breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: "New" }]}>
-      <div className="max-w-lg">
+      <div>
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-foreground">
             New Project

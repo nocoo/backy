@@ -24,6 +24,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardAction,
+} from "@/components/ui/card";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -365,9 +373,9 @@ export default function ProjectDetailPage() {
 
   return (
     <AppShell breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: project.name }]}>
-      <div className="flex flex-col gap-8 max-w-2xl">
-        {/* Project settings */}
-        <section className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
+        {/* Page header */}
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-foreground">
               Project Settings
@@ -376,393 +384,416 @@ export default function ProjectDetailPage() {
               Configure your project and manage its webhook integration.
             </p>
           </div>
-
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={100}
-                disabled={saving}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="description">
-                Description{" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
-              </Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={500}
-                rows={3}
-                disabled={saving}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="allowed-ips">
-                Allowed IP Ranges{" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
-              </Label>
-              <Textarea
-                id="allowed-ips"
-                value={allowedIps}
-                onChange={(e) => { setAllowedIps(e.target.value); setIpError(null); }}
-                placeholder="e.g. 1.2.3.4/8, 10.0.0.0/16, 192.168.1.100"
-                rows={2}
-                disabled={saving}
-              />
-              <p className="text-xs text-muted-foreground">
-                Comma-separated list of IP or CIDR ranges allowed to send backups via webhook. Leave empty to allow all.
-              </p>
-              {ipError && (
-                <p className="text-xs text-destructive">{ipError}</p>
-              )}
-            </div>
-
-            {/* Category selector */}
-            <div className="flex flex-col gap-2">
-              <Label>
-                Category{" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
-              </Label>
-              <Select
-                value={categoryId ?? "__none__"}
-                onValueChange={(v) => setCategoryId(v === "__none__" ? null : v)}
-                disabled={saving}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="No category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No category</SelectItem>
-                  {categories.map((cat) => {
-                    const Icon = getCategoryIcon(cat.icon);
-                    return (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        <span className="flex items-center gap-2">
-                          <Icon className="h-3.5 w-3.5" style={{ color: cat.color }} />
-                          {cat.name}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {dirty && (
-              <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  onClick={() => void handleSave()}
-                  disabled={saving || !name.trim()}
-                >
-                  {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-                  Save Changes
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setName(project.name);
-                    setDescription(project.description ?? "");
-                    setAllowedIps(project.allowed_ips ?? "");
-                    setCategoryId(project.category_id);
-                    setAutoBackupEnabled(project.auto_backup_enabled);
-                    setAutoBackupInterval(project.auto_backup_interval);
-                    setAutoBackupWebhook(project.auto_backup_webhook ?? "");
-                    setAutoBackupHeaderKey(project.auto_backup_header_key ?? "");
-                    setAutoBackupHeaderValue(project.auto_backup_header_value ?? "");
-                    setIpError(null);
-                  }}
-                  disabled={saving}
-                >
-                  Reset
-                </Button>
-              </div>
-            )}
+          <div className="text-xs text-muted-foreground/60 flex items-center gap-4">
+            <span>
+              Created{" "}
+              {new Date(project.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+            <span>
+              Updated{" "}
+              {new Date(project.updated_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+            <span className="font-mono">{project.id}</span>
           </div>
-        </section>
+        </div>
 
-        {/* Webhook integration */}
-        <section className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
-              Webhook Integration
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Use these credentials to send backups from your AI agent.
-            </p>
+        {/* Save bar - sticky when dirty */}
+        {dirty && (
+          <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+            <p className="text-sm text-muted-foreground flex-1">You have unsaved changes.</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setName(project.name);
+                setDescription(project.description ?? "");
+                setAllowedIps(project.allowed_ips ?? "");
+                setCategoryId(project.category_id);
+                setAutoBackupEnabled(project.auto_backup_enabled);
+                setAutoBackupInterval(project.auto_backup_interval);
+                setAutoBackupWebhook(project.auto_backup_webhook ?? "");
+                setAutoBackupHeaderKey(project.auto_backup_header_key ?? "");
+                setAutoBackupHeaderValue(project.auto_backup_header_value ?? "");
+                setIpError(null);
+              }}
+              disabled={saving}
+            >
+              Reset
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void handleSave()}
+              disabled={saving || !name.trim()}
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Save Changes
+            </Button>
           </div>
+        )}
 
-          {/* Webhook URL */}
-          <div className="flex flex-col gap-2">
-            <Label>Webhook URL</Label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground truncate">
-                {webhookUrl}
-              </code>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void handleCopy(webhookUrl, "webhook")}
-                className="shrink-0"
-              >
-                {copied === "webhook" ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Auth token */}
-          <div className="flex flex-col gap-2">
-            <Label>Authorization Token</Label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground truncate">
-                {tokenVisible
-                  ? project.webhook_token
-                  : "\u2022".repeat(24)}
-              </code>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setTokenVisible(!tokenVisible)}
-                className="shrink-0"
-              >
-                {tokenVisible ? (
-                  <EyeOff className="h-3.5 w-3.5" />
-                ) : (
-                  <Eye className="h-3.5 w-3.5" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void handleCopy(project.webhook_token, "token")}
-                className="shrink-0"
-              >
-                {copied === "token" ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void handleRegenerateToken()}
-                disabled={regenerating}
-              >
-                {regenerating ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                Regenerate Token
-              </Button>
-              <Badge variant="secondary">
-                Bearer token
-              </Badge>
-            </div>
-          </div>
-        </section>
-
-        {/* Auto Backup */}
-        <section className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-              <Timer className="h-4 w-4" />
-              Auto Backup
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Automatically trigger backups on a schedule by calling an external webhook.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {/* Enable toggle */}
-            <div className="flex items-center gap-3">
-              <Label htmlFor="auto-backup-toggle" className="flex-1">
-                Enable Auto Backup
-              </Label>
-              <button
-                id="auto-backup-toggle"
-                role="switch"
-                aria-checked={autoBackupEnabled === 1}
-                onClick={() => setAutoBackupEnabled(autoBackupEnabled === 1 ? 0 : 1)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                  autoBackupEnabled === 1 ? "bg-primary" : "bg-muted"
-                }`}
-                disabled={saving}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                    autoBackupEnabled === 1 ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {autoBackupEnabled === 1 && (
-              <>
-                {/* Interval */}
+        {/* Two-column grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left column */}
+          <div className="flex flex-col gap-6">
+            {/* General Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>General</CardTitle>
+                <CardDescription>Basic project information and access control.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label>Interval</Label>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    maxLength={100}
+                    disabled={saving}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="description">
+                    Description{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    disabled={saving}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>
+                    Category{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
                   <Select
-                    value={String(autoBackupInterval)}
-                    onValueChange={(v) => setAutoBackupInterval(Number(v))}
+                    value={categoryId ?? "__none__"}
+                    onValueChange={(v) => setCategoryId(v === "__none__" ? null : v)}
                     disabled={saving}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue />
+                      <SelectValue placeholder="No category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Every hour</SelectItem>
-                      <SelectItem value="12">Every 12 hours</SelectItem>
-                      <SelectItem value="24">Every 24 hours</SelectItem>
+                      <SelectItem value="__none__">No category</SelectItem>
+                      {categories.map((cat) => {
+                        const Icon = getCategoryIcon(cat.icon);
+                        return (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <span className="flex items-center gap-2">
+                              <Icon className="h-3.5 w-3.5" style={{ color: cat.color }} />
+                              {cat.name}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Webhook URL */}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="ab-webhook">Webhook URL</Label>
-                  <Input
-                    id="ab-webhook"
-                    type="url"
-                    value={autoBackupWebhook}
-                    onChange={(e) => setAutoBackupWebhook(e.target.value)}
-                    placeholder="https://your-saas.com/api/backup/trigger"
+                  <Label htmlFor="allowed-ips">
+                    Allowed IP Ranges{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <Textarea
+                    id="allowed-ips"
+                    value={allowedIps}
+                    onChange={(e) => { setAllowedIps(e.target.value); setIpError(null); }}
+                    placeholder="e.g. 1.2.3.4/8, 10.0.0.0/16, 192.168.1.100"
+                    rows={2}
                     disabled={saving}
                   />
                   <p className="text-xs text-muted-foreground">
-                    The external endpoint to call when triggering a backup.
+                    Comma-separated list of IP or CIDR ranges allowed to send backups via webhook. Leave empty to allow all.
                   </p>
+                  {ipError && (
+                    <p className="text-xs text-destructive">{ipError}</p>
+                  )}
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Auth header name */}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="ab-header-key">
-                    Auth Header Name{" "}
-                    <span className="text-muted-foreground font-normal">(optional)</span>
+            {/* Auto Backup Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Timer className="h-4 w-4" />
+                  Auto Backup
+                </CardTitle>
+                <CardDescription>
+                  Automatically trigger backups on a schedule by calling an external webhook.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                {/* Enable toggle */}
+                <div className="flex items-center gap-3">
+                  <Label htmlFor="auto-backup-toggle" className="flex-1">
+                    Enable Auto Backup
                   </Label>
-                  <Input
-                    id="ab-header-key"
-                    value={autoBackupHeaderKey}
-                    onChange={(e) => setAutoBackupHeaderKey(e.target.value)}
-                    placeholder="e.g. X-Api-Key, Authorization"
+                  <button
+                    id="auto-backup-toggle"
+                    role="switch"
+                    aria-checked={autoBackupEnabled === 1}
+                    onClick={() => setAutoBackupEnabled(autoBackupEnabled === 1 ? 0 : 1)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                      autoBackupEnabled === 1 ? "bg-primary" : "bg-muted"
+                    }`}
                     disabled={saving}
-                  />
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                        autoBackupEnabled === 1 ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
                 </div>
 
-                {/* Auth header value */}
+                {autoBackupEnabled === 1 && (
+                  <>
+                    <div className="flex flex-col gap-2">
+                      <Label>Interval</Label>
+                      <Select
+                        value={String(autoBackupInterval)}
+                        onValueChange={(v) => setAutoBackupInterval(Number(v))}
+                        disabled={saving}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Every hour</SelectItem>
+                          <SelectItem value="12">Every 12 hours</SelectItem>
+                          <SelectItem value="24">Every 24 hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="ab-webhook">Webhook URL</Label>
+                      <Input
+                        id="ab-webhook"
+                        type="url"
+                        value={autoBackupWebhook}
+                        onChange={(e) => setAutoBackupWebhook(e.target.value)}
+                        placeholder="https://your-saas.com/api/backup/trigger"
+                        disabled={saving}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        The external endpoint to call when triggering a backup.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="ab-header-key">
+                        Auth Header Name{" "}
+                        <span className="text-muted-foreground font-normal">(optional)</span>
+                      </Label>
+                      <Input
+                        id="ab-header-key"
+                        value={autoBackupHeaderKey}
+                        onChange={(e) => setAutoBackupHeaderKey(e.target.value)}
+                        placeholder="e.g. X-Api-Key, Authorization"
+                        disabled={saving}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="ab-header-value">
+                        Auth Header Value{" "}
+                        <span className="text-muted-foreground font-normal">(optional)</span>
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="ab-header-value"
+                          type={headerValueVisible ? "text" : "password"}
+                          value={autoBackupHeaderValue}
+                          onChange={(e) => setAutoBackupHeaderValue(e.target.value)}
+                          placeholder="Your API key or token"
+                          disabled={saving}
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setHeaderValueVisible(!headerValueVisible)}
+                          className="shrink-0"
+                        >
+                          {headerValueVisible ? (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right column */}
+          <div className="flex flex-col gap-6">
+            {/* Webhook Integration Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Webhook Integration</CardTitle>
+                <CardDescription>
+                  Use these credentials to send backups from your AI agent.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="ab-header-value">
-                    Auth Header Value{" "}
-                    <span className="text-muted-foreground font-normal">(optional)</span>
-                  </Label>
+                  <Label>Webhook URL</Label>
                   <div className="flex items-center gap-2">
-                    <Input
-                      id="ab-header-value"
-                      type={headerValueVisible ? "text" : "password"}
-                      value={autoBackupHeaderValue}
-                      onChange={(e) => setAutoBackupHeaderValue(e.target.value)}
-                      placeholder="Your API key or token"
-                      disabled={saving}
-                      className="flex-1"
-                    />
+                    <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground truncate">
+                      {webhookUrl}
+                    </code>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setHeaderValueVisible(!headerValueVisible)}
+                      onClick={() => void handleCopy(webhookUrl, "webhook")}
                       className="shrink-0"
                     >
-                      {headerValueVisible ? (
+                      {copied === "webhook" ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Authorization Token</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground truncate">
+                      {tokenVisible
+                        ? project.webhook_token
+                        : "\u2022".repeat(24)}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTokenVisible(!tokenVisible)}
+                      className="shrink-0"
+                    >
+                      {tokenVisible ? (
                         <EyeOff className="h-3.5 w-3.5" />
                       ) : (
                         <Eye className="h-3.5 w-3.5" />
                       )}
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleCopy(project.webhook_token, "token")}
+                      className="shrink-0"
+                    >
+                      {copied === "token" ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleRegenerateToken()}
+                      disabled={regenerating}
+                    >
+                      {regenerating ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Regenerate Token
+                    </Button>
+                    <Badge variant="secondary">
+                      Bearer token
+                    </Badge>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
-        </section>
+              </CardContent>
+            </Card>
 
-        {/* AI Agent Prompt */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">
-                AI Agent Prompt
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Copy this prompt into your AI agent&apos;s instructions.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void handleShowPrompt()}
-              disabled={promptLoading}
-            >
-              {promptLoading ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+            {/* AI Agent Prompt Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Agent Prompt</CardTitle>
+                <CardDescription>
+                  Copy this prompt into your AI agent&apos;s instructions.
+                </CardDescription>
+                <CardAction>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleShowPrompt()}
+                    disabled={promptLoading}
+                  >
+                    {promptLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    {promptText ? "Refresh" : "Generate"}
+                  </Button>
+                </CardAction>
+              </CardHeader>
+              {promptText && (
+                <CardContent>
+                  <div className="relative">
+                    <pre className="rounded-md border border-border bg-muted/50 p-4 text-xs font-mono text-foreground whitespace-pre-wrap overflow-x-auto max-h-[400px] overflow-y-auto">
+                      {promptText}
+                    </pre>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => void handleCopy(promptText, "prompt")}
+                    >
+                      {copied === "prompt" ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
               )}
-              {promptText ? "Refresh" : "Generate"}
-            </Button>
+            </Card>
           </div>
+        </div>
 
-          {promptText && (
-            <div className="relative">
-              <pre className="rounded-md border border-border bg-muted/50 p-4 text-xs font-mono text-foreground whitespace-pre-wrap overflow-x-auto">
-                {promptText}
-              </pre>
-              <Button
-                variant="outline"
-                size="sm"
-                className="absolute top-2 right-2"
-                onClick={() => void handleCopy(promptText, "prompt")}
-              >
-                {copied === "prompt" ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-          )}
-        </section>
-
-        {/* Recent Backups */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">
-                Recent Backups
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                {backups
-                  ? `${backups.total} backup${backups.total !== 1 ? "s" : ""} in this project`
-                  : "Loading..."}
-              </p>
-            </div>
+        {/* Recent Backups Card - full width */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Backups</CardTitle>
+            <CardDescription>
+              {backups
+                ? `${backups.total} backup${backups.total !== 1 ? "s" : ""} in this project`
+                : "Loading..."}
+            </CardDescription>
             {backups && backups.total > 0 && (
-              <div className="flex items-center gap-2">
+              <CardAction className="flex items-center gap-2">
                 <ManualUploadDialog
                   projectId={project.id}
                   onSuccess={() => void fetchBackups()}
@@ -772,157 +803,136 @@ export default function ProjectDetailPage() {
                     View All
                   </Link>
                 </Button>
+              </CardAction>
+            )}
+          </CardHeader>
+          <CardContent>
+            {backupsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : backups && backups.items.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {backups.items.map((backup) => (
+                  <div
+                    key={backup.id}
+                    className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3 gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Archive className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {backup.tag && (
+                            <span className="text-sm font-medium text-foreground">
+                              {backup.tag}
+                            </span>
+                          )}
+                          {backup.environment && (
+                            <Badge variant="secondary" className="text-xs">
+                              {backup.environment}
+                            </Badge>
+                          )}
+                          {backup.is_single_json === 1 && (
+                            <Badge variant="secondary" className="text-xs">
+                              JSON
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(backup.created_at)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatBytes(backup.file_size)}
+                          </span>
+                          <span className="text-xs text-muted-foreground/60 font-mono">
+                            {backup.id.slice(0, 8)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/backups/${backup.id}`}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleBackupDownload(backup.id)}
+                        disabled={downloading === backup.id}
+                      >
+                        {downloading === backup.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-background/50 p-8 text-center">
+                <Archive className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  No backups yet. Configure your AI agent using the webhook above.
+                </p>
               </div>
             )}
-          </div>
+          </CardContent>
+        </Card>
 
-          {backupsLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          ) : backups && backups.items.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              {backups.items.map((backup) => (
-                <div
-                  key={backup.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3 gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Archive className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {backup.tag && (
-                          <span className="text-sm font-medium text-foreground">
-                            {backup.tag}
-                          </span>
-                        )}
-                        {backup.environment && (
-                          <Badge variant="secondary" className="text-xs">
-                            {backup.environment}
-                          </Badge>
-                        )}
-                        {backup.is_single_json === 1 && (
-                          <Badge variant="secondary" className="text-xs">
-                            JSON
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(backup.created_at)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatBytes(backup.file_size)}
-                        </span>
-                        <span className="text-xs text-muted-foreground/60 font-mono">
-                          {backup.id.slice(0, 8)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/backups/${backup.id}`}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void handleBackupDownload(backup.id)}
-                      disabled={downloading === backup.id}
-                    >
-                      {downloading === backup.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Download className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-lg border border-border bg-background/50 p-8 text-center">
-              <Archive className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                No backups yet. Configure your AI agent using the webhook above.
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* Danger zone */}
-        <section className="flex flex-col gap-4 rounded-lg border border-destructive/30 p-4">
-          <div>
-            <h2 className="text-base font-semibold text-destructive">
-              Danger Zone
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
+        {/* Danger Zone Card */}
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardDescription>
               Deleting a project will permanently remove all associated backups.
-            </p>
-          </div>
-
-          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <DialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="w-fit">
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                Delete Project
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Delete &ldquo;{project.name}&rdquo;?</DialogTitle>
-                <DialogDescription>
-                  This action cannot be undone. All backups associated with this
-                  project will be permanently deleted from storage.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteOpen(false)}
-                  disabled={deleting}
-                >
-                  Cancel
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="w-fit">
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                  Delete Project
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => void handleDelete()}
-                  disabled={deleting}
-                >
-                  {deleting && (
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  )}
-                  Delete
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </section>
-
-        {/* Metadata */}
-        <section className="text-xs text-muted-foreground/60 flex items-center gap-4">
-          <span>
-            Created{" "}
-            {new Date(project.created_at).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-          <span>
-            Updated{" "}
-            {new Date(project.updated_at).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-          <span className="font-mono">{project.id}</span>
-        </section>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete &ldquo;{project.name}&rdquo;?</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. All backups associated with this
+                    project will be permanently deleted from storage.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteOpen(false)}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => void handleDelete()}
+                    disabled={deleting}
+                  >
+                    {deleting && (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    )}
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
       </div>
     </AppShell>
   );

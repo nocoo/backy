@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -12,17 +13,112 @@ import {
   LogOut,
   ScrollText,
   Timer,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./sidebar-context";
+import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/backups", label: "Backups", icon: Archive },
-  { href: "/logs", label: "Logs", icon: ScrollText },
-  { href: "/cron-logs", label: "Cron Logs", icon: Timer },
+import type { LucideIcon } from "lucide-react";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+  defaultOpen?: boolean;
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Overview",
+    defaultOpen: true,
+    items: [
+      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/projects", label: "Projects", icon: FolderKanban },
+      { href: "/backups", label: "Backups", icon: Archive },
+    ],
+  },
+  {
+    label: "Monitoring",
+    defaultOpen: true,
+    items: [
+      { href: "/logs", label: "Webhook Logs", icon: ScrollText },
+      { href: "/cron-logs", label: "Cron Logs", icon: Timer },
+    ],
+  },
 ];
+
+// Flat list for collapsed view
+const allNavItems = navGroups.flatMap((g) => g.items);
+
+function NavGroupSection({
+  group,
+  pathname,
+}: {
+  group: NavGroup;
+  pathname: string;
+}) {
+  const [open, setOpen] = useState(group.defaultOpen ?? true);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="px-3 mt-2">
+        <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 cursor-pointer">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+            {group.label}
+          </span>
+          <ChevronUp
+            className={cn(
+              "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200",
+              !open && "rotate-180",
+            )}
+            strokeWidth={1.5}
+          />
+        </CollapsibleTrigger>
+      </div>
+      {/* CSS grid animation for smooth height transition (basalt pattern) */}
+      <div
+        className="grid overflow-hidden"
+        style={{
+          gridTemplateRows: open ? "1fr" : "0fr",
+          transition: "grid-template-rows 200ms ease-out",
+        }}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-0.5 px-3">
+            {group.items.map((item) => {
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
+                    isActive
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                  <span className="flex-1 text-left">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </Collapsible>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -65,9 +161,9 @@ export function Sidebar() {
             <PanelLeft className="h-4 w-4" aria-hidden="true" strokeWidth={1.5} />
           </button>
 
-          {/* Navigation */}
+          {/* Navigation (flat icons when collapsed) */}
           <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto pt-1">
-            {navItems.map((item) => {
+            {allNavItems.map((item) => {
               const isActive =
                 item.href === "/"
                   ? pathname === "/"
@@ -143,32 +239,15 @@ export function Sidebar() {
             </div>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation with groups */}
           <nav className="flex-1 overflow-y-auto pt-1">
-            <div className="flex flex-col gap-0.5 px-3">
-              {navItems.map((item) => {
-                const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-                      isActive
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                    <span className="flex-1 text-left">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+            {navGroups.map((group) => (
+              <NavGroupSection
+                key={group.label}
+                group={group}
+                pathname={pathname}
+              />
+            ))}
           </nav>
 
           {/* User info + sign out */}
