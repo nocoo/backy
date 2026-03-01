@@ -1,7 +1,7 @@
 /**
  * D1 schema definitions and initialization.
  *
- * Tables: categories, projects, backups, webhook_logs
+ * Tables: categories, projects, backups, webhook_logs, cron_logs
  */
 
 import { executeD1Query } from "./d1-client";
@@ -58,12 +58,25 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS cron_logs (
+  id TEXT PRIMARY KEY,
+  project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  response_code INTEGER,
+  error TEXT,
+  duration_ms INTEGER,
+  triggered_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_backups_project_id ON backups(project_id);
 CREATE INDEX IF NOT EXISTS idx_backups_created_at ON backups(created_at);
 CREATE INDEX IF NOT EXISTS idx_projects_webhook_token ON projects(webhook_token);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_project_id ON webhook_logs(project_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at ON webhook_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_webhook_logs_status_code ON webhook_logs(status_code);
+CREATE INDEX IF NOT EXISTS idx_cron_logs_project_id ON cron_logs(project_id);
+CREATE INDEX IF NOT EXISTS idx_cron_logs_triggered_at ON cron_logs(triggered_at);
+CREATE INDEX IF NOT EXISTS idx_cron_logs_status ON cron_logs(status);
 `;
 
 /**
@@ -82,6 +95,11 @@ export async function initializeSchema(): Promise<void> {
   const migrations = [
     "ALTER TABLE projects ADD COLUMN allowed_ips TEXT",
     "ALTER TABLE projects ADD COLUMN category_id TEXT REFERENCES categories(id) ON DELETE SET NULL",
+    "ALTER TABLE projects ADD COLUMN auto_backup_enabled INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE projects ADD COLUMN auto_backup_interval INTEGER NOT NULL DEFAULT 24",
+    "ALTER TABLE projects ADD COLUMN auto_backup_webhook TEXT",
+    "ALTER TABLE projects ADD COLUMN auto_backup_header_key TEXT",
+    "ALTER TABLE projects ADD COLUMN auto_backup_header_value TEXT",
   ];
   for (const sql of migrations) {
     try {
