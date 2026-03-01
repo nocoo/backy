@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-03-02
+
+### Features
+
+- **Scheduled Auto-Backup** — Per-project auto-backup with configurable interval (1 / 12 / 24 hours), external webhook URL, and optional auth header. Backy POSTs to the target's endpoint on schedule; the target then pushes a backup back
+- **Cron Worker** — Cloudflare Worker cron job calls `POST /api/cron/trigger` hourly, iterating auto-backup projects with interval-based scheduling (`shouldTrigger` UTC hour modulo)
+- **Cron Logs** — Full audit trail for every cron cycle: `triggered`, `skipped`, `success`, or `failed` with response code, duration, and error text. Dedicated Cron Logs page with project/status filtering, expandable row details, pagination, and bulk delete
+- **Manual Trigger** — "Test Now" button on the Auto Backup card fires `POST /api/cron/trigger/[projectId]` to manually test a single project's webhook. The result is recorded in cron logs identically to scheduled triggers
+- **Cron Activity Chart** — New stacked bar chart on the Dashboard showing daily success/failed/skipped breakdown for the last 30 days
+- **Collapsible Sidebar Groups** — Sidebar navigation reorganized into collapsible "Overview" and "Monitoring" groups with CSS grid animation (Radix Collapsible)
+- **AI Agent Prompt v2** — Comprehensive prompt covering Push (you → Backy) and Pull (Backy → you) modes with credentials table, all endpoint docs (HEAD/GET/POST/restore), status code tables, field descriptions, curl examples, and Node.js/fetch code samples. Conditional on auto-backup config
+
+### Changed
+
+- **Project Settings Layout** — Reorganized with Card components in a two-column grid: General + Auto Backup (left), Webhook + AI Prompt (right), Recent Backups + Danger Zone (full-width below)
+- **Full-Width Pages** — Removed `max-w-2xl` from project settings and `max-w-lg` from new project page
+- **Tooltip Positioning** — Fixed recharts tooltip animation that caused tooltips to fly from (0,0) to the cursor position. Disabled tooltip entry animation (`isAnimationActive={false}`) across all charts
+- **Unit test count** — 215 → 247 unit tests across 18 files (743 expect() calls)
+- **E2E test suites** — Added cron auto-backup E2E suite with 12 tests
+
+### Infrastructure
+
+- **New DB table**: `cron_logs` with indexes on `project_id`, `triggered_at`, `status`
+- **New columns on `projects`**: `auto_backup_enabled`, `auto_backup_interval`, `auto_backup_webhook`, `auto_backup_header_key`, `auto_backup_header_value`
+- **New dependency**: `@radix-ui/react-collapsible` for sidebar group animation
+
 ## [1.2.0] - 2026-02-24
 
 ### Features
@@ -95,6 +121,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.3.0]: https://github.com/nocoo/backy/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/nocoo/backy/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/nocoo/backy/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/nocoo/backy/compare/v1.0.0...v1.1.0
