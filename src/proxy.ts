@@ -32,9 +32,10 @@ const authHandler = auth((req) => {
   const isDbInitRoute = pathname === "/api/db/init";
   const isWebhookRoute = pathname.startsWith("/api/webhook");
   const isRestoreRoute = pathname.startsWith("/api/restore");
+  const isCronTriggerRoute = pathname === "/api/cron/trigger";
 
-  // Allow public routes: auth handlers, health check, db init, webhook ingestion, restore downloads
-  if (isAuthRoute || isLiveRoute || isDbInitRoute || isWebhookRoute || isRestoreRoute) {
+  // Allow public routes: auth handlers, health check, db init, webhook ingestion, restore downloads, cron trigger
+  if (isAuthRoute || isLiveRoute || isDbInitRoute || isWebhookRoute || isRestoreRoute || isCronTriggerRoute) {
     return NextResponse.next();
   }
 
