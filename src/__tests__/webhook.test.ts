@@ -27,6 +27,14 @@ mock.module("@/lib/db/projects", () => ({
     }
     return undefined;
   },
+  // Stub exports used by other test files to avoid module resolution errors
+  getProject: async () => undefined,
+  listProjects: async () => [],
+  createProject: async () => ({}),
+  updateProject: async () => ({}),
+  deleteProject: async () => {},
+  regenerateToken: async () => undefined,
+  listAutoBackupProjects: async () => [],
 }));
 
 mock.module("@/lib/db/backups", () => ({

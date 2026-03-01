@@ -32,6 +32,7 @@ mock.module("@/lib/db/projects", () => ({
   updateProject: async () => undefined,
   deleteProject: async () => false,
   regenerateToken: async () => undefined,
+  listAutoBackupProjects: async () => [],
 }));
 
 mock.module("@/lib/db/backups", () => ({
