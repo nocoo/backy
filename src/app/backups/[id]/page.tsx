@@ -48,6 +48,7 @@ interface BackupDetail {
   file_size: number;
   is_single_json: number;
   json_extracted: number;
+  file_type: string;
   created_at: string;
   updated_at: string;
 }
@@ -291,9 +292,26 @@ export default function BackupDetailPage() {
 
   if (!backup) return null;
 
-  const isZip = !backup.is_single_json;
+  const fileType = backup.file_type || "unknown";
+  const isJson = fileType === "json";
+  const isExtractableType = fileType === "zip" || fileType === "gz" || fileType === "tgz";
+  const isUnknown = !isJson && !isExtractableType;
   const hasPreview = !!backup.json_key;
-  const canExtract = isZip && !hasPreview;
+  const canExtract = isExtractableType && !hasPreview;
+
+  const fileTypeLabel: Record<string, string> = {
+    json: "JSON",
+    zip: "ZIP",
+    gz: "GZ",
+    tgz: "TGZ",
+    unknown: "File",
+  };
+
+  const extractLabel: Record<string, string> = {
+    zip: "Extract JSON from ZIP",
+    gz: "Extract JSON from GZ",
+    tgz: "Extract JSON from TGZ",
+  };
 
   return (
     <AppShell
@@ -315,10 +333,10 @@ export default function BackupDetailPage() {
               Back
             </Button>
             <div className="flex items-center gap-2">
-              {isZip ? (
-                <FileArchive className="h-5 w-5 text-muted-foreground" />
-              ) : (
+              {isJson ? (
                 <FileJson className="h-5 w-5 text-primary" />
+              ) : (
+                <FileArchive className="h-5 w-5 text-muted-foreground" />
               )}
               <h1 className="text-lg font-semibold text-foreground">
                 {backup.tag || "Untitled Backup"}
@@ -395,7 +413,7 @@ export default function BackupDetailPage() {
                     ) : (
                       <FileJson className="h-3.5 w-3.5 mr-1.5" />
                     )}
-                    Extract JSON from ZIP
+                    {extractLabel[fileType] || "Extract JSON"}
                   </Button>
                 )}
               </div>
@@ -416,8 +434,15 @@ export default function BackupDetailPage() {
                 <div className="rounded-lg border bg-secondary p-6 text-center">
                   <FileArchive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    This is a ZIP archive. Click &ldquo;Extract JSON from ZIP&rdquo; to preview
+                    This is a {fileTypeLabel[fileType] || "archive"} file. Click &ldquo;{extractLabel[fileType] || "Extract JSON"}&rdquo; to preview
                     the JSON content.
+                  </p>
+                </div>
+              ) : isUnknown && !hasPreview ? (
+                <div className="rounded-lg border bg-secondary p-6 text-center">
+                  <HardDrive className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Preview is not available for this file format.
                   </p>
                 </div>
               ) : !hasPreview ? (
@@ -571,8 +596,8 @@ export default function BackupDetailPage() {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground text-xs">Type:</span>
-                <Badge variant={isZip ? "secondary" : "default"} className="text-xs">
-                  {isZip ? "ZIP Archive" : "JSON"}
+                <Badge variant={isJson ? "default" : "secondary"} className="text-xs">
+                  {fileTypeLabel[fileType] || fileType.toUpperCase()}
                 </Badge>
               </div>
               <div className="text-xs">
