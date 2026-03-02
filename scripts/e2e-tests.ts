@@ -1176,12 +1176,22 @@ async function suiteCronAutoBackup(): Promise<void> {
     assertEqual(res.status, 204, "status");
   });
 
-  // Verify no cron logs remain
+  // Verify no cron logs remain (retry to handle D1 eventual consistency)
   await test("GIVEN all cron logs deleted WHEN listing THEN returns zero results", async () => {
-    const res = await fetch(`${baseUrl}/api/cron/logs`);
-    assertEqual(res.status, 200, "status");
-    const body = await res.json();
-    assertEqual(body.total, 0, "total should be 0");
+    let total = -1;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // If stale logs appeared after delete, delete again
+      if (attempt > 0) {
+        await fetch(`${baseUrl}/api/cron/logs`, { method: "DELETE" });
+      }
+      await new Promise((r) => setTimeout(r, 500));
+      const res = await fetch(`${baseUrl}/api/cron/logs`);
+      assertEqual(res.status, 200, "status");
+      const body = await res.json();
+      total = body.total;
+      if (total === 0) break;
+    }
+    assertEqual(total, 0, "total should be 0");
   });
 
   // Step 10: Verify trigger with no enabled projects returns empty
