@@ -82,8 +82,8 @@ interface BackupItem {
   tag: string | null;
   file_size: number;
   is_single_json: number;
-  created_at: string;
-}
+  file_type: string;
+  created_at: string;}
 
 interface BackupListResponse {
   items: BackupItem[];
@@ -883,9 +883,9 @@ export default function ProjectDetailPage() {
                               {backup.environment}
                             </Badge>
                           )}
-                          {backup.is_single_json === 1 && (
-                            <Badge variant="secondary" className="text-xs">
-                              JSON
+                          {backup.file_type && (
+                            <Badge variant={backup.file_type === "json" ? "default" : "secondary"} className="text-xs">
+                              {({ json: "JSON", zip: "ZIP", gz: "GZ", tgz: "TGZ" }[backup.file_type]) || backup.file_type.toUpperCase()}
                             </Badge>
                           )}
                         </div>

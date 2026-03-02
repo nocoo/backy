@@ -27,6 +27,7 @@ interface RecentBackup {
   tag: string | null;
   file_size: number;
   is_single_json: number;
+  file_type: string;
   created_at: string;
 }
 

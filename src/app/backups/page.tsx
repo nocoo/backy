@@ -51,6 +51,7 @@ interface BackupWithProject {
   file_size: number;
   is_single_json: number;
   json_extracted: number;
+  file_type: string;
   created_at: string;
   updated_at: string;
 }
@@ -501,8 +502,10 @@ export default function BackupsPage() {
                       {backup.tag && (
                         <Badge variant="outline">{backup.tag}</Badge>
                       )}
-                      {backup.is_single_json === 1 && (
-                        <Badge variant="secondary">JSON</Badge>
+                      {backup.file_type && (
+                        <Badge variant={backup.file_type === "json" ? "default" : "secondary"}>
+                          {({ json: "JSON", zip: "ZIP", gz: "GZ", tgz: "TGZ" }[backup.file_type]) || backup.file_type.toUpperCase()}
+                        </Badge>
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground/60 font-mono">
