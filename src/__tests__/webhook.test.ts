@@ -1,7 +1,9 @@
 import { describe, expect, test, mock } from "bun:test";
+import { PROJECT_STUBS, R2_STUBS } from "./helpers";
 
 // Mock D1 and R2 before importing the route
 mock.module("@/lib/db/projects", () => ({
+  ...PROJECT_STUBS,
   getProjectByToken: async (token: string) => {
     if (token === "valid-token") {
       return {
@@ -27,14 +29,6 @@ mock.module("@/lib/db/projects", () => ({
     }
     return undefined;
   },
-  // Stub exports used by other test files to avoid module resolution errors
-  getProject: async () => undefined,
-  listProjects: async () => [],
-  createProject: async () => ({}),
-  updateProject: async () => ({}),
-  deleteProject: async () => {},
-  regenerateToken: async () => undefined,
-  listAutoBackupProjects: async () => [],
 }));
 
 mock.module("@/lib/db/backups", () => ({
@@ -97,10 +91,7 @@ mock.module("@/lib/db/backups", () => ({
 }));
 
 mock.module("@/lib/r2/client", () => ({
-  uploadToR2: async () => {},
-  isR2Configured: () => true,
-  pingR2: async () => {},
-  resetR2Client: () => {},
+  ...R2_STUBS,
 }));
 
 mock.module("@/lib/db/webhook-logs", () => ({

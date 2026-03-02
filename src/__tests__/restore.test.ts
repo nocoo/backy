@@ -1,7 +1,9 @@
 import { describe, expect, test, mock } from "bun:test";
+import { BACKUP_STUBS, PROJECT_STUBS, R2_STUBS } from "./helpers";
 
 // Mock DB and R2 before importing the route
 mock.module("@/lib/db/backups", () => ({
+  ...BACKUP_STUBS,
   getBackup: async (id: string) => {
     if (id === "backup-open") {
       return {
@@ -21,14 +23,10 @@ mock.module("@/lib/db/backups", () => ({
     }
     return undefined;
   },
-  // Stub exports used by other test files to avoid module resolution errors
-  createBackup: async () => ({}),
-  listBackups: async () => ({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 }),
-  countBackups: async () => 0,
-  deleteBackups: async () => {},
 }));
 
 mock.module("@/lib/db/projects", () => ({
+  ...PROJECT_STUBS,
   getProject: async (id: string) => {
     if (id === "proj-open") {
       return {
@@ -48,24 +46,11 @@ mock.module("@/lib/db/projects", () => ({
     }
     return undefined;
   },
-  // Stub exports used by other test files
-  getProjectByToken: async () => undefined,
-  listProjects: async () => [],
-  createProject: async () => ({}),
-  updateProject: async () => ({}),
-  deleteProject: async () => {},
-  regenerateToken: async () => undefined,
-  listAutoBackupProjects: async () => [],
 }));
 
 mock.module("@/lib/r2/client", () => ({
+  ...R2_STUBS,
   createPresignedDownloadUrl: async () => "https://r2.example.com/signed-url",
-  // Stub exports used by other test files
-  uploadToR2: async () => {},
-  deleteFromR2: async () => {},
-  isR2Configured: () => true,
-  pingR2: async () => {},
-  resetR2Client: () => {},
 }));
 
 const { GET } = await import("@/app/api/restore/[id]/route");

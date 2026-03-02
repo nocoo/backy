@@ -1,4 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { PROJECT_STUBS, BACKUP_STUBS, R2_STUBS } from "./helpers";
 
 // --- Mutable mock state ---
 
@@ -26,45 +27,25 @@ let mockCreateBackupResult = {
 const uploadCalls: Array<{ key: string; contentType: string }> = [];
 
 mock.module("@/lib/db/projects", () => ({
+  ...PROJECT_STUBS,
   getProject: async () => mockGetProjectResult,
-  getProjectByToken: async () => undefined,
-  listProjects: async () => [],
-  createProject: async () => ({}),
-  updateProject: async () => undefined,
-  deleteProject: async () => false,
-  regenerateToken: async () => undefined,
-  listAutoBackupProjects: async () => [],
 }));
 
 mock.module("@/lib/db/backups", () => ({
+  ...BACKUP_STUBS,
   createBackup: async (data: Record<string, unknown>) => ({
     ...mockCreateBackupResult,
     project_id: data.projectId,
     environment: data.environment ?? null,
     tag: data.tag ?? null,
   }),
-  getBackup: async () => undefined,
-  listBackups: async () => ({ items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
-  listEnvironments: async () => [],
-  deleteBackups: async () => [],
-  updateBackup: async () => undefined,
-  deleteBackup: async () => undefined,
-  getBackupFileKeys: async () => [],
-  countBackups: async () => 0,
 }));
 
 mock.module("@/lib/r2/client", () => ({
+  ...R2_STUBS,
   uploadToR2: async (key: string, _data: unknown, contentType: string) => {
     uploadCalls.push({ key, contentType });
   },
-  isR2Configured: () => true,
-  pingR2: async () => {},
-  resetR2Client: () => {},
-  downloadFromR2: async () => ({ body: null, contentType: "application/octet-stream", contentLength: 0 }),
-  createPresignedDownloadUrl: async () => "https://mock.example.com/signed",
-  deleteFromR2: async () => {},
-  deleteMultipleFromR2: async () => 0,
-  listR2Objects: async () => [],
 }));
 
 // Import AFTER mocks

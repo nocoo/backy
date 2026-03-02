@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import JSZip from "jszip";
+import { createZipBuffer, BACKUP_STUBS, R2_STUBS } from "./helpers";
 
 // --- Mutable mock state ---
 
@@ -19,20 +19,15 @@ const uploadCalls: Array<{ key: string; contentType: string }> = [];
 const updateCalls: Array<{ id: string; data: Record<string, unknown> }> = [];
 
 mock.module("@/lib/db/backups", () => ({
+  ...BACKUP_STUBS,
   getBackup: async () => mockGetBackupResult,
   updateBackup: async (id: string, data: Record<string, unknown>) => {
     updateCalls.push({ id, data });
   },
-  createBackup: async () => ({}),
-  listBackups: async () => ({ items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
-  listEnvironments: async () => [],
-  deleteBackups: async () => [],
-  deleteBackup: async () => undefined,
-  getBackupFileKeys: async () => [],
-  countBackups: async () => 0,
 }));
 
 mock.module("@/lib/r2/client", () => ({
+  ...R2_STUBS,
   downloadFromR2: async () => ({
     body: mockDownloadBody,
     contentType: "application/octet-stream",
@@ -41,13 +36,6 @@ mock.module("@/lib/r2/client", () => ({
   uploadToR2: async (key: string, _data: unknown, contentType: string) => {
     uploadCalls.push({ key, contentType });
   },
-  isR2Configured: () => true,
-  pingR2: async () => {},
-  resetR2Client: () => {},
-  createPresignedDownloadUrl: async () => "https://mock.example.com/signed",
-  deleteFromR2: async () => {},
-  deleteMultipleFromR2: async () => 0,
-  listR2Objects: async () => [],
 }));
 
 // NOTE: No mock.module for extractors or storage — use the real modules
@@ -57,14 +45,6 @@ mock.module("@/lib/r2/client", () => ({
 const { POST } = await import("@/app/api/backups/[id]/extract/route");
 
 // --- Helpers ---
-
-async function createZipBuffer(files: Record<string, string>): Promise<Uint8Array> {
-  const zip = new JSZip();
-  for (const [name, content] of Object.entries(files)) {
-    zip.file(name, content);
-  }
-  return zip.generateAsync({ type: "uint8array" });
-}
 
 function callPOST(id: string) {
   const req = new Request(`http://localhost:7026/api/backups/${id}/extract`, {

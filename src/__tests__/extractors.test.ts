@@ -9,23 +9,13 @@ import {
   extractFromGz,
   extractFromTgz,
 } from "@/lib/backup/extractors";
+import { createZipBuffer } from "./helpers";
 
 const gzipAsync = promisify(gzip);
 
 // ---------------------------------------------------------------------------
 // Helpers: create test fixtures in memory
 // ---------------------------------------------------------------------------
-
-/** Create a ZIP buffer containing given files. */
-async function createZipBuffer(
-  files: Record<string, string>,
-): Promise<Uint8Array> {
-  const zip = new JSZip();
-  for (const [name, content] of Object.entries(files)) {
-    zip.file(name, content);
-  }
-  return zip.generateAsync({ type: "uint8array" });
-}
 
 /** Create a GZ buffer from a string. */
 async function createGzBuffer(content: string): Promise<Uint8Array> {

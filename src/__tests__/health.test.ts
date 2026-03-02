@@ -1,4 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { R2_STUBS } from "./helpers";
 
 // --- Module-level mocks (must be set before importing the route) ---
 
@@ -14,15 +15,9 @@ mock.module("@/lib/db/d1-client", () => ({
 }));
 
 mock.module("@/lib/r2/client", () => ({
+  ...R2_STUBS,
   isR2Configured: () => mockIsR2Configured,
   pingR2: () => mockPingR2(),
-  resetR2Client: () => {},
-  uploadToR2: async () => {},
-  downloadFromR2: async () => ({ body: null, contentType: "application/octet-stream", contentLength: 0 }),
-  createPresignedDownloadUrl: async () => "https://mock.example.com/signed",
-  deleteFromR2: async () => {},
-  deleteMultipleFromR2: async () => 0,
-  listR2Objects: async () => [],
 }));
 
 // Import AFTER mocks are registered
