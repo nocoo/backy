@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { getBackup, updateBackup } from "@/lib/db/backups";
 import { downloadFromR2, uploadToR2 } from "@/lib/r2/client";
-import JSZip from "jszip";
-
-/** Max extracted JSON size: 10 MB */
-const MAX_JSON_SIZE = 10 * 1024 * 1024;
+import { extractJson } from "@/lib/backup/extractors";
+import { isExtractable } from "@/lib/backup/file-type";
+import type { FileType } from "@/lib/backup/file-type";
+import { generatePreviewKey } from "@/lib/backup/storage";
 
 /**
- * POST /api/backups/[id]/extract — Extract JSON from a zip backup.
+ * POST /api/backups/[id]/extract — Extract JSON from a backup archive.
  *
- * Finds the first .json file inside the zip, extracts it, stores it in R2
- * under the previews/ prefix, and updates the backup record with the json_key.
+ * Supports ZIP, GZ, and TGZ formats. Extracts the first JSON file found,
+ * stores it in R2 under the previews/ prefix, and updates the backup record.
+ * Returns an error for unknown/non-extractable formats.
  */
 export async function POST(
   _request: Request,
@@ -32,7 +33,7 @@ export async function POST(
       });
     }
 
-    // Only zip files need extraction
+    // JSON files don't need extraction
     if (backup.is_single_json) {
       return NextResponse.json(
         { error: "Backup is already a JSON file, no extraction needed" },
@@ -40,7 +41,16 @@ export async function POST(
       );
     }
 
-    // Download the zip from R2
+    // Check if the file type supports extraction
+    const fileType = (backup.file_type || "unknown") as FileType;
+    if (!isExtractable(fileType)) {
+      return NextResponse.json(
+        { error: "Preview is not available for this file format" },
+        { status: 400 },
+      );
+    }
+
+    // Download the archive from R2
     const r2Response = await downloadFromR2(backup.file_key);
     if (!r2Response.body) {
       return NextResponse.json(
@@ -51,51 +61,21 @@ export async function POST(
 
     // Read the body into a buffer using SDK's transformToByteArray
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const zipBuffer = await (r2Response.body as any).transformToByteArray();
+    const archiveBuffer = await (r2Response.body as any).transformToByteArray();
 
-    // Parse the zip
-    const zip = await JSZip.loadAsync(zipBuffer);
+    // Extract JSON using the strategy module
+    const outcome = await extractJson(new Uint8Array(archiveBuffer), fileType);
 
-    // Find the first .json file (sorted alphabetically for determinism)
-    const jsonFiles = Object.keys(zip.files)
-      .filter((name) => name.endsWith(".json") && !zip.files[name]!.dir)
-      .sort();
-
-    if (jsonFiles.length === 0) {
+    if (!outcome.success) {
       return NextResponse.json(
-        { error: "No JSON files found in the zip archive" },
-        { status: 400 },
-      );
-    }
-
-    // Extract the first JSON file
-    const jsonFileName = jsonFiles[0]!;
-    const jsonContent = await zip.files[jsonFileName]!.async("uint8array");
-
-    if (jsonContent.byteLength > MAX_JSON_SIZE) {
-      return NextResponse.json(
-        {
-          error: `JSON file too large for preview: ${(jsonContent.byteLength / 1024 / 1024).toFixed(1)}MB (max ${MAX_JSON_SIZE / 1024 / 1024}MB)`,
-        },
-        { status: 413 },
-      );
-    }
-
-    // Validate that it's actually valid JSON
-    try {
-      const text = new TextDecoder().decode(jsonContent);
-      JSON.parse(text);
-    } catch {
-      return NextResponse.json(
-        { error: `File "${jsonFileName}" is not valid JSON` },
+        { error: outcome.reason },
         { status: 400 },
       );
     }
 
     // Upload extracted JSON to R2 under previews/ prefix
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const jsonKey = `previews/${backup.project_id}/${timestamp}.json`;
-    await uploadToR2(jsonKey, jsonContent, "application/json");
+    const jsonKey = generatePreviewKey(backup.project_id);
+    await uploadToR2(jsonKey, outcome.jsonContent, "application/json");
 
     // Update backup record
     await updateBackup(id, {
@@ -106,8 +86,8 @@ export async function POST(
     return NextResponse.json({
       message: "JSON extracted successfully",
       json_key: jsonKey,
-      source_file: jsonFileName,
-      json_files_found: jsonFiles.length,
+      source_file: outcome.sourceFile,
+      json_files_found: outcome.jsonFilesFound,
     });
   } catch (error) {
     console.error("Failed to extract JSON:", error);
