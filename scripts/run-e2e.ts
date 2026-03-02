@@ -2,11 +2,15 @@
  * E2E test runner — starts a dedicated dev server with E2E_SKIP_AUTH=true
  * on port 17026, runs all E2E tests, cleans up test data, and exits.
  *
- * Always starts its own server — never reuses an existing dev server.
- * Cleans .next/dev/lock before starting to avoid stale lock conflicts.
+ * Startup sequence:
+ * 1. Kill any orphan process on E2E_PORT (from previous crashed runs)
+ * 2. Clean stale .next/dev/lock to avoid Next.js lock conflicts
+ * 3. Start fresh dev server with auth bypass on E2E_PORT
+ * 4. Run all E2E suites, report results
+ * 5. Shut down server (SIGTERM → SIGKILL fallback)
  */
 
-import { spawn } from "child_process";
+import { execSync, spawn } from "child_process";
 import { unlinkSync } from "fs";
 import { join } from "path";
 import { runE2ETests } from "./e2e-tests";
@@ -32,6 +36,19 @@ async function waitForServer(url: string, timeout: number): Promise<void> {
   throw new Error(`Server failed to start within ${timeout / 1000}s`);
 }
 
+/** Kill any process listening on E2E_PORT (orphan from a previous crashed run). */
+function killOrphanOnPort(port: number): void {
+  try {
+    const pids = execSync(`lsof -ti:${port}`, { encoding: "utf-8" }).trim();
+    if (pids) {
+      execSync(`kill -9 ${pids.split("\n").join(" ")}`);
+      console.log(`🔪 Killed orphan process(es) on port ${port}: ${pids.replace(/\n/g, ", ")}`);
+    }
+  } catch {
+    // No process on port — expected normal case
+  }
+}
+
 function cleanLockFile(): void {
   const lockPath = join(process.cwd(), ".next", "dev", "lock");
   try {
@@ -45,7 +62,10 @@ function cleanLockFile(): void {
 async function main() {
   const baseUrl = `http://localhost:${E2E_PORT}`;
 
-  // Clean stale lock file to prevent conflicts with dev server
+  // 1. Kill orphan processes on E2E port from previous crashed runs
+  killOrphanOnPort(E2E_PORT);
+
+  // 2. Clean stale lock file to prevent conflicts with dev server
   cleanLockFile();
 
   console.log("🚀 Starting E2E test server on port", E2E_PORT);
