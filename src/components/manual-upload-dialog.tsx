@@ -90,18 +90,6 @@ export function ManualUploadDialog({
   }
 
   function validateFile(f: File): boolean {
-    const name = f.name.toLowerCase();
-    const type = f.type;
-    const isJson = type === "application/json" || name.endsWith(".json");
-    const isZip =
-      type === "application/zip" ||
-      type === "application/x-zip-compressed" ||
-      name.endsWith(".zip");
-
-    if (!isJson && !isZip) {
-      toast.error("Only JSON and ZIP files are supported");
-      return false;
-    }
     if (f.size > 50 * 1024 * 1024) {
       toast.error("File is too large (max 50MB)");
       return false;
@@ -139,7 +127,10 @@ export function ManualUploadDialog({
     if (!file) return null;
     const name = file.name.toLowerCase();
     if (name.endsWith(".json")) return <FileJson className="h-5 w-5 text-amber-500" />;
-    return <FileArchive className="h-5 w-5 text-blue-500" />;
+    if (name.endsWith(".zip") || name.endsWith(".gz") || name.endsWith(".tgz") || name.endsWith(".tar.gz")) {
+      return <FileArchive className="h-5 w-5 text-blue-500" />;
+    }
+    return <Upload className="h-5 w-5 text-muted-foreground" />;
   }
 
   function formatFileSize(bytes: number): string {
@@ -205,7 +196,8 @@ export function ManualUploadDialog({
         <DialogHeader>
           <DialogTitle>Upload Backup</DialogTitle>
           <DialogDescription>
-            Manually upload a JSON or ZIP backup file to a project.
+            Upload a backup file to a project. JSON, ZIP, GZ, and TGZ files
+            support preview; other formats are stored as-is.
             {isJsonFile && " JSON files will be automatically compressed into ZIP."}
           </DialogDescription>
         </DialogHeader>
@@ -289,7 +281,7 @@ export function ManualUploadDialog({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".json,.zip,application/json,application/zip"
+                accept="*/*"
                 onChange={handleFileSelect}
                 className="hidden"
                 disabled={uploading}
@@ -324,7 +316,7 @@ export function ManualUploadDialog({
                       Drop a file here or click to browse
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      JSON or ZIP, up to 50MB
+                      Any file format, up to 50MB
                     </p>
                   </div>
                 </>
