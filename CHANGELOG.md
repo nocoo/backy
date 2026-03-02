@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-03-03
+
+### Features
+
+- **Playwright BDD E2E (L4)** — New fourth testing tier with 5 Playwright specs covering dashboard, projects, backup detail, manual upload, and navigation/restore flows (17 tests, Chromium headless)
+- **Shared Test Helpers** — New `src/__tests__/helpers.ts` module with `mockFetch`, `d1Success`/`d1Error` builders, and reusable stubs (`PROJECT_STUB`, `BACKUP_STUB`, `R2_STUBS`) eliminating ~300 lines of duplication
+
+### Changed
+
+- **4-Tier Testing Architecture** — Upgraded from 3-tier to 4-tier: L1 Unit Tests (pre-commit), L2 Lint (pre-commit), L3 API E2E (pre-push, port 17026), L4 BDD E2E (pre-push, port 27026)
+- **E2E Modularization** — Split 2012-line monolithic E2E file into `e2e/api/` with 21 individual suite files, shared framework, config, and helpers
+- **Unit test count** — 335 → 421 unit tests across 34 files (12 new route handler test files)
+- **Test coverage** — 93.9% functions, 96.39% lines
+- **Pre-push hook** — Now runs all 4 tiers: `test && lint && test:e2e:api && test:e2e:bdd`
+
+### Infrastructure
+
+- **New directory**: `e2e/api/` — Modular L3 API E2E structure (config, framework, helpers, runner, 21 suites)
+- **New directory**: `e2e/bdd/` — L4 Playwright BDD E2E (config, runner, 5 spec files)
+- **New dependency**: `@playwright/test` + Chromium for browser-level E2E testing
+- **New scripts**: `test:e2e:bdd` for L4 BDD E2E runner (port 27026)
+
 ## [1.4.0] - 2026-03-02
 
 ### Features
@@ -152,6 +174,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.5.0]: https://github.com/nocoo/backy/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/nocoo/backy/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/nocoo/backy/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/nocoo/backy/compare/v1.1.1...v1.2.0
