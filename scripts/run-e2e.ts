@@ -13,7 +13,7 @@
 import { execSync, spawn } from "child_process";
 import { unlinkSync } from "fs";
 import { join } from "path";
-import { runE2ETests } from "./e2e-tests";
+import { runE2ETests } from "../e2e/api/runner";
 
 const E2E_PORT = 17026;
 const STARTUP_TIMEOUT = 60_000; // 60s for Next.js to compile
