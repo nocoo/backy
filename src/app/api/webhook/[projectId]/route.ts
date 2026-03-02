@@ -7,16 +7,11 @@ import {
   createWebhookLog,
   type WebhookErrorCode,
 } from "@/lib/db/webhook-logs";
+import { detectFileType, isPreviewable, normalizeContentType } from "@/lib/backup/file-type";
+import { generateBackupKey, generatePreviewKey, generateTimestamp } from "@/lib/backup/storage";
 
 /** Max upload size: 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
-
-const ALLOWED_TYPES = new Set([
-  "application/zip",
-  "application/x-zip-compressed",
-  "application/json",
-  "application/octet-stream",
-]);
 
 /** Extract common request info for logging. */
 function extractRequestInfo(request: Request) {
@@ -362,19 +357,7 @@ export async function POST(
 
     // Determine content type from file (strip charset params like ";charset=utf-8")
     const rawType = file.type || "application/octet-stream";
-    const contentType = rawType.split(";")[0]!.trim();
-    if (!ALLOWED_TYPES.has(contentType)) {
-      fireLog({
-        projectId: project.id, method: "POST", path, statusCode: 400,
-        clientIp, userAgent, errorCode: "file_type_invalid",
-        errorMessage: `Unsupported file type: ${contentType}`,
-        startTime, metadata: { content_type: contentType, file_name: file.name },
-      });
-      return NextResponse.json(
-        { error: `Unsupported file type: ${contentType}. Allowed: .zip, .json` },
-        { status: 400 },
-      );
-    }
+    const contentType = normalizeContentType(rawType);
 
     const environment = formData.get("environment") as string | null;
     const tag = formData.get("tag") as string | null;
@@ -393,14 +376,13 @@ export async function POST(
       );
     }
 
-    // --- Determine if single JSON file ---
+    // --- Detect file type using new module ---
     const fileName = file.name || "backup";
-    const isJson = contentType === "application/json" || fileName.endsWith(".json");
+    const fileType = detectFileType(fileName, contentType);
 
     // --- Upload to R2 ---
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const ext = isJson ? "json" : "zip";
-    const fileKey = `backups/${projectId}/${timestamp}.${ext}`;
+    const timestamp = generateTimestamp();
+    const fileKey = generateBackupKey(projectId, fileType, fileName, timestamp);
 
     let buffer: Uint8Array;
     try {
@@ -420,10 +402,10 @@ export async function POST(
       );
     }
 
-    // If it's a JSON file, also store a copy with .json key for preview
+    // If it's a directly previewable file, also store a copy for preview
     let jsonKey: string | undefined;
-    if (isJson) {
-      jsonKey = `previews/${projectId}/${timestamp}.json`;
+    if (isPreviewable(fileType)) {
+      jsonKey = generatePreviewKey(projectId, timestamp);
       await uploadToR2(jsonKey, buffer, "application/json");
     }
 
@@ -441,8 +423,9 @@ export async function POST(
         fileKey,
         jsonKey,
         fileSize: file.size,
-        isSingleJson: isJson,
+        isSingleJson: isPreviewable(fileType),
         jsonExtracted: false,
+        fileType,
       });
     } catch (dbError) {
       console.error("D1 backup insert failed:", dbError);
@@ -467,7 +450,8 @@ export async function POST(
         file_name: file.name,
         environment: environment ?? null,
         tag: tag ?? null,
-        is_json: isJson,
+        is_json: isPreviewable(fileType),
+        file_type: fileType,
       },
     });
 
