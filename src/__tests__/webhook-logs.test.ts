@@ -6,39 +6,7 @@ import {
   purgeWebhookLogs,
   deleteWebhookLogs,
 } from "@/lib/db/webhook-logs";
-
-/** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
-function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-): typeof globalThis.fetch {
-  const fn = handler as typeof globalThis.fetch;
-  fn.preconnect = () => {};
-  return fn;
-}
-
-/** Create a successful D1 response. */
-function d1Success<T>(results: T[] = []) {
-  return new Response(
-    JSON.stringify({
-      success: true,
-      result: [{ results, success: true, meta: { changes: 0, last_row_id: 0 } }],
-      errors: [],
-    }),
-    { status: 200 },
-  );
-}
-
-/** Create a failed D1 response. */
-function d1Error(message: string) {
-  return new Response(
-    JSON.stringify({
-      success: false,
-      result: [],
-      errors: [{ message }],
-    }),
-    { status: 200 },
-  );
-}
+import { mockFetch, d1Success, d1Error } from "./helpers";
 
 describe("webhook-logs", () => {
   let originalFetch: typeof globalThis.fetch;

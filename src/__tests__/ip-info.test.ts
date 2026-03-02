@@ -1,13 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-
-/** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
-function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-): typeof globalThis.fetch {
-  const fn = handler as typeof globalThis.fetch;
-  fn.preconnect = () => {};
-  return fn;
-}
+import { mockFetch } from "./helpers";
 
 describe("GET /api/ip-info", () => {
   let originalFetch: typeof globalThis.fetch;

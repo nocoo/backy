@@ -1,45 +1,19 @@
 import { describe, expect, test, mock, beforeEach, afterEach, spyOn } from "bun:test";
 import { NextRequest } from "next/server";
-
-/** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
-function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-): typeof globalThis.fetch {
-  const fn = handler as typeof globalThis.fetch;
-  fn.preconnect = () => {};
-  return fn;
-}
+import { mockFetch, d1Success, makeProject, PROJECT_STUBS } from "./helpers";
 
 // --- Mock state ---
 let mockProject: Record<string, unknown> | undefined;
 let getProjectShouldThrow = false;
 
 mock.module("@/lib/db/projects", () => ({
+  ...PROJECT_STUBS,
   getProject: async () => {
     if (getProjectShouldThrow) throw new Error("D1 error");
     return mockProject;
   },
-  // Stubs for all exports to avoid breaking other test files
-  getProjectByToken: async () => undefined,
-  listProjects: async () => [],
   createProject: async () => ({ id: "mock" }),
-  updateProject: async () => {},
-  deleteProject: async () => {},
-  regenerateToken: async () => undefined,
-  listAutoBackupProjects: async () => [],
 }));
-
-// D1 success response
-function d1Success() {
-  return new Response(
-    JSON.stringify({
-      success: true,
-      result: [{ results: [], success: true, meta: { changes: 1, last_row_id: 0 } }],
-      errors: [],
-    }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
-}
 
 function makeFetchRouter(
   saasHandler: (url: string, init?: RequestInit) => Promise<Response>,
@@ -61,25 +35,6 @@ function makeRequest(projectId: string): NextRequest {
   return new NextRequest(`http://localhost:7026/api/cron/trigger/${projectId}`, {
     method: "POST",
   });
-}
-
-function makeProject(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "proj-test",
-    name: "Test Project",
-    description: null,
-    webhook_token: "tok-abc",
-    allowed_ips: null,
-    category_id: null,
-    auto_backup_enabled: 1,
-    auto_backup_interval: 1,
-    auto_backup_webhook: "https://saas.example.com/trigger-backup",
-    auto_backup_header_key: null,
-    auto_backup_header_value: null,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-    ...overrides,
-  };
 }
 
 describe("POST /api/cron/trigger/[projectId]", () => {

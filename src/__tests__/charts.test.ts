@@ -1,22 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-
-/** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
-function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-): typeof globalThis.fetch {
-  const fn = handler as typeof globalThis.fetch;
-  fn.preconnect = () => {};
-  return fn;
-}
-
-/** D1 success response helper. */
-function d1Response<T>(results: T[]) {
-  return JSON.stringify({
-    success: true,
-    result: [{ results, success: true, meta: { changes: 0, last_row_id: 0 } }],
-    errors: [],
-  });
-}
+import { mockFetch, d1Success } from "./helpers";
 
 describe("GET /api/stats/charts", () => {
   let originalFetch: typeof globalThis.fetch;
@@ -48,7 +31,7 @@ describe("GET /api/stats/charts", () => {
       callCount++;
       // 1st → projectStats, 2nd → dailyBackups, 3rd → cronStats
       const data = callCount === 1 ? projectStats : callCount === 2 ? dailyBackups : cronStats;
-      return new Response(d1Response(data as Record<string, unknown>[]), { status: 200 });
+      return d1Success(data as Record<string, unknown>[]);
     });
 
     const { GET } = await import("@/app/api/stats/charts/route");
@@ -63,7 +46,7 @@ describe("GET /api/stats/charts", () => {
 
   test("returns empty arrays when no data", async () => {
     globalThis.fetch = mockFetch(async () =>
-      new Response(d1Response([]), { status: 200 }),
+      d1Success([]),
     );
 
     const { GET } = await import("@/app/api/stats/charts/route");

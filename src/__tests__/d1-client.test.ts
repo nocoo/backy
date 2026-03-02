@@ -1,14 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
 import { isD1Configured, executeD1Query } from "@/lib/db/d1-client";
-
-/** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
-function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-): typeof globalThis.fetch {
-  const fn = handler as typeof globalThis.fetch;
-  fn.preconnect = () => {};
-  return fn;
-}
+import { mockFetch } from "./helpers";
 
 describe("D1 client", () => {
   test("isD1Configured returns true when env vars are set", () => {

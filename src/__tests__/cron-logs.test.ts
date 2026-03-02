@@ -4,27 +4,7 @@ import {
   listCronLogs,
   deleteCronLogs,
 } from "@/lib/db/cron-logs";
-
-/** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
-function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-): typeof globalThis.fetch {
-  const fn = handler as typeof globalThis.fetch;
-  fn.preconnect = () => {};
-  return fn;
-}
-
-/** Create a successful D1 response. */
-function d1Success<T>(results: T[] = []) {
-  return new Response(
-    JSON.stringify({
-      success: true,
-      result: [{ results, success: true, meta: { changes: 0, last_row_id: 0 } }],
-      errors: [],
-    }),
-    { status: 200 },
-  );
-}
+import { mockFetch, d1Success } from "./helpers";
 
 describe("cron-logs", () => {
   let originalFetch: typeof globalThis.fetch;

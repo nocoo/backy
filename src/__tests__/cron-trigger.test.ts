@@ -1,14 +1,6 @@
 import { describe, expect, test, mock, beforeEach, afterEach, spyOn } from "bun:test";
 import { NextRequest } from "next/server";
-
-/** Create a mock fetch that satisfies Bun's typeof fetch (includes preconnect). */
-function mockFetch(
-  handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-): typeof globalThis.fetch {
-  const fn = handler as typeof globalThis.fetch;
-  fn.preconnect = () => {};
-  return fn;
-}
+import { mockFetch, d1Success, makeProject, PROJECT_STUBS } from "./helpers";
 
 // --- Track calls to mocked dependencies ---
 let mockProjects: Record<string, unknown>[] = [];
@@ -18,19 +10,12 @@ let listAutoBackupProjectsShouldThrow = false;
 // Mock only @/lib/db/projects (global mock; must include stubs for ALL exports
 // so other test files that mock.module the same module don't break).
 mock.module("@/lib/db/projects", () => ({
+  ...PROJECT_STUBS,
   listAutoBackupProjects: async () => {
     if (listAutoBackupProjectsShouldThrow) throw new Error("D1 timeout");
     return mockProjects;
   },
-  // Stubs for exports used by other test files
-  getProjectByToken: async () => undefined,
-  listProjects: async () => [],
-  getProject: async () => undefined,
   createProject: async () => ({ id: "mock" }),
-  updateProject: async () => {},
-  deleteProject: async () => {},
-  regenerateToken: async () => undefined,
-  listAutoBackupProjects_stub: true, // marker for debugging
 }));
 
 // NOTE: Do NOT mock @/lib/db/cron-logs here — that breaks cron-logs.test.ts
@@ -50,38 +35,6 @@ function makeRequest(token?: string): NextRequest {
     method: "POST",
     headers,
   });
-}
-
-/** Build a mock project row. */
-function makeProject(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "proj-123",
-    name: "Test Project",
-    description: null,
-    webhook_token: "tok-abc",
-    allowed_ips: null,
-    category_id: null,
-    auto_backup_enabled: 1,
-    auto_backup_interval: 1,
-    auto_backup_webhook: "https://saas.example.com/trigger-backup",
-    auto_backup_header_key: null,
-    auto_backup_header_value: null,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-    ...overrides,
-  };
-}
-
-/** Successful D1 API response shape. */
-function d1Success() {
-  return new Response(
-    JSON.stringify({
-      success: true,
-      result: [{ results: [], success: true, meta: { changes: 1, last_row_id: 0 } }],
-      errors: [],
-    }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
 }
 
 /**
