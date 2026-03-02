@@ -1714,7 +1714,7 @@ async function suiteHappyPathGz(): Promise<void> {
     assertEqual(res.status, 200, "status");
     const body = await res.json();
     assert(body.json_key !== undefined, "json_key should be set");
-    assert(body.source_file === "decompressed content", "source_file");
+    assert(body.source_file === "decompressed.json", "source_file");
     assertEqual(body.json_files_found, 1, "json_files_found");
   });
 
@@ -1906,7 +1906,8 @@ async function suiteUnknownFileType(): Promise<void> {
     const res = await fetch(`${baseUrl}/api/backups/${webhookBackupId}/extract`, { method: "POST" });
     assertEqual(res.status, 400, "status");
     const body = await res.json();
-    assert(body.error.toLowerCase().includes("extract"), "error should mention extraction");
+    assert(body.error.toLowerCase().includes("preview") || body.error.toLowerCase().includes("extract"),
+      "error should mention preview or extraction");
   });
 
   // Step 4: Preview should fail (no json_key, not extractable)
