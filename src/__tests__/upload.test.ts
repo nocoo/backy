@@ -18,6 +18,7 @@ let mockCreateBackupResult = {
   file_size: 100,
   is_single_json: 0,
   json_extracted: 0,
+  file_type: "zip",
   created_at: "2026-02-01T00:00:00.000Z",
   updated_at: "2026-02-01T00:00:00.000Z",
 };
@@ -115,6 +116,7 @@ describe("POST /api/backups/upload", () => {
       file_size: 100,
       is_single_json: 0,
       json_extracted: 0,
+      file_type: "zip",
       created_at: "2026-02-01T00:00:00.000Z",
       updated_at: "2026-02-01T00:00:00.000Z",
     };

@@ -16,6 +16,8 @@ export interface Backup {
   file_size: number;
   is_single_json: number;
   json_extracted: number;
+  /** File type: "json" | "zip" | "gz" | "tgz" | "unknown" */
+  file_type: string;
   created_at: string;
   updated_at: string;
 }
@@ -174,13 +176,15 @@ export async function createBackup(data: {
   fileSize: number;
   isSingleJson: boolean;
   jsonExtracted: boolean;
+  fileType?: string | undefined;
 }): Promise<Backup> {
   const id = generateId();
   const now = new Date().toISOString();
+  const fileType = data.fileType ?? (data.isSingleJson ? "json" : "zip");
 
   await executeD1Query(
-    `INSERT INTO backups (id, project_id, environment, sender_ip, tag, file_key, json_key, file_size, is_single_json, json_extracted, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO backups (id, project_id, environment, sender_ip, tag, file_key, json_key, file_size, is_single_json, json_extracted, file_type, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       data.projectId,
@@ -192,6 +196,7 @@ export async function createBackup(data: {
       data.fileSize,
       data.isSingleJson ? 1 : 0,
       data.jsonExtracted ? 1 : 0,
+      fileType,
       now,
       now,
     ],
@@ -208,6 +213,7 @@ export async function createBackup(data: {
     file_size: data.fileSize,
     is_single_json: data.isSingleJson ? 1 : 0,
     json_extracted: data.jsonExtracted ? 1 : 0,
+    file_type: fileType,
     created_at: now,
     updated_at: now,
   };

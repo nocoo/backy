@@ -100,6 +100,7 @@ export async function initializeSchema(): Promise<void> {
     "ALTER TABLE projects ADD COLUMN auto_backup_webhook TEXT",
     "ALTER TABLE projects ADD COLUMN auto_backup_header_key TEXT",
     "ALTER TABLE projects ADD COLUMN auto_backup_header_value TEXT",
+    "ALTER TABLE backups ADD COLUMN file_type TEXT NOT NULL DEFAULT 'unknown'",
   ];
   for (const sql of migrations) {
     try {
@@ -109,9 +110,23 @@ export async function initializeSchema(): Promise<void> {
     }
   }
 
+  // Backfill file_type from is_single_json for existing rows
+  const backfills = [
+    "UPDATE backups SET file_type = 'json' WHERE is_single_json = 1 AND file_type = 'unknown'",
+    "UPDATE backups SET file_type = 'zip' WHERE is_single_json = 0 AND file_type = 'unknown'",
+  ];
+  for (const sql of backfills) {
+    try {
+      await executeD1Query(sql);
+    } catch {
+      // Backfill may fail if file_type column doesn't exist yet (first run) — safe to ignore
+    }
+  }
+
   // Create indexes that depend on migration columns (must run after ALTER TABLE)
   const postMigrationIndexes = [
     "CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id)",
+    "CREATE INDEX IF NOT EXISTS idx_backups_file_type ON backups(file_type)",
   ];
   for (const sql of postMigrationIndexes) {
     await executeD1Query(sql);
