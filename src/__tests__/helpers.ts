@@ -87,8 +87,11 @@ export function makeProject(overrides: Record<string, unknown> = {}) {
 // defaults and override only the functions your test cares about.
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Stub = Record<string, ((...args: any[]) => any) | object>;
+
 /** Default stubs for `@/lib/db/projects`. */
-export const PROJECT_STUBS = {
+export const PROJECT_STUBS: Stub = {
   getProject: async () => undefined,
   getProjectByToken: async () => undefined,
   listProjects: async () => [],
@@ -97,10 +100,10 @@ export const PROJECT_STUBS = {
   deleteProject: async () => {},
   regenerateToken: async () => undefined,
   listAutoBackupProjects: async () => [],
-} as const;
+};
 
 /** Default stubs for `@/lib/db/backups`. */
-export const BACKUP_STUBS = {
+export const BACKUP_STUBS: Stub = {
   getBackup: async () => undefined,
   createBackup: async () => ({}),
   listBackups: async () => ({
@@ -116,10 +119,10 @@ export const BACKUP_STUBS = {
   updateBackup: async () => undefined,
   getBackupFileKeys: async () => [],
   countBackups: async () => 0,
-} as const;
+};
 
 /** Default stubs for `@/lib/r2/client`. */
-export const R2_STUBS = {
+export const R2_STUBS: Stub = {
   uploadToR2: async () => {},
   downloadFromR2: async () => ({
     body: null,
@@ -133,4 +136,45 @@ export const R2_STUBS = {
   isR2Configured: () => true,
   pingR2: async () => {},
   resetR2Client: () => {},
-} as const;
+};
+
+/** Default stubs for `@/lib/db/webhook-logs`. */
+export const WEBHOOK_LOG_STUBS: Stub = {
+  createWebhookLog: async () => {},
+  listWebhookLogs: async () => ({
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 50,
+    totalPages: 0,
+  }),
+  getWebhookLog: async () => undefined,
+  purgeWebhookLogs: async () => 0,
+  deleteWebhookLogs: async () => {},
+};
+
+/** Default stubs for `@/lib/db/schema`. */
+export const SCHEMA_STUBS: Stub = {
+  initializeSchema: async () => {},
+};
+
+// ---------------------------------------------------------------------------
+// Backup fixture builder
+// ---------------------------------------------------------------------------
+
+/** Build a mock backup record with sensible defaults. */
+export function makeBackup(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "bk-test",
+    project_id: "proj-test",
+    project_name: "Test Project",
+    file_key: "backups/proj-test/bk-test.zip",
+    json_key: null,
+    file_size: 1024,
+    is_single_json: 0,
+    environment: "prod",
+    tag: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
