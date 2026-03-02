@@ -1,1 +1,1 @@
-bun run test && bun run lint && bun run test:e2e
+bun run test && bun run lint && bun run test:e2e:api && bun run test:e2e:bdd

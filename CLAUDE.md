@@ -16,19 +16,45 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | Deployment | Railway + Docker, port 7026 |
 | Domain | backy.dev.hexly.ai |
 
-## Three-Tier Testing
+## Four-Tier Testing
 
-| Layer | Tool | Trigger | Requirement |
-|---|---|---|---|
-| UT | bun test | pre-commit | 90%+ coverage |
-| Lint | eslint | pre-commit | Zero errors/warnings |
-| E2E | bun run test:e2e | pre-push | BDD pattern |
+| Layer | Tool | Script | Trigger | Requirement |
+|---|---|---|---|---|
+| L1 UT | bun test | `bun test` | pre-commit | 90%+ coverage (functions & lines) |
+| L2 Lint | eslint | `bun run lint` | pre-commit | Zero errors/warnings |
+| L3 API E2E | Custom BDD runner | `bun run test:e2e:api` | pre-push | 146 tests, 31 API route/method combos |
+| L4 BDD E2E | Playwright (Chromium) | `bun run test:e2e:bdd` | pre-push | 5 core user flow specs |
+
+### Port Convention
+
+| Purpose | Port |
+|---|---|
+| Dev server | 7026 |
+| L3 API E2E | 17026 |
+| L4 BDD E2E | 27026 |
 
 ### Core Principles
 
 1. **Catch early** — no accumulating tech debt
 2. **Self-resolve** — no relying on manual review for basic errors
 3. **Quality gate** — bad code cannot enter main branch
+
+### Test Structure
+
+```
+src/__tests__/          # L1 unit tests (34 files, 421 tests)
+  helpers.ts            # Shared: mockFetch, d1Success/d1Error, stubs, builders
+e2e/api/                # L3 API E2E (21 suites, 146 tests)
+  config.ts             # Constants, shared mutable state
+  framework.ts          # Minimal BDD framework (test, assert, assertEqual)
+  helpers.ts            # Upload helpers, builders
+  runner.ts             # Main runner, exports runE2ETests(url)
+  suites/               # 21 individual suite files
+e2e/bdd/                # L4 Playwright BDD E2E (5 specs, 17 tests)
+  playwright.config.ts  # Playwright config (Chromium, serial, headless)
+  runner.ts             # Server lifecycle (port 27026) + playwright exec
+  specs/                # 5 spec files (dashboard, projects, backup, upload, nav)
+```
 
 ## Common Commands
 
@@ -37,6 +63,8 @@ bun dev              # Dev server (7026)
 bun run build        # Production build
 bun test             # Unit tests
 bun run lint         # ESLint
+bun run test:e2e:api # L3 API E2E (port 17026)
+bun run test:e2e:bdd # L4 Playwright BDD E2E (port 27026)
 ```
 
 ## Retrospective
