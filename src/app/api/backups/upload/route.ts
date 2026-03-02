@@ -3,6 +3,8 @@ import JSZip from "jszip";
 import { createBackup } from "@/lib/db/backups";
 import { getProject } from "@/lib/db/projects";
 import { uploadToR2 } from "@/lib/r2/client";
+import { detectFileType, isPreviewable, normalizeContentType } from "@/lib/backup/file-type";
+import { generateBackupKey, generatePreviewKey, generateTimestamp } from "@/lib/backup/storage";
 
 /** Max upload size: 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -11,12 +13,13 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
  * POST /api/backups/upload — Manual backup upload from the UI.
  *
  * Body: multipart/form-data with:
- *   - file: the backup file (.zip or .json)
+ *   - file: the backup file (any format accepted)
  *   - projectId: target project ID
  *   - tag: descriptive label (optional)
  *   - environment: "dev" | "prod" | "staging" | "test" (optional)
  *
- * If a JSON file is uploaded, it is automatically compressed into a ZIP.
+ * JSON files are auto-compressed into ZIP and a preview copy is stored.
+ * All other formats (zip, gz, tgz, unknown) are stored as-is.
  */
 export async function POST(request: Request) {
   try {
@@ -72,31 +75,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Determine file type
+    // Detect file type using module
     const fileName = file.name || "backup";
     const rawType = file.type || "application/octet-stream";
-    const contentType = rawType.split(";")[0]!.trim();
-    const isJson = contentType === "application/json" || fileName.endsWith(".json");
-    const isZip = contentType === "application/zip" ||
-      contentType === "application/x-zip-compressed" ||
-      fileName.endsWith(".zip");
+    const contentType = normalizeContentType(rawType);
+    const fileType = detectFileType(fileName, contentType);
 
-    if (!isJson && !isZip) {
-      return NextResponse.json(
-        { error: "Unsupported file type. Allowed: .json, .zip" },
-        { status: 400 },
-      );
-    }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const timestamp = generateTimestamp();
     const buffer = new Uint8Array(await file.arrayBuffer());
     let fileKey: string;
     let jsonKey: string | undefined;
     let fileSize: number;
-    let isSingleJson = false;
+    const isSingleJson = isPreviewable(fileType);
 
-    if (isJson) {
-      // Auto-compress JSON into ZIP
+    if (isSingleJson) {
+      // JSON: auto-compress into ZIP for storage, keep raw JSON for preview
       const zip = new JSZip();
       zip.file(fileName, buffer);
       const zipBuffer = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
@@ -105,14 +98,12 @@ export async function POST(request: Request) {
       await uploadToR2(fileKey, zipBuffer, "application/zip");
       fileSize = zipBuffer.length;
 
-      // Also store the raw JSON for preview
-      jsonKey = `previews/${projectId}/${timestamp}.json`;
+      jsonKey = generatePreviewKey(projectId, timestamp);
       await uploadToR2(jsonKey, buffer, "application/json");
-      isSingleJson = true;
     } else {
-      // ZIP file — upload as-is
-      fileKey = `backups/${projectId}/${timestamp}.zip`;
-      await uploadToR2(fileKey, buffer, "application/zip");
+      // All other types (zip, gz, tgz, unknown): store as-is
+      fileKey = generateBackupKey(projectId, fileType, fileName, timestamp);
+      await uploadToR2(fileKey, buffer, contentType);
       fileSize = buffer.length;
     }
 
@@ -127,6 +118,7 @@ export async function POST(request: Request) {
       fileSize,
       isSingleJson,
       jsonExtracted: false,
+      fileType,
     });
 
     return NextResponse.json(

@@ -180,14 +180,47 @@ describe("POST /api/backups/upload", () => {
     expect(body.error).toContain("large");
   });
 
-  test("returns 400 for unsupported file type", async () => {
+  test("uploads GZ file: stores as-is without preview", async () => {
+    // Minimal gzip header bytes
+    const gzData = new Uint8Array([0x1f, 0x8b, 0x08, 0x00]);
     const req = uploadRequest({
-      file: new File(["data"], "backup.txt", { type: "text/plain" }),
+      file: new File([gzData], "backup.json.gz", { type: "application/gzip" }),
     });
     const res = await POST(req);
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toContain("Unsupported");
+    expect(res.status).toBe(201);
+
+    expect(uploadCalls).toHaveLength(1);
+    expect(uploadCalls[0]!.key).toContain("backups/proj-123/");
+    expect(uploadCalls[0]!.key).toEndWith(".gz");
+    expect(uploadCalls[0]!.contentType).toBe("application/gzip");
+  });
+
+  test("uploads TGZ file: stores as-is without preview", async () => {
+    const tgzData = new Uint8Array([0x1f, 0x8b, 0x08, 0x00]);
+    const req = uploadRequest({
+      file: new File([tgzData], "backup.tar.gz", { type: "application/gzip" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    expect(uploadCalls).toHaveLength(1);
+    expect(uploadCalls[0]!.key).toContain("backups/proj-123/");
+    expect(uploadCalls[0]!.key).toEndWith(".tar.gz");
+    expect(uploadCalls[0]!.contentType).toBe("application/gzip");
+  });
+
+  test("uploads unknown file type: stores as-is without preview", async () => {
+    const data = new TextEncoder().encode("some binary data");
+    const req = uploadRequest({
+      file: new File([data], "backup.bak", { type: "application/octet-stream" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    expect(uploadCalls).toHaveLength(1);
+    expect(uploadCalls[0]!.key).toContain("backups/proj-123/");
+    expect(uploadCalls[0]!.key).toEndWith(".bak");
+    expect(uploadCalls[0]!.contentType).toBe("application/octet-stream");
   });
 
   test("returns 400 for invalid environment value", async () => {
