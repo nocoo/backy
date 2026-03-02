@@ -10,6 +10,8 @@
     "test": "bun test src/__tests__/",
     "test:coverage": "bun run scripts/check-coverage.ts",
     "test:e2e": "bun run scripts/run-e2e.ts",
+    "test:e2e:api": "bun run scripts/run-e2e.ts",
+    "test:e2e:bdd": "bun run e2e/bdd/runner.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -33,6 +35,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/bun": "^1.3.8",
     "@types/jszip": "^3.4.1",
