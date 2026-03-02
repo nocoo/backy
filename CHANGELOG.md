@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-03-02
+
+### Features
+
+- **File Type Detection** — New `file-type` module with `detectFileType()`, `isPreviewable()`, and `isExtractable()` functions for robust content-based file identification
+- **GZ/TGZ Extraction** — Extract and preview JSON content from `.gz` and `.tar.gz` archives alongside existing ZIP support
+- **Storage Key Generation** — Dedicated `storage` module for consistent backup and preview key generation
+- **Schema Migration** — New `file_type` column on `backups` table with automatic migration for existing records
+
+### Changed
+
+- **Webhook Route** — Refactored to use new `file-type` module for content detection instead of inline logic
+- **Upload Route** — Refactored to use new `file-type` module; now accepts all file formats (not just JSON/ZIP)
+- **Extract Route** — Refactored to use new `extractors` module with strategy pattern for ZIP/GZ/TGZ extraction
+- **Backup Detail UI** — Updated to show file type badge and handle non-previewable files with "no preview available" message
+- **Backup List UI** — File type badges displayed in backup list and project detail pages
+- **Manual Upload Dialog** — Accepts all file formats instead of restricting to `.json` and `.zip`
+- **Unit test count** — 247 → 335 unit tests across 22 files
+- **E2E test suites** — Added GZ, TGZ, and unknown file type E2E suites (134 → 146 tests)
+
+### Fixed
+
+- **E2E port conflict** — Kill orphan processes on E2E port before starting server
+- **Cron log deletion verification** — Retry D1 deletion verification for eventual consistency
+- **E2E assertions** — Corrected assertions for gz `source_file` field and unknown type error messages
+
+### Infrastructure
+
+- **New modules**: `src/lib/backup/file-type.ts`, `src/lib/backup/storage.ts`, `src/lib/backup/extractors.ts`
+- **Pre-commit coverage gate** — Enforced 90% coverage threshold in husky pre-commit hook
+
 ## [1.3.0] - 2026-03-02
 
 ### Features
@@ -121,6 +152,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.4.0]: https://github.com/nocoo/backy/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/nocoo/backy/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/nocoo/backy/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/nocoo/backy/compare/v1.1.0...v1.1.1
