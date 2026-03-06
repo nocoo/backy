@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-03-06
+
+### Changed
+
+- **Pre-push hook** — Removed BDD E2E (L4) from pre-push hook, making it on-demand only for faster push cycles
+- **Dependencies** — Upgraded `@types/node` 20 → 25, plus patch/minor bumps for aws-sdk, lucide, react, shadcn, tailwind-merge, and types/bun
+- **Removed redundant `@types/jszip`** — jszip ships built-in types, eliminating the duplicate declaration
+
+### Documentation
+
+- **CLAUDE.md** — Added project structure section with all source directories, tech stack additions (Recharts, Zod v4), test:coverage command, and clarified E2E counts (148 defined, 146 run, 2 conditional)
+
 ## [1.5.0] - 2026-03-03
 
 ### Features
@@ -174,6 +186,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.6.0]: https://github.com/nocoo/backy/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/nocoo/backy/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/nocoo/backy/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/nocoo/backy/compare/v1.2.0...v1.3.0
