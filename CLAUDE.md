@@ -104,12 +104,13 @@ e2e/bdd/                # L4 Playwright BDD E2E (5 specs, 17 tests)
 ## Common Commands
 
 ```bash
-bun dev              # Dev server (7026)
-bun run build        # Production build
-bun test             # Unit tests
-bun run lint         # ESLint
-bun run test:e2e:api # L3 API E2E (port 17026)
-bun run test:e2e:bdd # L4 Playwright BDD E2E (port 27026)
+bun dev                # Dev server (7026)
+bun run build          # Production build
+bun test               # Unit tests
+bun run test:coverage  # Unit tests + 90% coverage gate
+bun run lint           # ESLint
+bun run test:e2e:api   # L3 API E2E (port 17026)
+bun run test:e2e:bdd   # L4 Playwright BDD E2E (port 27026)
 ```
 
 ## Retrospective
