@@ -18,6 +18,49 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | Deployment | Railway + Docker, port 7026 |
 | Domain | backy.dev.hexly.ai |
 
+## Project Structure
+
+```
+src/
+  app/
+    api/                 # 24 route files, 37 HTTP method handlers
+      auth/              # NextAuth v5 handler (Google OAuth)
+      backups/           # CRUD + upload, download, preview, extract
+      categories/        # CRUD
+      cron/              # Auto-backup trigger + logs
+      db/init/           # D1 schema initialization
+      ip-info/           # IP geolocation proxy
+      live/              # Health check (D1 + R2 ping)
+      logs/              # Webhook audit logs
+      projects/          # CRUD + token regeneration + prompt generation
+      restore/           # Public presigned download (token-auth)
+      stats/             # Dashboard totals + chart data
+      webhook/           # AI agent ingestion endpoint (HEAD/GET/POST)
+    backups/             # Backup list + detail pages
+    cron-logs/           # Cron log viewer page
+    login/               # Google OAuth login page
+    logs/                # Webhook log viewer page
+    projects/            # Project list + detail + new pages
+    page.tsx             # Dashboard (stats, charts, recent backups)
+    layout.tsx           # Root layout (AuthProvider, theme FOUC prevention)
+  auth.ts                # NextAuth v5 config (Google OAuth, email whitelist)
+  proxy.ts               # Next.js 16 proxy convention (replaces middleware.ts)
+  components/
+    charts/              # Recharts: activity, cron, project charts
+    layout/              # App shell, sidebar, breadcrumbs, theme toggle
+    ui/                  # 11 shadcn/ui primitives
+  hooks/                 # useIsMobile
+  lib/
+    backup/              # File type detection, archive extractors, R2 key generation
+    db/                  # D1 client, schema, CRUD modules (projects, backups, categories, webhook-logs, cron-logs)
+    r2/                  # S3-compatible R2 client (upload, download, presign, delete)
+    id.ts                # nanoid generators (21-char ID, 48-char webhook token)
+    ip.ts                # IP/CIDR validation and enforcement
+scripts/
+  check-coverage.ts      # Coverage gate (90%+ threshold)
+  run-e2e.ts             # L3 API E2E server lifecycle + runner
+```
+
 ## Four-Tier Testing
 
 | Layer | Tool | Script | Trigger | Requirement |
