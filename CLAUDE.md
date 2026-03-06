@@ -10,6 +10,8 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript (strict mode) |
 | UI | Tailwind CSS v4 + shadcn/ui (basalt design system) |
+| Charts | Recharts |
+| Validation | Zod v4 |
 | Auth | NextAuth v5 + Google OAuth (whitelist) |
 | Metadata DB | Cloudflare D1 (remote REST API) |
 | File Storage | Cloudflare R2 (S3-compatible API) |
