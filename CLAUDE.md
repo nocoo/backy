@@ -44,7 +44,7 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 ```
 src/__tests__/          # L1 unit tests (34 files, 421 tests)
   helpers.ts            # Shared: mockFetch, d1Success/d1Error, stubs, builders
-e2e/api/                # L3 API E2E (21 suites, 146 tests)
+e2e/api/                # L3 API E2E (21 suites, 148 tests)
   config.ts             # Constants, shared mutable state
   framework.ts          # Minimal BDD framework (test, assert, assertEqual)
   helpers.ts            # Upload helpers, builders
