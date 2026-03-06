@@ -67,7 +67,7 @@ scripts/
 |---|---|---|---|---|
 | L1 UT | bun test | `bun test` | pre-commit | 90%+ coverage (functions & lines) |
 | L2 Lint | eslint | `bun run lint` | pre-commit | Zero errors/warnings |
-| L3 API E2E | Custom BDD runner | `bun run test:e2e:api` | pre-push | 148 tests, 37 API route/method combos |
+| L3 API E2E | Custom BDD runner | `bun run test:e2e:api` | pre-push | 146 tests (148 defined, 2 conditional), 37 API route/method combos |
 | L4 BDD E2E | Playwright (Chromium) | `bun run test:e2e:bdd` | on-demand | 5 core user flow specs |
 
 ### Port Convention
@@ -89,7 +89,7 @@ scripts/
 ```
 src/__tests__/          # L1 unit tests (34 files, 421 tests)
   helpers.ts            # Shared: mockFetch, d1Success/d1Error, stubs, builders
-e2e/api/                # L3 API E2E (21 suites, 148 tests)
+e2e/api/                # L3 API E2E (21 suites, 148 defined, 146 run)
   config.ts             # Constants, shared mutable state
   framework.ts          # Minimal BDD framework (test, assert, assertEqual)
   helpers.ts            # Upload helpers, builders
