@@ -22,7 +22,7 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 |---|---|---|---|---|
 | L1 UT | bun test | `bun test` | pre-commit | 90%+ coverage (functions & lines) |
 | L2 Lint | eslint | `bun run lint` | pre-commit | Zero errors/warnings |
-| L3 API E2E | Custom BDD runner | `bun run test:e2e:api` | pre-push | 146 tests, 31 API route/method combos |
+| L3 API E2E | Custom BDD runner | `bun run test:e2e:api` | pre-push | 148 tests, 37 API route/method combos |
 | L4 BDD E2E | Playwright (Chromium) | `bun run test:e2e:bdd` | on-demand | 5 core user flow specs |
 
 ### Port Convention
