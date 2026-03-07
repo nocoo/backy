@@ -57,10 +57,10 @@ interface ProjectInfo {
 
 const PAGE_SIZE = 50;
 
-/** The project name to exclude by default (automated testing). */
+/** The project names grouped under the optional test-traffic exclusion filter. */
 const EXCLUDED_PROJECT_NAMES = ["GunTest", "backy-test"];
 
-/** Client IPs to exclude by default (localhost / test traffic). */
+/** Client IPs grouped under the optional test-traffic exclusion filter. */
 const EXCLUDED_CLIENT_IPS = ["::1"];
 
 interface IpInfoLocation {
@@ -299,8 +299,8 @@ export default function LogsPage() {
   // Filters
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [successFilter, setSuccessFilter] = useState<string>("all");
-  const [projectFilter, setProjectFilter] = useState<string>("default");
-  // "default" = exclude GunTest, "all" = show all, "<projectId>" = specific project
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  // "all" = show all, "exclude-test" = hide test traffic, "<projectId>" = specific project
 
   // The GunTest/backy-test project IDs (resolved from projects list)
   const [excludedProjectIds, setExcludedProjectIds] = useState<string[]>([]);
@@ -346,10 +346,10 @@ export default function LogsPage() {
       if (successFilter === "success") params.set("success", "true");
       else if (successFilter === "failure") params.set("success", "false");
 
-      if (projectFilter === "default" && excludedProjectIds.length > 0) {
+      if (projectFilter === "exclude-test" && excludedProjectIds.length > 0) {
         // Exclude test projects by default
         params.set("excludeProjectIds", excludedProjectIds.join(","));
-      } else if (projectFilter === "default") {
+      } else if (projectFilter === "exclude-test") {
         // Projects not yet loaded but still apply IP filter below
       } else if (
         projectFilter !== "all"
@@ -359,7 +359,7 @@ export default function LogsPage() {
       }
 
       // Always exclude localhost IPs in default mode
-      if (projectFilter === "default") {
+      if (projectFilter === "exclude-test") {
         params.set("excludeClientIps", EXCLUDED_CLIENT_IPS.join(","));
       }
 
@@ -393,23 +393,23 @@ export default function LogsPage() {
   function clearFilters() {
     setMethodFilter("all");
     setSuccessFilter("all");
-    setProjectFilter("default");
+    setProjectFilter("all");
     setPage(1);
   }
 
   const hasFilters =
     methodFilter !== "all" ||
     successFilter !== "all" ||
-    projectFilter !== "default";
+    projectFilter !== "all";
 
   // Clear (delete) logs matching current filters
   async function handleClearLogs() {
     const filterDesc: string[] = [];
-    if (projectFilter !== "all" && projectFilter !== "default") {
+    if (projectFilter !== "all" && projectFilter !== "exclude-test") {
       const proj = projects.find((p) => p.id === projectFilter);
       filterDesc.push(proj?.name ?? projectFilter);
-    } else if (projectFilter === "default" && excludedProjectIds.length > 0) {
-      // "default" shows everything except GunTest — clearing "default" is ambiguous.
+    } else if (projectFilter === "exclude-test" && excludedProjectIds.length > 0) {
+      // "exclude-test" shows everything except test traffic — clearing it is ambiguous.
       // We'll clear all logs (user can filter first if they want specific).
     }
     if (methodFilter !== "all") filterDesc.push(methodFilter);
@@ -428,7 +428,7 @@ export default function LogsPage() {
       const body: Record<string, unknown> = {};
       if (
         projectFilter !== "all" &&
-        projectFilter !== "default"
+        projectFilter !== "exclude-test"
       ) {
         body.projectId = projectFilter;
       }
@@ -498,8 +498,8 @@ export default function LogsPage() {
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Exclude Test Traffic</SelectItem>
               <SelectItem value="all">All Projects</SelectItem>
+              <SelectItem value="exclude-test">Exclude Test Traffic</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
