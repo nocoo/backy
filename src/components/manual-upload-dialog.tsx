@@ -296,12 +296,13 @@ export function ManualUploadDialog({
                       {isJsonFile && " — will be compressed to ZIP"}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
+                   <Button
+                     variant="ghost"
+                     size="icon-xs"
+                     aria-label="Remove selected file"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setFile(null);
                     }}
                     disabled={uploading}
                   >

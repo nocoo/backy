@@ -208,6 +208,7 @@ export function CategoryManagement({ onCategoriesChanged }: CategoryManagementPr
                       <Button
                         variant="ghost"
                         size="icon-xs"
+                        aria-label={`Edit category ${cat.name}`}
                         onClick={() => startEdit(cat)}
                         disabled={isDeleting}
                       >
@@ -216,6 +217,7 @@ export function CategoryManagement({ onCategoriesChanged }: CategoryManagementPr
                       <Button
                         variant="ghost"
                         size="icon-xs"
+                        aria-label={`Delete category ${cat.name}`}
                         onClick={() => void handleDelete(cat.id)}
                         disabled={isDeleting}
                         className="text-destructive hover:text-destructive"

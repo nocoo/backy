@@ -655,6 +655,7 @@ export default function ProjectDetailPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          aria-label={headerValueVisible ? "Hide auth header value" : "Show auth header value"}
                           onClick={() => setHeaderValueVisible(!headerValueVisible)}
                           className="shrink-0"
                         >
@@ -717,6 +718,7 @@ export default function ProjectDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label="Copy webhook URL"
                       onClick={() => void handleCopy(webhookUrl, "webhook")}
                       className="shrink-0"
                     >
@@ -740,6 +742,7 @@ export default function ProjectDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label={tokenVisible ? "Hide authorization token" : "Show authorization token"}
                       onClick={() => setTokenVisible(!tokenVisible)}
                       className="shrink-0"
                     >
@@ -752,6 +755,7 @@ export default function ProjectDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label="Copy authorization token"
                       onClick={() => void handleCopy(project.webhook_token, "token")}
                       className="shrink-0"
                     >
@@ -817,6 +821,7 @@ export default function ProjectDetailPage() {
                       variant="outline"
                       size="sm"
                       className="absolute top-2 right-2"
+                      aria-label="Copy AI agent prompt"
                       onClick={() => void handleCopy(promptText, "prompt")}
                     >
                       {copied === "prompt" ? (
@@ -904,13 +909,17 @@ export default function ProjectDetailPage() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/backups/${backup.id}`}>
+                        <Link
+                          href={`/backups/${backup.id}`}
+                          aria-label={`View backup ${backup.id.slice(0, 8)}`}
+                        >
                           <Eye className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
+                        aria-label={`Download backup ${backup.id.slice(0, 8)}`}
                         onClick={() => void handleBackupDownload(backup.id)}
                         disabled={downloading === backup.id}
                       >

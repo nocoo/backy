@@ -326,6 +326,7 @@ export default function BackupsPage() {
               <button
                 type="button"
                 onClick={() => setSearch("")}
+                aria-label="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" />
@@ -530,13 +531,17 @@ export default function BackupsPage() {
                   {/* Actions */}
                   <div className="flex items-center gap-1 w-[110px] shrink-0 justify-end">
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/backups/${backup.id}`}>
+                      <Link
+                        href={`/backups/${backup.id}`}
+                        aria-label={`View backup ${backup.id.slice(0, 8)}`}
+                      >
                         <Eye className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label={`Download backup ${backup.id.slice(0, 8)}`}
                       onClick={() => void handleDownload(backup)}
                       disabled={downloading === backup.id}
                     >
@@ -549,6 +554,7 @@ export default function BackupsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label={`Delete backup ${backup.id.slice(0, 8)}`}
                       onClick={() => setDeleteTarget(backup)}
                     >
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />

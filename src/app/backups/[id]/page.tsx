@@ -484,6 +484,7 @@ export default function BackupDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label="Copy restore URL"
                       onClick={() => void handleCopyRestoreUrl()}
                       className="shrink-0"
                     >
