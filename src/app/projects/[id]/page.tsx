@@ -2,18 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import {
-  Copy,
-  Check,
-  RefreshCw,
   Trash2,
   Loader2,
   Eye,
   EyeOff,
-  Sparkles,
-  Archive,
-  Download,
   Timer,
   Play,
 } from "lucide-react";
@@ -23,14 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardAction,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -48,7 +39,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ManualUploadDialog } from "@/components/manual-upload-dialog";
+import { ProjectWebhookPanel } from "@/components/project/project-webhook-panel";
+import { ProjectRecentBackupsCard } from "@/components/project/project-recent-backups-card";
 import { getCategoryIcon } from "@/lib/category-icons";
 
 interface Project {
@@ -699,250 +691,32 @@ export default function ProjectDetailPage() {
           </div>
 
           {/* Right column */}
-          <div className="flex flex-col gap-6">
-            {/* Webhook Integration Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Webhook Integration</CardTitle>
-                <CardDescription>
-                  Use these credentials to send backups from your AI agent.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label>Webhook URL</Label>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground truncate">
-                      {webhookUrl}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      aria-label="Copy webhook URL"
-                      onClick={() => void handleCopy(webhookUrl, "webhook")}
-                      className="shrink-0"
-                    >
-                      {copied === "webhook" ? (
-                        <Check className="h-3.5 w-3.5" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label>Authorization Token</Label>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground truncate">
-                      {tokenVisible
-                        ? project.webhook_token
-                        : "\u2022".repeat(24)}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      aria-label={tokenVisible ? "Hide authorization token" : "Show authorization token"}
-                      onClick={() => setTokenVisible(!tokenVisible)}
-                      className="shrink-0"
-                    >
-                      {tokenVisible ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      aria-label="Copy authorization token"
-                      onClick={() => void handleCopy(project.webhook_token, "token")}
-                      className="shrink-0"
-                    >
-                      {copied === "token" ? (
-                        <Check className="h-3.5 w-3.5" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void handleRegenerateToken()}
-                      disabled={regenerating}
-                    >
-                      {regenerating ? (
-                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                      )}
-                      Regenerate Token
-                    </Button>
-                    <Badge variant="secondary">
-                      Bearer token
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* AI Agent Prompt Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Agent Prompt</CardTitle>
-                <CardDescription>
-                  Copy this prompt into your AI agent&apos;s instructions.
-                </CardDescription>
-                <CardAction>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleShowPrompt()}
-                    disabled={promptLoading}
-                  >
-                    {promptLoading ? (
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    {promptText ? "Refresh" : "Generate"}
-                  </Button>
-                </CardAction>
-              </CardHeader>
-              {promptText && (
-                <CardContent>
-                  <div className="relative">
-                    <pre className="rounded-md border border-border bg-muted/50 p-4 text-xs font-mono text-foreground whitespace-pre-wrap overflow-x-auto max-h-[400px] overflow-y-auto">
-                      {promptText}
-                    </pre>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      aria-label="Copy AI agent prompt"
-                      onClick={() => void handleCopy(promptText, "prompt")}
-                    >
-                      {copied === "prompt" ? (
-                        <Check className="h-3.5 w-3.5" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          </div>
+          <ProjectWebhookPanel
+            webhookUrl={webhookUrl}
+            webhookToken={project.webhook_token}
+            tokenVisible={tokenVisible}
+            copied={copied}
+            regenerating={regenerating}
+            promptText={promptText}
+            promptLoading={promptLoading}
+            onCopy={handleCopy}
+            onToggleTokenVisible={() => setTokenVisible(!tokenVisible)}
+            onRegenerateToken={handleRegenerateToken}
+            onShowPrompt={handleShowPrompt}
+          />
         </div>
 
         {/* Recent Backups Card - full width */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Backups</CardTitle>
-            <CardDescription>
-              {backups
-                ? `${backups.total} backup${backups.total !== 1 ? "s" : ""} in this project`
-                : "Loading..."}
-            </CardDescription>
-            {backups && backups.total > 0 && (
-              <CardAction className="flex items-center gap-2">
-                <ManualUploadDialog
-                  projectId={project.id}
-                  onSuccess={() => void fetchBackups()}
-                />
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/backups?projectId=${project.id}`}>
-                    View All
-                  </Link>
-                </Button>
-              </CardAction>
-            )}
-          </CardHeader>
-          <CardContent>
-            {backupsLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : backups && backups.items.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                {backups.items.map((backup) => (
-                  <div
-                    key={backup.id}
-                    className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3 gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Archive className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {backup.tag && (
-                            <span className="text-sm font-medium text-foreground">
-                              {backup.tag}
-                            </span>
-                          )}
-                          {backup.environment && (
-                            <Badge variant="secondary" className="text-xs">
-                              {backup.environment}
-                            </Badge>
-                          )}
-                          {backup.file_type && (
-                            <Badge variant={backup.file_type === "json" ? "default" : "secondary"} className="text-xs">
-                              {({ json: "JSON", zip: "ZIP", gz: "GZ", tgz: "TGZ" }[backup.file_type]) || backup.file_type.toUpperCase()}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(backup.created_at)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatBytes(backup.file_size)}
-                          </span>
-                          <span className="text-xs text-muted-foreground/60 font-mono">
-                            {backup.id.slice(0, 8)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link
-                          href={`/backups/${backup.id}`}
-                          aria-label={`View backup ${backup.id.slice(0, 8)}`}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        aria-label={`Download backup ${backup.id.slice(0, 8)}`}
-                        onClick={() => void handleBackupDownload(backup.id)}
-                        disabled={downloading === backup.id}
-                      >
-                        {downloading === backup.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-border bg-background/50 p-8 text-center">
-                <Archive className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  No backups yet. Configure your AI agent using the webhook above.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ProjectRecentBackupsCard
+          projectId={project.id}
+          backups={backups}
+          backupsLoading={backupsLoading}
+          downloading={downloading}
+          onDownload={handleBackupDownload}
+          onRefresh={fetchBackups}
+          formatDate={formatDate}
+          formatBytes={formatBytes}
+        />
 
         {/* Danger Zone Card */}
         <Card className="border-destructive/30">
