@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-03-07
+
+### Fixed
+
+- **Mobile navigation accessibility** — Added dialog semantics, focus trapping, Escape close handling, and an explicit close control for the mobile sidebar drawer
+- **Icon-only action labeling** — Added accessible names across backup, project, restore, upload, category, and search clear actions
+- **Responsive list layouts** — Reworked backup and cron log list rows for mobile card-style layouts instead of desktop-first fixed-width columns
+- **Dashboard recent backup fetch** — Limited homepage recent backup loading to `pageSize=5` instead of fetching a larger default payload and truncating client-side
+- **Loading overlay anchoring** — Wrapped list page content in explicit relative containers so follow-up loading overlays stay scoped correctly
+
+### Changed
+
+- **Semantic color tokens** — Added `info`, `warning`, and `surface-elevated` tokens and replaced remaining hardcoded UI colors in login, loading, JSON viewer, upload, and cron status surfaces
+- **Chart accessibility summaries** — Added text summaries beneath dashboard charts so key counts remain readable without relying only on color and hover tooltips
+
+### Refactored
+
+- **Project detail composition** — Split webhook/prompt and recent backup sections out of `projects/[id]` into dedicated feature components to reduce page-level responsibility
+
+### Documentation
+
+- **Audit remediation tracking** — Updated `docs/03-impeccable-audit-report.md` with per-issue fix status and implementation notes
+
 ## [1.6.0] - 2026-03-06
 
 ### Changed
@@ -186,6 +209,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.7.0]: https://github.com/nocoo/backy/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/nocoo/backy/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/nocoo/backy/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/nocoo/backy/compare/v1.3.0...v1.4.0
