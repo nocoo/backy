@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Github } from "lucide-react";
+import { Menu, Github, X } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { SidebarProvider, useSidebar } from "./sidebar-context";
 import { ThemeToggle } from "./theme-toggle";
@@ -18,6 +18,7 @@ function AppShellInner({ children, breadcrumbs = [] }: AppShellProps) {
   const isMobile = useIsMobile();
   const { mobileOpen, setMobileOpen } = useSidebar();
   const pathname = usePathname();
+  const drawerRef = useRef<HTMLDivElement | null>(null);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -36,6 +37,62 @@ function AppShellInner({ children, breadcrumbs = [] }: AppShellProps) {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (!isMobile || !mobileOpen) return;
+
+    const drawer = drawerRef.current;
+    const previousActiveElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+    if (!drawer) return;
+
+    const getFocusableElements = () => Array.from(
+      drawer.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+
+    const focusableElements = getFocusableElements();
+    (focusableElements[0] ?? drawer).focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const elements = getFocusableElements();
+      if (elements.length === 0) {
+        event.preventDefault();
+        drawer.focus();
+        return;
+      }
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousActiveElement?.focus();
+    };
+  }, [isMobile, mobileOpen, setMobileOpen]);
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       {/* Desktop sidebar */}
@@ -47,8 +104,26 @@ function AppShellInner({ children, breadcrumbs = [] }: AppShellProps) {
           <div
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs"
             onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-[240px]">
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            tabIndex={-1}
+            className="fixed inset-y-0 left-0 z-50 w-[240px] outline-none"
+          >
+            <div className="absolute top-3 right-3 z-10">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close navigation"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background hover:text-foreground"
+              >
+                <X className="h-4 w-4" aria-hidden="true" strokeWidth={1.5} />
+              </button>
+            </div>
             <Sidebar />
           </div>
         </>
@@ -60,6 +135,7 @@ function AppShellInner({ children, breadcrumbs = [] }: AppShellProps) {
           <div className="flex items-center gap-3">
             {isMobile && (
               <button
+                type="button"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open navigation"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
