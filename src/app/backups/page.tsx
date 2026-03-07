@@ -430,7 +430,7 @@ export default function BackupsPage() {
         ) : data ? (
           <>
             {/* Table header */}
-            <div className="flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
+            <div className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
               <div className="w-5 shrink-0">
                 <Checkbox
                   checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -467,69 +467,75 @@ export default function BackupsPage() {
               {data.items.map((backup) => (
                 <div
                   key={backup.id}
-                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                  className={`flex flex-col gap-3 rounded-lg border px-4 py-3 transition-colors md:flex-row md:items-center ${
                     selected.has(backup.id)
                       ? "border-primary/40 bg-primary/5"
                       : "border-border bg-background/50"
                   }`}
                 >
-                  {/* Checkbox */}
-                  <div className="w-5 shrink-0">
-                    <Checkbox
-                      checked={selected.has(backup.id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectOne(backup.id, checked === true)
-                      }
-                    />
-                  </div>
-
-                  {/* Icon */}
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Archive className="h-4 w-4" />
-                  </div>
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Link
-                        href={`/projects/${backup.project_id}`}
-                        className="text-sm font-medium text-foreground hover:underline"
-                      >
-                        {backup.project_name}
-                      </Link>
-                      {backup.environment && (
-                        <Badge variant="secondary">{backup.environment}</Badge>
-                      )}
-                      {backup.tag && (
-                        <Badge variant="outline">{backup.tag}</Badge>
-                      )}
-                      {backup.file_type && (
-                        <Badge variant={backup.file_type === "json" ? "default" : "secondary"}>
-                          {({ json: "JSON", zip: "ZIP", gz: "GZ", tgz: "TGZ" }[backup.file_type]) || backup.file_type.toUpperCase()}
-                        </Badge>
-                      )}
+                  <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
+                    {/* Checkbox */}
+                    <div className="w-5 shrink-0 pt-2 md:pt-0">
+                      <Checkbox
+                        checked={selected.has(backup.id)}
+                        onCheckedChange={(checked) =>
+                          handleSelectOne(backup.id, checked === true)
+                        }
+                      />
                     </div>
-                    <span className="text-xs text-muted-foreground/60 font-mono">
-                      {backup.id.slice(0, 8)}
-                    </span>
+
+                    {/* Icon */}
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Archive className="h-4 w-4" />
+                    </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link
+                          href={`/projects/${backup.project_id}`}
+                          className="text-sm font-medium text-foreground hover:underline"
+                        >
+                          {backup.project_name}
+                        </Link>
+                        {backup.environment && (
+                          <Badge variant="secondary">{backup.environment}</Badge>
+                        )}
+                        {backup.tag && (
+                          <Badge variant="outline">{backup.tag}</Badge>
+                        )}
+                        {backup.file_type && (
+                          <Badge variant={backup.file_type === "json" ? "default" : "secondary"}>
+                            {({ json: "JSON", zip: "ZIP", gz: "GZ", tgz: "TGZ" }[backup.file_type]) || backup.file_type.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:hidden">
+                        <span>{formatDate(backup.created_at)}</span>
+                        <span>{formatBytes(backup.file_size)}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground/60 font-mono">
+                        {backup.id.slice(0, 8)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Date */}
-                  <div className="w-[140px] shrink-0">
+                  <div className="hidden w-[140px] shrink-0 md:block">
                     <span className="text-xs text-muted-foreground">
                       {formatDate(backup.created_at)}
                     </span>
                   </div>
 
                   {/* Size */}
-                  <div className="w-[80px] shrink-0">
+                  <div className="hidden w-[80px] shrink-0 md:block">
                     <span className="text-xs text-muted-foreground">
                       {formatBytes(backup.file_size)}
                     </span>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 w-[110px] shrink-0 justify-end">
+                  <div className="flex items-center justify-end gap-1 border-t border-border/60 pt-3 md:w-[110px] md:shrink-0 md:justify-end md:border-t-0 md:pt-0">
                     <Button variant="outline" size="sm" asChild>
                       <Link
                         href={`/backups/${backup.id}`}

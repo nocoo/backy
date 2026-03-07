@@ -419,7 +419,7 @@ export default function CronLogsPage() {
         ) : data ? (
           <>
             {/* Table header */}
-            <div className="flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
+            <div className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
               <div className="w-5 shrink-0" />
               <div className="w-[90px] shrink-0">Status</div>
               <div className="min-w-0 flex-1">Project</div>
@@ -433,12 +433,12 @@ export default function CronLogsPage() {
               {data.items.map((log) => (
                 <div key={log.id}>
                   {/* Main row */}
-                  <button
-                    type="button"
-                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors w-full text-left cursor-pointer ${
-                      expandedId === log.id
-                        ? "border-primary/40 bg-primary/5"
-                        : log.status === "failed"
+                    <button
+                      type="button"
+                      className={`flex w-full flex-col gap-3 rounded-lg border px-4 py-3 text-left transition-colors cursor-pointer md:flex-row md:items-center ${
+                        expandedId === log.id
+                          ? "border-primary/40 bg-primary/5"
+                          : log.status === "failed"
                           ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
                           : "border-border bg-background/50 hover:bg-muted/50"
                     }`}
@@ -446,53 +446,69 @@ export default function CronLogsPage() {
                       setExpandedId(expandedId === log.id ? null : log.id)
                     }
                   >
-                    {/* Status icon */}
-                    <div className="w-5 shrink-0 flex items-center justify-center">
-                      <StatusIcon status={log.status} />
-                    </div>
+                      <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
+                        {/* Status icon */}
+                        <div className="flex w-5 shrink-0 items-center justify-center pt-0.5 md:pt-0">
+                          <StatusIcon status={log.status} />
+                        </div>
 
-                    {/* Status badge */}
-                    <div className="w-[90px] shrink-0">
-                      <StatusBadge status={log.status} />
-                    </div>
+                        {/* Status badge */}
+                        <div className="hidden w-[90px] shrink-0 md:block">
+                          <StatusBadge status={log.status} />
+                        </div>
 
-                    {/* Project name */}
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-foreground truncate">
-                        {log.project_name ?? "Unknown"}
+                        {/* Project name */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-sm font-medium text-foreground truncate">
+                              {log.project_name ?? "Unknown"}
+                            </div>
+                            <div className="md:hidden">
+                              <StatusBadge status={log.status} />
+                            </div>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:hidden">
+                            <span className="font-mono">{log.response_code ?? "\u2014"}</span>
+                            <span>
+                              {log.duration_ms !== null
+                                ? `${log.duration_ms}ms`
+                                : "\u2014"}
+                            </span>
+                            <span>{formatDate(log.triggered_at)}</span>
+                          </div>
+                          {log.error && (
+                            <span className="mt-1 block truncate text-xs text-destructive">
+                              {log.error.length > 60
+                                ? `${log.error.slice(0, 60)}...`
+                                : log.error}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {log.error && (
-                        <span className="text-xs text-destructive truncate block">
-                          {log.error.length > 60
-                            ? `${log.error.slice(0, 60)}...`
-                            : log.error}
+
+                      {/* Response code */}
+                      <div className="hidden w-[80px] shrink-0 text-right md:block">
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {log.response_code ?? "\u2014"}
                         </span>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Response code */}
-                    <div className="w-[80px] shrink-0 text-right">
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {log.response_code ?? "\u2014"}
-                      </span>
-                    </div>
+                      {/* Duration */}
+                      <div className="hidden w-[70px] shrink-0 text-right md:block">
+                        <span className="text-xs text-muted-foreground">
+                          {log.duration_ms !== null
+                            ? `${log.duration_ms}ms`
+                            : "\u2014"}
+                        </span>
+                      </div>
 
-                    {/* Duration */}
-                    <div className="w-[70px] shrink-0 text-right">
-                      <span className="text-xs text-muted-foreground">
-                        {log.duration_ms !== null
-                          ? `${log.duration_ms}ms`
-                          : "\u2014"}
-                      </span>
-                    </div>
-
-                    {/* Date */}
-                    <div className="w-[130px] shrink-0">
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDate(log.triggered_at)}
-                      </span>
-                    </div>
-                  </button>
+                      {/* Date */}
+                      <div className="hidden w-[130px] shrink-0 md:block">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDate(log.triggered_at)}
+                        </span>
+                      </div>
+                    </button>
 
                   {/* Expanded detail */}
                   {expandedId === log.id && <CronLogDetail log={log} />}
