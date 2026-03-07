@@ -25,6 +25,10 @@ interface ProjectStat {
   total_size: number;
 }
 
+function truncateProjectName(name: string): string {
+  return name.length > 12 ? `${name.slice(0, 12)}...` : name;
+}
+
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -90,7 +94,7 @@ export function BackupsByProjectChart({ data }: { data: ProjectStat[] }) {
   // Truncate long project names for chart readability
   const chartData = data.map((d) => ({
     ...d,
-    name: d.project_name.length > 12 ? d.project_name.slice(0, 12) + "..." : d.project_name,
+    name: truncateProjectName(d.project_name),
   }));
 
   return (
@@ -123,6 +127,18 @@ export function BackupsByProjectChart({ data }: { data: ProjectStat[] }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        <div className="mt-4 space-y-2 border-t border-border pt-3">
+          {data.slice(0, 3).map((project) => (
+            <div key={project.project_id} className="flex items-center justify-between gap-3 text-xs">
+              <span className="min-w-0 truncate text-muted-foreground" title={project.project_name}>
+                {truncateProjectName(project.project_name)}
+              </span>
+              <span className="shrink-0 font-medium text-foreground">
+                {project.backup_count} backup{project.backup_count !== 1 ? "s" : ""}
+              </span>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -147,7 +163,7 @@ export function StorageByProjectChart({ data }: { data: ProjectStat[] }) {
 
   const chartData = data.map((d) => ({
     ...d,
-    name: d.project_name.length > 12 ? d.project_name.slice(0, 12) + "..." : d.project_name,
+    name: truncateProjectName(d.project_name),
   }));
 
   return (
@@ -180,6 +196,18 @@ export function StorageByProjectChart({ data }: { data: ProjectStat[] }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        <div className="mt-4 space-y-2 border-t border-border pt-3">
+          {data.slice(0, 3).map((project) => (
+            <div key={project.project_id} className="flex items-center justify-between gap-3 text-xs">
+              <span className="min-w-0 truncate text-muted-foreground" title={project.project_name}>
+                {truncateProjectName(project.project_name)}
+              </span>
+              <span className="shrink-0 font-medium text-foreground">
+                {formatBytes(project.total_size)}
+              </span>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

@@ -76,6 +76,7 @@ export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
       day: "numeric",
     }),
   }));
+  const totalBackups = data.reduce((sum, day) => sum + day.count, 0);
 
   return (
     <Card>
@@ -115,6 +116,14 @@ export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
             />
           </AreaChart>
         </ResponsiveContainer>
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs">
+          <span className="text-muted-foreground">
+            30-day total activity
+          </span>
+          <span className="font-medium text-foreground">
+            {totalBackups} backup{totalBackups !== 1 ? "s" : ""}
+          </span>
+        </div>
       </CardContent>
     </Card>
   );

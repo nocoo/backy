@@ -91,6 +91,14 @@ export function CronActivityChart({ data }: { data: DailyCronStat[] }) {
       day: "numeric",
     }),
   }));
+  const totals = data.reduce(
+    (acc, day) => ({
+      success: acc.success + day.success,
+      failed: acc.failed + day.failed,
+      skipped: acc.skipped + day.skipped,
+    }),
+    { success: 0, failed: 0, skipped: 0 },
+  );
 
   return (
     <Card>
@@ -128,6 +136,20 @@ export function CronActivityChart({ data }: { data: DailyCronStat[] }) {
             <Bar dataKey="skipped" stackId="cron" fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} maxBarSize={40} />
           </BarChart>
         </ResponsiveContainer>
+        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
+          <div className="rounded-md bg-success/10 px-3 py-2 text-center">
+            <div className="text-muted-foreground">Success</div>
+            <div className="mt-1 font-medium text-foreground">{totals.success}</div>
+          </div>
+          <div className="rounded-md bg-destructive/10 px-3 py-2 text-center">
+            <div className="text-muted-foreground">Failed</div>
+            <div className="mt-1 font-medium text-foreground">{totals.failed}</div>
+          </div>
+          <div className="rounded-md bg-warning/10 px-3 py-2 text-center">
+            <div className="text-muted-foreground">Skipped</div>
+            <div className="mt-1 font-medium text-foreground">{totals.skipped}</div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
