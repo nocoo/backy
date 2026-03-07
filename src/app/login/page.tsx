@@ -126,7 +126,7 @@ function LoginContent() {
           {/* Badge content */}
           <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
             {/* Logo */}
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-secondary dark:bg-[#171717] ring-1 ring-border">
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-secondary dark:bg-surface-elevated ring-1 ring-border">
               <Image
                 src="/logo-80.png"
                 alt="Backy"

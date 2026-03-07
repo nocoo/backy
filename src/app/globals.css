@@ -49,6 +49,11 @@
   /* Semantic badge colors */
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-surface-elevated: hsl(var(--surface-elevated));
 
   /* Chart colors */
   --color-chart-1: hsl(var(--chart-1));
@@ -131,6 +136,11 @@
   /* Semantic */
   --success: 142 71% 35%;
   --success-foreground: 0 0% 100%;
+  --info: 199 59% 45%;
+  --info-foreground: 0 0% 100%;
+  --warning: 32 80% 50%;
+  --warning-foreground: 0 0% 12%;
+  --surface-elevated: 0 0% 9%;
 
   /* Chart palette */
   --chart-1: 146 49% 35%;
@@ -185,6 +195,11 @@
   /* Semantic */
   --success: 142 65% 38%;
   --success-foreground: 142 60% 90%;
+  --info: 199 50% 40%;
+  --info-foreground: 0 0% 96%;
+  --warning: 32 70% 45%;
+  --warning-foreground: 0 0% 10%;
+  --surface-elevated: 0 0% 14%;
 
   /* Chart palette */
   --chart-1: 146 40% 30%;

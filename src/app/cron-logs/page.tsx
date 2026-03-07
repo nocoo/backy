@@ -65,11 +65,11 @@ function formatDate(dateStr: string): string {
 function StatusIcon({ status }: { status: CronLogEntry["status"] }) {
   switch (status) {
     case "success":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+      return <CheckCircle2 className="h-4 w-4 text-success" />;
     case "triggered":
-      return <Clock className="h-4 w-4 text-blue-500" />;
+      return <Clock className="h-4 w-4 text-info" />;
     case "skipped":
-      return <SkipForward className="h-4 w-4 text-yellow-500" />;
+      return <SkipForward className="h-4 w-4 text-warning" />;
     case "failed":
       return <XCircle className="h-4 w-4 text-destructive" />;
   }
@@ -81,7 +81,7 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
       return (
         <Badge
           variant="secondary"
-          className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+          className="border-success/20 bg-success/10 text-success"
         >
           Success
         </Badge>
@@ -90,7 +90,7 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
       return (
         <Badge
           variant="secondary"
-          className="bg-blue-500/10 text-blue-600 border-blue-500/20"
+          className="border-info/20 bg-info/10 text-info"
         >
           Triggered
         </Badge>
@@ -99,7 +99,7 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
       return (
         <Badge
           variant="secondary"
-          className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+          className="border-warning/20 bg-warning/10 text-warning"
         >
           Skipped
         </Badge>

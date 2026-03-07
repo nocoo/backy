@@ -18,9 +18,9 @@ function getTypeLabel(value: unknown): string {
 /** Color class for JSON value types */
 function getValueColorClass(value: unknown): string {
   if (value === null) return "text-muted-foreground italic";
-  if (typeof value === "string") return "text-emerald-600 dark:text-emerald-400";
-  if (typeof value === "number") return "text-blue-600 dark:text-blue-400";
-  if (typeof value === "boolean") return "text-amber-600 dark:text-amber-400";
+  if (typeof value === "string") return "text-success";
+  if (typeof value === "number") return "text-info";
+  if (typeof value === "boolean") return "text-warning";
   return "text-foreground";
 }
 

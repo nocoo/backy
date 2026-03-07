@@ -126,9 +126,9 @@ export function ManualUploadDialog({
   function getFileIcon() {
     if (!file) return null;
     const name = file.name.toLowerCase();
-    if (name.endsWith(".json")) return <FileJson className="h-5 w-5 text-amber-500" />;
+    if (name.endsWith(".json")) return <FileJson className="h-5 w-5 text-warning" />;
     if (name.endsWith(".zip") || name.endsWith(".gz") || name.endsWith(".tgz") || name.endsWith(".tar.gz")) {
-      return <FileArchive className="h-5 w-5 text-blue-500" />;
+      return <FileArchive className="h-5 w-5 text-info" />;
     }
     return <Upload className="h-5 w-5 text-muted-foreground" />;
   }
