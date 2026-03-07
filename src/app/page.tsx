@@ -78,7 +78,7 @@ export default function HomePage() {
       setLoading(true);
       const [statsRes, backupsRes, chartsRes] = await Promise.all([
         fetch("/api/stats"),
-        fetch("/api/backups"),
+        fetch("/api/backups?pageSize=5"),
         fetch("/api/stats/charts"),
       ]);
 
@@ -89,7 +89,7 @@ export default function HomePage() {
 
       if (backupsRes.ok) {
         const data = await backupsRes.json();
-        setRecentBackups((data.items as RecentBackup[]).slice(0, 5));
+        setRecentBackups(data.items as RecentBackup[]);
       }
 
       if (chartsRes.ok) {
