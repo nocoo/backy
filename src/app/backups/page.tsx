@@ -274,7 +274,7 @@ export default function BackupsPage() {
 
   return (
     <AppShell breadcrumbs={[{ label: "Backups" }]}>
-      <div className="flex flex-col gap-4">
+      <div className="relative flex flex-col gap-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

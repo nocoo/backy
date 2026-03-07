@@ -294,7 +294,7 @@ export default function CronLogsPage() {
 
   return (
     <AppShell breadcrumbs={[{ label: "Cron Logs" }]}>
-      <div className="flex flex-col gap-4">
+      <div className="relative flex flex-col gap-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
