@@ -1,0 +1,14 @@
+# Master logo (high-res source, not needed at runtime)
+logo.png
+
+# Resize script
+scripts/resize-logos.py
+
+# Dev/test artifacts
+node_modules
+.next
+.git
+*.md
+e2e
+src/__tests__
+.env*
