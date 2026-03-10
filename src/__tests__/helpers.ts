@@ -117,7 +117,6 @@ export const BACKUP_STUBS: Stub = {
   deleteBackups: async () => [],
   deleteBackup: async () => undefined,
   updateBackup: async () => undefined,
-  getBackupFileKeys: async () => [],
   countBackups: async () => 0,
 };
 
