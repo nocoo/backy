@@ -4,7 +4,6 @@ import {
   getStorageExtension,
   isPreviewable,
   isExtractable,
-  getFileTypeLabel,
   normalizeContentType,
 } from "@/lib/backup/file-type";
 
@@ -196,20 +195,6 @@ describe("isExtractable", () => {
 
   test("unknown is not extractable", () => {
     expect(isExtractable("unknown")).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getFileTypeLabel
-// ---------------------------------------------------------------------------
-
-describe("getFileTypeLabel", () => {
-  test("returns correct labels", () => {
-    expect(getFileTypeLabel("json")).toBe("JSON");
-    expect(getFileTypeLabel("zip")).toBe("ZIP");
-    expect(getFileTypeLabel("gz")).toBe("GZ");
-    expect(getFileTypeLabel("tgz")).toBe("TGZ");
-    expect(getFileTypeLabel("unknown")).toBe("File");
   });
 });
 

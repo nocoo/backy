@@ -206,41 +206,6 @@ export async function listWebhookLogs(
   };
 }
 
-/**
- * Get a single webhook log by ID.
- */
-export async function getWebhookLog(
-  id: string,
-): Promise<WebhookLogWithProject | undefined> {
-  const rows = await executeD1Query<WebhookLogWithProject>(
-    `SELECT l.*, p.name as project_name
-     FROM webhook_logs l
-     LEFT JOIN projects p ON l.project_id = p.id
-     WHERE l.id = ?`,
-    [id],
-  );
-  return rows[0];
-}
-
-/**
- * Delete webhook logs older than a given number of days.
- * Returns the count of deleted rows.
- */
-export async function purgeWebhookLogs(olderThanDays: number): Promise<number> {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - olderThanDays);
-  const cutoffIso = cutoff.toISOString();
-
-  const rows = await executeD1Query<{ changes: number }>(
-    "DELETE FROM webhook_logs WHERE created_at < ?",
-    [cutoffIso],
-  );
-
-  // D1 DELETE doesn't return changes in results — count via a follow-up isn't needed
-  // since this is a maintenance operation. Return 0 as a safe default.
-  return rows.length;
-}
-
 /** Options for deleting webhook logs matching filters. */
 export interface DeleteWebhookLogsOptions {
   projectId?: string | undefined;

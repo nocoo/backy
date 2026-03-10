@@ -276,23 +276,6 @@ export async function deleteBackup(id: string): Promise<{ fileKey: string; jsonK
 }
 
 /**
- * Get all file keys for a project's backups (for bulk R2 cleanup on project deletion).
- */
-export async function getBackupFileKeys(projectId: string): Promise<string[]> {
-  const rows = await executeD1Query<{ file_key: string; json_key: string | null }>(
-    "SELECT file_key, json_key FROM backups WHERE project_id = ?",
-    [projectId],
-  );
-
-  const keys: string[] = [];
-  for (const row of rows) {
-    keys.push(row.file_key);
-    if (row.json_key) keys.push(row.json_key);
-  }
-  return keys;
-}
-
-/**
  * Count backups for a project.
  */
 export async function countBackups(projectId?: string): Promise<number> {

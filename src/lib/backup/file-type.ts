@@ -8,15 +8,6 @@
 /** Supported backup file types. */
 export type FileType = "json" | "zip" | "gz" | "tgz" | "unknown";
 
-/** Human-readable labels for display in UI badges. */
-const FILE_TYPE_LABELS: Record<FileType, string> = {
-  json: "JSON",
-  zip: "ZIP",
-  gz: "GZ",
-  tgz: "TGZ",
-  unknown: "File",
-};
-
 /** Content types that map to a known file type. */
 const CONTENT_TYPE_MAP: Record<string, FileType> = {
   "application/json": "json",
@@ -79,13 +70,6 @@ export function isPreviewable(fileType: FileType): boolean {
  */
 export function isExtractable(fileType: FileType): boolean {
   return fileType === "zip" || fileType === "gz" || fileType === "tgz";
-}
-
-/**
- * Get a human-readable label for display in UI badges.
- */
-export function getFileTypeLabel(fileType: FileType): string {
-  return FILE_TYPE_LABELS[fileType];
 }
 
 /**

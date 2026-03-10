@@ -10,8 +10,6 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
-  DeleteObjectsCommand,
-  ListObjectsV2Command,
   HeadBucketCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -124,90 +122,6 @@ export async function deleteFromR2(key: string): Promise<void> {
       Key: key,
     }),
   );
-}
-
-/**
- * Delete multiple objects from R2 in batches of 1000.
- */
-export async function deleteMultipleFromR2(keys: string[]): Promise<number> {
-  if (keys.length === 0) return 0;
-
-  const client = getR2Client();
-  const { bucket } = getR2Config();
-
-  let deleted = 0;
-  const BATCH_SIZE = 1000;
-
-  for (let i = 0; i < keys.length; i += BATCH_SIZE) {
-    const batch = keys.slice(i, i + BATCH_SIZE);
-
-    const command = new DeleteObjectsCommand({
-      Bucket: bucket,
-      Delete: {
-        Objects: batch.map((k) => ({ Key: k })),
-        Quiet: true,
-      },
-    });
-
-    const response = await client.send(command);
-    const errors = response.Errors?.length ?? 0;
-    deleted += batch.length - errors;
-  }
-
-  return deleted;
-}
-
-/** An object returned from R2 listing. */
-export interface R2Object {
-  key: string;
-  size: number;
-  lastModified: string;
-}
-
-/**
- * List all objects in R2, optionally filtered by prefix.
- * Handles pagination automatically.
- */
-export async function listR2Objects(prefix?: string): Promise<R2Object[]> {
-  const client = getR2Client();
-  const { bucket } = getR2Config();
-
-  const objects: R2Object[] = [];
-  let continuationToken: string | undefined;
-
-  do {
-    const command = new ListObjectsV2Command({
-      Bucket: bucket,
-      Prefix: prefix,
-      MaxKeys: 1000,
-      ContinuationToken: continuationToken,
-    });
-
-    const response = await client.send(command);
-
-    if (response.Contents) {
-      for (const obj of response.Contents) {
-        if (obj.Key && obj.Size !== undefined) {
-          objects.push({
-            key: obj.Key,
-            size: obj.Size,
-            lastModified: obj.LastModified?.toISOString() ?? "",
-          });
-        }
-      }
-    }
-
-    continuationToken = response.IsTruncated
-      ? response.NextContinuationToken
-      : undefined;
-  } while (continuationToken);
-
-  return objects;
-}
-
-/** Reset the cached S3 client (for testing). */
-export function resetR2Client(): void {
-  _client = null;
 }
 
 /** Check if R2 environment variables are configured. */

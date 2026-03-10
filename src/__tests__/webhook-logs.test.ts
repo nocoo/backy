@@ -2,8 +2,6 @@ import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
 import {
   createWebhookLog,
   listWebhookLogs,
-  getWebhookLog,
-  purgeWebhookLogs,
   deleteWebhookLogs,
 } from "@/lib/db/webhook-logs";
 import { mockFetch, d1Success, d1Error } from "./helpers";
@@ -270,62 +268,6 @@ describe("webhook-logs", () => {
       const selectBody = JSON.parse(capturedBodies[1]!);
       expect(selectBody.params).toContain(20);  // LIMIT
       expect(selectBody.params).toContain(40);  // OFFSET
-    });
-  });
-
-  describe("getWebhookLog", () => {
-    test("returns a single log by ID with project name", async () => {
-      const mockLog = {
-        id: "log-99",
-        project_id: "proj-123",
-        project_name: "Test Project",
-        method: "POST",
-        path: "/api/webhook/proj-123",
-        status_code: 201,
-        client_ip: "5.6.7.8",
-        user_agent: "MyAgent/2.0",
-        error_code: null,
-        error_message: null,
-        duration_ms: 30,
-        metadata: null,
-        created_at: "2026-02-24T12:00:00.000Z",
-      };
-
-      globalThis.fetch = mockFetch(async () => d1Success([mockLog]));
-
-      const result = await getWebhookLog("log-99");
-      expect(result).toBeDefined();
-      expect(result!.id).toBe("log-99");
-      expect(result!.project_name).toBe("Test Project");
-    });
-
-    test("returns undefined when log not found", async () => {
-      globalThis.fetch = mockFetch(async () => d1Success([]));
-
-      const result = await getWebhookLog("nonexistent");
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe("purgeWebhookLogs", () => {
-    test("deletes logs older than specified days", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
-      await purgeWebhookLogs(90);
-
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("DELETE FROM webhook_logs WHERE created_at < ?");
-      // The cutoff date should be approximately 90 days ago
-      const cutoff = new Date(body.params[0]);
-      const now = new Date();
-      const diffDays = (now.getTime() - cutoff.getTime()) / (1000 * 60 * 60 * 24);
-      expect(diffDays).toBeGreaterThan(89);
-      expect(diffDays).toBeLessThan(91);
     });
   });
 

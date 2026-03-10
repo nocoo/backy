@@ -117,7 +117,6 @@ export const BACKUP_STUBS: Stub = {
   deleteBackups: async () => [],
   deleteBackup: async () => undefined,
   updateBackup: async () => undefined,
-  getBackupFileKeys: async () => [],
   countBackups: async () => 0,
 };
 
@@ -131,11 +130,8 @@ export const R2_STUBS: Stub = {
   }),
   createPresignedDownloadUrl: async () => "https://mock.example.com/signed",
   deleteFromR2: async () => {},
-  deleteMultipleFromR2: async () => 0,
-  listR2Objects: async () => [],
   isR2Configured: () => true,
   pingR2: async () => {},
-  resetR2Client: () => {},
 };
 
 /** Default stubs for `@/lib/db/webhook-logs`. */
@@ -148,8 +144,6 @@ export const WEBHOOK_LOG_STUBS: Stub = {
     pageSize: 50,
     totalPages: 0,
   }),
-  getWebhookLog: async () => undefined,
-  purgeWebhookLogs: async () => 0,
   deleteWebhookLogs: async () => {},
 };
 
