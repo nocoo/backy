@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { isUrlSafe } from "@/lib/url";
+import { isUrlSafe, isPrivateIp, resolveAndValidateUrl } from "@/lib/url";
 
 describe("isUrlSafe", () => {
   let originalAllowlist: string | undefined;
@@ -151,5 +151,100 @@ describe("isUrlSafe", () => {
     process.env.SSRF_ALLOWLIST = "http://localhost:17026,https://test.internal";
     expect(isUrlSafe("https://test.internal/hook")).toBe(true);
     expect(isUrlSafe("http://localhost:17026/api")).toBe(true);
+  });
+});
+
+describe("isPrivateIp", () => {
+  test("identifies loopback addresses", () => {
+    expect(isPrivateIp("127.0.0.1")).toBe(true);
+    expect(isPrivateIp("127.255.255.255")).toBe(true);
+  });
+
+  test("identifies private class A", () => {
+    expect(isPrivateIp("10.0.0.1")).toBe(true);
+    expect(isPrivateIp("10.255.255.255")).toBe(true);
+  });
+
+  test("identifies private class B", () => {
+    expect(isPrivateIp("172.16.0.1")).toBe(true);
+    expect(isPrivateIp("172.31.255.255")).toBe(true);
+  });
+
+  test("identifies private class C", () => {
+    expect(isPrivateIp("192.168.0.1")).toBe(true);
+    expect(isPrivateIp("192.168.255.255")).toBe(true);
+  });
+
+  test("identifies link-local", () => {
+    expect(isPrivateIp("169.254.169.254")).toBe(true);
+  });
+
+  test("rejects public IPs", () => {
+    expect(isPrivateIp("8.8.8.8")).toBe(false);
+    expect(isPrivateIp("1.1.1.1")).toBe(false);
+    expect(isPrivateIp("172.32.0.1")).toBe(false);
+  });
+
+  test("returns false for non-IP strings", () => {
+    expect(isPrivateIp("example.com")).toBe(false);
+    expect(isPrivateIp("not-an-ip")).toBe(false);
+  });
+});
+
+describe("resolveAndValidateUrl", () => {
+  let originalAllowlist: string | undefined;
+
+  beforeEach(() => {
+    originalAllowlist = process.env.SSRF_ALLOWLIST;
+    delete process.env.SSRF_ALLOWLIST;
+  });
+
+  afterEach(() => {
+    if (originalAllowlist === undefined) {
+      delete process.env.SSRF_ALLOWLIST;
+    } else {
+      process.env.SSRF_ALLOWLIST = originalAllowlist;
+    }
+  });
+
+  test("allows URL with public DNS resolution (example.com)", async () => {
+    // example.com is a well-known domain that resolves to public IPs
+    const result = await resolveAndValidateUrl("https://example.com/hook");
+    expect(result.safe).toBe(true);
+  });
+
+  test("blocks IP address in private range directly", async () => {
+    const result = await resolveAndValidateUrl("https://127.0.0.1/hook");
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toContain("private");
+  });
+
+  test("blocks 169.254.169.254 (cloud metadata IP)", async () => {
+    const result = await resolveAndValidateUrl("https://169.254.169.254/latest");
+    expect(result.safe).toBe(false);
+  });
+
+  test("rejects invalid URL", async () => {
+    const result = await resolveAndValidateUrl("not-a-url");
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toContain("Invalid URL");
+  });
+
+  test("blocks hostname that fails DNS resolution", async () => {
+    const result = await resolveAndValidateUrl("https://this-domain-does-not-exist-xyzzy.example/hook");
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toContain("DNS resolution failed");
+  });
+
+  test("allowlist bypasses DNS check", async () => {
+    process.env.SSRF_ALLOWLIST = "http://localhost:17026";
+    const result = await resolveAndValidateUrl("http://localhost:17026/api/test");
+    expect(result.safe).toBe(true);
+  });
+
+  test("blocks domain resolving to loopback (localhost)", async () => {
+    // localhost resolves to 127.0.0.1 on most systems
+    const result = await resolveAndValidateUrl("https://localhost/hook");
+    expect(result.safe).toBe(false);
   });
 });

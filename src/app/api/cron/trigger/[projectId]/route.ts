@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProject } from "@/lib/db/projects";
 import { createCronLog } from "@/lib/db/cron-logs";
-import { isUrlSafe } from "@/lib/url";
+import { isUrlSafe, resolveAndValidateUrl } from "@/lib/url";
 
 export async function POST(
   _request: NextRequest,
@@ -40,7 +40,7 @@ export async function POST(
     );
   }
 
-  // SSRF check: verify webhook URL is safe before fetching
+  // SSRF check: static validation + DNS resolution to block rebinding attacks
   if (!isUrlSafe(project.auto_backup_webhook)) {
     void createCronLog({
       projectId: project.id,
@@ -51,6 +51,20 @@ export async function POST(
     return NextResponse.json({
       status: "failed",
       error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
+    });
+  }
+
+  const dnsCheck = await resolveAndValidateUrl(project.auto_backup_webhook);
+  if (!dnsCheck.safe) {
+    void createCronLog({
+      projectId: project.id,
+      status: "failed",
+      error: `SSRF blocked: ${dnsCheck.reason}`,
+    }).catch((err) => console.error("Cron log write failed:", err));
+
+    return NextResponse.json({
+      status: "failed",
+      error: `Webhook URL blocked: ${dnsCheck.reason}`,
     });
   }
 

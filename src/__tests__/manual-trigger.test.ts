@@ -39,15 +39,24 @@ function makeRequest(projectId: string): NextRequest {
 
 describe("POST /api/cron/trigger/[projectId]", () => {
   let originalFetch: typeof globalThis.fetch;
+  let originalSsrfAllowlist: string | undefined;
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
+    originalSsrfAllowlist = process.env.SSRF_ALLOWLIST;
+    // Bypass DNS resolution for test webhook URLs
+    process.env.SSRF_ALLOWLIST = "https://saas.example.com";
     mockProject = makeProject();
     getProjectShouldThrow = false;
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    if (originalSsrfAllowlist === undefined) {
+      delete process.env.SSRF_ALLOWLIST;
+    } else {
+      process.env.SSRF_ALLOWLIST = originalSsrfAllowlist;
+    }
   });
 
   test("returns 404 when project not found", async () => {

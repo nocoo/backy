@@ -1,16 +1,19 @@
 /**
  * SSRF protection for webhook URLs.
  *
- * Validates that a URL is safe to fetch server-side by blocking:
- *   - Non-HTTPS schemes
- *   - Localhost and internal hostnames
- *   - Private/reserved IPv4 ranges
- *   - IPv6 loopback
+ * Two layers of defense:
+ *   1. `isUrlSafe(url)` — synchronous, checks URL string against blocklists.
+ *      Used at save-time (project PUT) for fast validation.
+ *   2. `resolveAndValidateUrl(url)` — async, performs DNS resolution and
+ *      checks all resolved IPs against private ranges. Used at fetch-time
+ *      (cron trigger) to block DNS rebinding attacks where a public domain
+ *      resolves to a private IP.
  *
  * An optional SSRF_ALLOWLIST env var (comma-separated URL prefixes)
  * can bypass all checks — used for E2E testing with localhost.
  */
 
+import { resolve4 } from "node:dns/promises";
 import { ipToInt } from "@/lib/ip";
 
 const BLOCKED_HOSTNAMES = new Set([
@@ -45,26 +48,38 @@ function cidr(ip: string, prefix: number): [number, number] {
   return [n & mask, mask];
 }
 
-function isPrivateIp(hostname: string): boolean {
-  const ip = ipToInt(hostname);
-  if (ip === null) return false;
-  return BLOCKED_CIDRS.some(([network, mask]) => (ip & mask) === network);
+/**
+ * Check if an IPv4 address falls within any blocked CIDR range.
+ * Exported for use by resolveAndValidateUrl and tests.
+ */
+export function isPrivateIp(ip: string): boolean {
+  const ipInt = ipToInt(ip);
+  if (ipInt === null) return false;
+  return BLOCKED_CIDRS.some(([network, mask]) => (ipInt & mask) === network);
 }
 
 /**
- * Check whether a URL is safe to fetch server-side.
+ * Check if the URL matches the SSRF_ALLOWLIST.
+ * Returns true if the URL is allowlisted (bypasses all SSRF checks).
+ */
+function isAllowlisted(url: string): boolean {
+  const allowlist = process.env.SSRF_ALLOWLIST;
+  if (!allowlist) return false;
+  const prefixes = allowlist.split(",").map((s) => s.trim()).filter(Boolean);
+  return prefixes.some((prefix) => url.startsWith(prefix));
+}
+
+/**
+ * Check whether a URL is safe to fetch server-side (synchronous, string-only).
  *
- * Returns true if the URL passes all SSRF checks, false otherwise.
+ * This catches obvious SSRF attempts (private IPs, internal hostnames, non-HTTPS)
+ * but does NOT perform DNS resolution. Use `resolveAndValidateUrl` at fetch-time
+ * to also block DNS rebinding attacks.
+ *
+ * Returns true if the URL passes all static SSRF checks, false otherwise.
  */
 export function isUrlSafe(url: string): boolean {
-  // Check SSRF_ALLOWLIST bypass first
-  const allowlist = process.env.SSRF_ALLOWLIST;
-  if (allowlist) {
-    const prefixes = allowlist.split(",").map((s) => s.trim()).filter(Boolean);
-    if (prefixes.some((prefix) => url.startsWith(prefix))) {
-      return true;
-    }
-  }
+  if (isAllowlisted(url)) return true;
 
   let parsed: URL;
   try {
@@ -101,4 +116,61 @@ export function isUrlSafe(url: string): boolean {
   }
 
   return true;
+}
+
+/**
+ * Resolve a URL's hostname via DNS and validate that ALL resolved IPs
+ * are in public ranges. Blocks DNS rebinding attacks where a domain
+ * resolves to a private/internal IP.
+ *
+ * Returns `{ safe: true }` or `{ safe: false, reason: string }`.
+ *
+ * Should be called at fetch-time (cron trigger), after `isUrlSafe` has
+ * already passed at save-time.
+ */
+export async function resolveAndValidateUrl(
+  url: string,
+): Promise<{ safe: true } | { safe: false; reason: string }> {
+  if (isAllowlisted(url)) return { safe: true };
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { safe: false, reason: "Invalid URL" };
+  }
+
+  const hostname = parsed.hostname;
+
+  // If hostname is already an IP, just check it directly
+  if (ipToInt(hostname) !== null) {
+    if (isPrivateIp(hostname)) {
+      return { safe: false, reason: `Resolved IP ${hostname} is in a private range` };
+    }
+    return { safe: true };
+  }
+
+  // DNS resolve the hostname
+  let addresses: string[];
+  try {
+    addresses = await resolve4(hostname);
+  } catch {
+    return { safe: false, reason: `DNS resolution failed for ${hostname}` };
+  }
+
+  if (addresses.length === 0) {
+    return { safe: false, reason: `No DNS records found for ${hostname}` };
+  }
+
+  // Check ALL resolved IPs — fail if any is private
+  for (const ip of addresses) {
+    if (isPrivateIp(ip)) {
+      return {
+        safe: false,
+        reason: `${hostname} resolves to private IP ${ip}`,
+      };
+    }
+  }
+
+  return { safe: true };
 }

@@ -72,11 +72,15 @@ function makeFetchRouter(
 describe("POST /api/cron/trigger", () => {
   let originalFetch: typeof globalThis.fetch;
   let originalEnv: string | undefined;
+  let originalSsrfAllowlist: string | undefined;
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
     originalEnv = process.env.CRON_SECRET;
+    originalSsrfAllowlist = process.env.SSRF_ALLOWLIST;
     process.env.CRON_SECRET = "test-cron-secret";
+    // Bypass DNS resolution for test webhook URLs
+    process.env.SSRF_ALLOWLIST = "https://saas.example.com,https://saas1.example.com,https://saas2.example.com,https://saas3.example.com";
     mockProjects = [];
     capturedCronLogs = [];
     listAutoBackupProjectsShouldThrow = false;
@@ -88,6 +92,11 @@ describe("POST /api/cron/trigger", () => {
       delete process.env.CRON_SECRET;
     } else {
       process.env.CRON_SECRET = originalEnv;
+    }
+    if (originalSsrfAllowlist === undefined) {
+      delete process.env.SSRF_ALLOWLIST;
+    } else {
+      process.env.SSRF_ALLOWLIST = originalSsrfAllowlist;
     }
   });
 
