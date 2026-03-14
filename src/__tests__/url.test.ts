@@ -161,7 +161,7 @@ describe("isUrlSafe", () => {
 
   // --- SSRF_ALLOWLIST bypass ---
 
-  test("allowlist bypasses all checks for matching prefix", () => {
+  test("allowlist bypasses all checks for matching origin", () => {
     process.env.SSRF_ALLOWLIST = "http://localhost:17026";
     expect(isUrlSafe("http://localhost:17026/api/db/init")).toBe(true);
   });
@@ -171,10 +171,25 @@ describe("isUrlSafe", () => {
     expect(isUrlSafe("http://localhost:9999/evil")).toBe(false);
   });
 
-  test("allowlist supports multiple prefixes", () => {
+  test("allowlist supports multiple entries", () => {
     process.env.SSRF_ALLOWLIST = "http://localhost:17026,https://test.internal";
     expect(isUrlSafe("https://test.internal/hook")).toBe(true);
     expect(isUrlSafe("http://localhost:17026/api")).toBe(true);
+  });
+
+  test("allowlist rejects crafted hostname that shares prefix string", () => {
+    // With ONLY the allowlist and a normally-blocked URL scheme (http://),
+    // verify that a crafted hostname doesn't slip through the allowlist
+    process.env.SSRF_ALLOWLIST = "http://api.example.com";
+    // This would pass a naive startsWith("http://api.example.com") check
+    // but has a different hostname — should NOT be allowlisted
+    expect(isUrlSafe("http://api.example.com.evil.tld/hook")).toBe(false);
+  });
+
+  test("allowlist matches by origin, not path prefix", () => {
+    process.env.SSRF_ALLOWLIST = "https://api.example.com/v1";
+    // Same origin, different path — should still match (origin-level allowlist)
+    expect(isUrlSafe("https://api.example.com/v2/other")).toBe(true);
   });
 });
 

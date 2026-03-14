@@ -164,14 +164,39 @@ function expandIpv6(addr: string): string | null {
 }
 
 /**
- * Check if the URL matches the SSRF_ALLOWLIST.
+ * Check if the URL matches the SSRF_ALLOWLIST by comparing parsed origins.
+ *
+ * Each entry in SSRF_ALLOWLIST is parsed as a URL, and matching is done by
+ * comparing protocol + hostname + port (the origin). This prevents bypass
+ * via crafted hostnames like "api.example.com.evil.tld" that would pass a
+ * naive string prefix check.
+ *
  * Returns true if the URL is allowlisted (bypasses all SSRF checks).
  */
 function isAllowlisted(url: string): boolean {
   const allowlist = process.env.SSRF_ALLOWLIST;
   if (!allowlist) return false;
-  const prefixes = allowlist.split(",").map((s) => s.trim()).filter(Boolean);
-  return prefixes.some((prefix) => url.startsWith(prefix));
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+
+  const entries = allowlist.split(",").map((s) => s.trim()).filter(Boolean);
+  return entries.some((entry) => {
+    try {
+      const allowed = new URL(entry);
+      return (
+        parsed.protocol === allowed.protocol &&
+        parsed.hostname === allowed.hostname &&
+        parsed.port === allowed.port
+      );
+    } catch {
+      return false;
+    }
+  });
 }
 
 /**
