@@ -66,7 +66,7 @@ Introduce browser-level tests for core user flows.
 
 ### Phase 5: Update Hooks & Documentation ✅
 
-- [x] 5.1 Update `.husky/pre-push` to run `test:e2e:api && test:e2e:bdd`
+- [x] 5.1 Update `.husky/pre-push` to run `test:e2e:api` (L4 BDD runs on-demand only)
 - [x] 5.2 Update `CLAUDE.md` testing section to reflect 4-tier architecture
 - [x] 5.3 Add `test:e2e:api` and `test:e2e:bdd` scripts to `package.json`
 - [x] 5.4 Verify: all tests pass
