@@ -7,7 +7,7 @@ const SKIP_AUTH = process.env.E2E_SKIP_AUTH === "true";
 
 // Allowed hosts for x-forwarded-host validation (prevents open redirect)
 const ALLOWED_HOSTS = new Set(
-  (process.env.ALLOWED_HOSTS || "backy.dev.hexly.ai,localhost:7026")
+  (process.env.ALLOWED_HOSTS || "backy.hexly.ai,localhost:7026")
     .split(",")
     .map((h) => h.trim())
     .filter(Boolean),

@@ -126,20 +126,20 @@ describe("proxy auth rules", () => {
     test("uses x-forwarded-host for redirects", async () => {
       const res = await callProxy(
         createRequest("/projects", {
-          "x-forwarded-host": "backy.dev.hexly.ai",
+          "x-forwarded-host": "backy.hexly.ai",
           "x-forwarded-proto": "https",
         }),
       );
       expect(res.status).toBe(307);
       const location = res.headers.get("location")!;
-      expect(location).toContain("backy.dev.hexly.ai");
+      expect(location).toContain("backy.hexly.ai");
       expect(location).toStartWith("https://");
     });
 
     test("defaults to https for x-forwarded-proto", async () => {
       const res = await callProxy(
         createRequest("/projects", {
-          "x-forwarded-host": "backy.dev.hexly.ai",
+          "x-forwarded-host": "backy.hexly.ai",
         }),
       );
       expect(res.status).toBe(307);

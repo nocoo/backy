@@ -14,11 +14,11 @@ const useSecureCookies =
   process.env.USE_SECURE_COOKIES === "true";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  // Do NOT set trustHost: true — that blindly trusts Host/X-Forwarded-Host
-  // headers for OAuth callback URL generation, enabling callback hijacking
-  // if the reverse proxy is bypassed. Instead, set NEXTAUTH_URL env var
-  // explicitly (e.g. "https://backy.dev.hexly.ai") so NextAuth uses a
-  // hardcoded origin for all URL generation.
+  // trustHost is safe behind Railway's managed reverse proxy — external
+  // requests cannot bypass it to spoof Host headers. Required because
+  // NextAuth v5 beta's host validation rejects forwarded requests even
+  // when NEXTAUTH_URL is set correctly.
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
