@@ -292,4 +292,34 @@ describe("POST /api/cron/trigger", () => {
 
     consoleSpy.mockRestore();
   });
+
+  test("SSRF: marks project as failed when webhook URL targets private address", async () => {
+    const project = makeProject({
+      auto_backup_interval: 1,
+      auto_backup_webhook: "http://localhost:3000/internal",
+    });
+    mockProjects = [project];
+    let saasCallCount = 0;
+
+    globalThis.fetch = makeFetchRouter(async () => {
+      saasCallCount++;
+      return new Response("OK", { status: 200 });
+    });
+
+    const req = makeRequest("test-cron-secret");
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.total).toBe(1);
+    expect(data.failed).toBe(1);
+    expect(data.triggered).toBe(0);
+    expect(saasCallCount).toBe(0); // should never reach the SaaS webhook
+
+    // Verify SSRF error was logged
+    const ssrfLog = capturedCronLogs.find(
+      (l) => l.params && (l.params as unknown[]).some((p) => typeof p === "string" && p.includes("SSRF")),
+    );
+    expect(ssrfLog).toBeDefined();
+  });
 });

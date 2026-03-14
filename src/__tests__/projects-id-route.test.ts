@@ -178,6 +178,71 @@ describe("/api/projects/[id]", () => {
       expect(capturedUpdate.auto_backup_webhook).toBe("https://example.com/hook");
     });
 
+    test("rejects HTTP webhook URL (SSRF protection)", async () => {
+      const res = await PUT(
+        new Request("http://localhost/api/projects/proj-test", {
+          method: "PUT",
+          body: JSON.stringify({ auto_backup_webhook: "http://example.com/hook" }),
+          headers: { "Content-Type": "application/json" },
+        }),
+        makeParams("proj-test"),
+      );
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("not allowed");
+    });
+
+    test("rejects localhost webhook URL (SSRF protection)", async () => {
+      const res = await PUT(
+        new Request("http://localhost/api/projects/proj-test", {
+          method: "PUT",
+          body: JSON.stringify({ auto_backup_webhook: "https://localhost/hook" }),
+          headers: { "Content-Type": "application/json" },
+        }),
+        makeParams("proj-test"),
+      );
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("not allowed");
+    });
+
+    test("rejects cloud metadata webhook URL (SSRF protection)", async () => {
+      const res = await PUT(
+        new Request("http://localhost/api/projects/proj-test", {
+          method: "PUT",
+          body: JSON.stringify({ auto_backup_webhook: "https://169.254.169.254/latest/meta-data/" }),
+          headers: { "Content-Type": "application/json" },
+        }),
+        makeParams("proj-test"),
+      );
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("not allowed");
+    });
+
+    test("allows null webhook URL (clear)", async () => {
+      let capturedUpdate: Record<string, unknown> = {};
+      mockUpdateProject = async (_id: string, data: Record<string, unknown>) => {
+        capturedUpdate = data;
+        return makeProject(data);
+      };
+
+      const res = await PUT(
+        new Request("http://localhost/api/projects/proj-test", {
+          method: "PUT",
+          body: JSON.stringify({ auto_backup_webhook: null }),
+          headers: { "Content-Type": "application/json" },
+        }),
+        makeParams("proj-test"),
+      );
+
+      expect(res.status).toBe(200);
+      expect(capturedUpdate.auto_backup_webhook).toBeNull();
+    });
+
     test("returns 404 when project not found", async () => {
       mockUpdateProject = async () => undefined;
 

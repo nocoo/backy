@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listAutoBackupProjects } from "@/lib/db/projects";
 import { createCronLog } from "@/lib/db/cron-logs";
+import { isUrlSafe } from "@/lib/url";
 
 const VALID_INTERVALS = [1, 12, 24];
 
@@ -60,6 +61,17 @@ export async function POST(request: NextRequest) {
         status: "skipped",
       }).catch((err) => console.error("Cron log write failed:", err));
       summary.skipped++;
+      continue;
+    }
+
+    // SSRF check: verify webhook URL is safe before fetching
+    if (!isUrlSafe(project.auto_backup_webhook!)) {
+      void createCronLog({
+        projectId: project.id,
+        status: "failed",
+        error: "SSRF blocked: webhook URL targets a private/internal address",
+      }).catch((err) => console.error("Cron log write failed:", err));
+      summary.failed++;
       continue;
     }
 

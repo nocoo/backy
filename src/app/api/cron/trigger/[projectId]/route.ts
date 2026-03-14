@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProject } from "@/lib/db/projects";
 import { createCronLog } from "@/lib/db/cron-logs";
+import { isUrlSafe } from "@/lib/url";
 
 export async function POST(
   _request: NextRequest,
@@ -37,6 +38,20 @@ export async function POST(
       { error: "No webhook URL configured for auto-backup" },
       { status: 400 },
     );
+  }
+
+  // SSRF check: verify webhook URL is safe before fetching
+  if (!isUrlSafe(project.auto_backup_webhook)) {
+    void createCronLog({
+      projectId: project.id,
+      status: "failed",
+      error: "SSRF blocked: webhook URL targets a private/internal address",
+    }).catch((err) => console.error("Cron log write failed:", err));
+
+    return NextResponse.json({
+      status: "failed",
+      error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
+    });
   }
 
   // Fire the webhook (same logic as cron/trigger/route.ts)

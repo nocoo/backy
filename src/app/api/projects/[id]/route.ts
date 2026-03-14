@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, updateProject, deleteProject } from "@/lib/db/projects";
 import { validateAllowedIps, normalizeAllowedIps } from "@/lib/ip";
+import { isUrlSafe } from "@/lib/url";
 import { z } from "zod";
 
 const UpdateProjectSchema = z.object({
@@ -92,6 +93,12 @@ export async function PUT(
       updateData.auto_backup_interval = parsed.data.auto_backup_interval;
     }
     if (parsed.data.auto_backup_webhook !== undefined) {
+      if (parsed.data.auto_backup_webhook !== null && !isUrlSafe(parsed.data.auto_backup_webhook)) {
+        return NextResponse.json(
+          { error: "Webhook URL is not allowed (must be HTTPS, public hostname)" },
+          { status: 400 },
+        );
+      }
       updateData.auto_backup_webhook = parsed.data.auto_backup_webhook;
     }
     if (parsed.data.auto_backup_header_key !== undefined) {

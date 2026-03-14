@@ -81,7 +81,7 @@ export function normalizeAllowedIps(value: string): string | null {
  * Convert an IPv4 string to a 32-bit integer.
  * Returns null if the IP is invalid.
  */
-function ipToInt(ip: string): number | null {
+export function ipToInt(ip: string): number | null {
   const match = ip.trim().match(IPV4_REGEX);
   if (!match) return null;
 

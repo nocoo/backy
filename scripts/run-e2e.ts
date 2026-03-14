@@ -71,7 +71,11 @@ async function main() {
   console.log("🚀 Starting E2E test server on port", E2E_PORT);
 
   const server = spawn("bun", ["next", "dev", "--port", String(E2E_PORT)], {
-    env: { ...process.env, E2E_SKIP_AUTH: "true" },
+    env: {
+      ...process.env,
+      E2E_SKIP_AUTH: "true",
+      SSRF_ALLOWLIST: `http://localhost:${E2E_PORT}`,
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
 
