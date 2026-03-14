@@ -14,8 +14,11 @@ const useSecureCookies =
   process.env.USE_SECURE_COOKIES === "true";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  // Trust the host header for automatic URL detection
-  trustHost: true,
+  // Do NOT set trustHost: true — that blindly trusts Host/X-Forwarded-Host
+  // headers for OAuth callback URL generation, enabling callback hijacking
+  // if the reverse proxy is bypassed. Instead, set NEXTAUTH_URL env var
+  // explicitly (e.g. "https://backy.dev.hexly.ai") so NextAuth uses a
+  // hardcoded origin for all URL generation.
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
