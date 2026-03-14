@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-03-15
+
+### Security
+
+- **SSRF protection for webhooks** — New `src/lib/url.ts` module with two-layer defense: `isUrlSafe()` (synchronous, save-time) blocks private IPs, internal hostnames, non-HTTPS; `resolveAndValidateUrl()` (async, fetch-time) performs DNS resolution to block rebinding attacks
+- **IPv6 SSRF coverage** — Added `isPrivateIpv6()` with full coverage for loopback (`::1`), link-local (`fe80::/10`), ULA (`fc00::/7`), IPv4-mapped (`::ffff:x.x.x.x`), and unspecified (`::`) addresses. DNS validation queries both A and AAAA records
+- **SSRF allowlist hardening** — Changed `SSRF_ALLOWLIST` from string prefix matching to parsed origin (protocol+hostname+port) comparison, preventing bypass via crafted hostnames like `api.example.com.evil.tld`
+- **Removed query parameter token** — Restore endpoint (`/api/restore/[id]`) no longer accepts `?token=X`; requires `Authorization: Bearer` header only. Prevents token leakage to browser history, access logs, and Referer headers
+- **Open redirect prevention** — `x-forwarded-host` header validated against `ALLOWED_HOSTS` allowlist before use in redirect URLs; untrusted values fall back to request origin
+- **OAuth callback hardening** — Removed `trustHost: true` from NextAuth config to prevent callback URL hijacking via Host header spoofing. Uses explicit `NEXTAUTH_URL` env var instead
+- **Restricted /api/db/init** — Removed from public route whitelist; now requires authentication like all other API routes
+
+### Documentation
+
+- **Design document** — Rewrote `docs/01-design.md` to match code reality, corrected inaccuracies
+- **Environment config** — Updated `.env.example` with `NEXTAUTH_URL` (marked required), `ALLOWED_HOSTS`, and `SSRF_ALLOWLIST` documentation
+
 ## [1.7.1] - 2026-03-11
 
 ### Fixed
@@ -220,6 +237,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.7.2]: https://github.com/nocoo/backy/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/nocoo/backy/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/nocoo/backy/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/nocoo/backy/compare/v1.5.0...v1.6.0
