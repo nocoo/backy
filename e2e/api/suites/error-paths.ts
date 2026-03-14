@@ -125,13 +125,17 @@ export async function suiteErrorPaths(): Promise<void> {
   await test("GIVEN wrong token WHEN requesting restore THEN returns 403", async () => {
     // Need a real backup ID first — use first created one
     if (state.createdBackupIds.length > 0) {
-      const res = await fetch(`${state.baseUrl}/api/restore/${state.createdBackupIds[0]}?token=wrong-token`);
+      const res = await fetch(`${state.baseUrl}/api/restore/${state.createdBackupIds[0]}`, {
+        headers: { Authorization: "Bearer wrong-token" },
+      });
       assertEqual(res.status, 403, "status");
     }
   });
 
   await test("GIVEN non-existent backup WHEN requesting restore THEN returns 404", async () => {
-    const res = await fetch(`${state.baseUrl}/api/restore/nonexistent-id?token=${WEBHOOK_TOKEN}`);
+    const res = await fetch(`${state.baseUrl}/api/restore/nonexistent-id`, {
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
     assertEqual(res.status, 404, "status");
   });
 

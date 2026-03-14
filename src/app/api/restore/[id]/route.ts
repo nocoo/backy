@@ -8,11 +8,9 @@ import { enforceIpRestriction } from "@/lib/ip";
  * GET /api/restore/[id] — Generate a temporary download URL for a backup.
  *
  * This is a public endpoint (no OAuth required). Authentication is via the
- * project's webhook token passed as a query parameter or Bearer token.
+ * project's webhook token passed as a Bearer token in the Authorization header.
  *
  * Usage by AI agents:
- *   GET /api/restore/{backupId}?token={webhookToken}
- *   — or —
  *   GET /api/restore/{backupId}
  *   Authorization: Bearer {webhookToken}
  *
@@ -25,20 +23,16 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // --- Auth: token from query param or Authorization header ---
-    const url = new URL(request.url);
-    let token = url.searchParams.get("token");
-
-    if (!token) {
-      const authHeader = request.headers.get("authorization");
-      if (authHeader?.startsWith("Bearer ")) {
-        token = authHeader.slice(7);
-      }
+    // --- Auth: token from Authorization header only ---
+    let token: string | null = null;
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice(7);
     }
 
     if (!token) {
       return NextResponse.json(
-        { error: "Missing authentication. Provide ?token= query param or Authorization: Bearer header." },
+        { error: "Missing authentication. Provide Authorization: Bearer header." },
         { status: 401 },
       );
     }

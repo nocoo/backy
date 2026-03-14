@@ -245,11 +245,6 @@ GET ${baseUrl}/api/restore/{backupId}
 Authorization: Bearer ${token}
 \`\`\`
 
-Alternative: use a query parameter instead of the header:
-\`\`\`
-GET ${baseUrl}/api/restore/{backupId}?token=${token}
-\`\`\`
-
 Response:
 \`\`\`json
 {
@@ -291,7 +286,8 @@ curl -X POST ${webhookEndpoint} \\
   -F "tag=full-export"
 
 # Restore a backup (replace BACKUP_ID with actual ID)
-curl "${baseUrl}/api/restore/BACKUP_ID?token=${token}"
+curl ${baseUrl}/api/restore/BACKUP_ID \\
+  -H "Authorization: Bearer ${token}"
 \`\`\`
 
 ## Programmatic Example (Node.js / fetch)

@@ -81,12 +81,10 @@ export async function suiteHappyPathJson(): Promise<void> {
     assertDeepEqual(restored, TEST_JSON_DATA, "restored content should match original");
   });
 
-  // Step 5b: Restore with query param token
-  await test("GIVEN a JSON backup WHEN requesting restore with ?token= query param THEN returns presigned URL", async () => {
+  // Step 5b: Restore with query param token should no longer work
+  await test("GIVEN a JSON backup WHEN requesting restore with ?token= query param THEN returns 401", async () => {
     const res = await fetch(`${state.baseUrl}/api/restore/${backupId}?token=${WEBHOOK_TOKEN}`);
-    assertEqual(res.status, 200, "status");
-    const body = await res.json();
-    assert(typeof body.url === "string", "url");
+    assertEqual(res.status, 401, "status");
   });
 
   // Step 6: Backup appears in list

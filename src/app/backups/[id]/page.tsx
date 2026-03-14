@@ -109,7 +109,7 @@ export default function BackupDetailPage() {
   const [deleting, setDeleting] = useState(false);
 
   // Restore URL state
-  const [restoreUrl, setRestoreUrl] = useState<string | null>(null);
+  const [restoreCommand, setRestoreCommand] = useState<string | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -242,20 +242,20 @@ export default function BackupDetailPage() {
       if (!res.ok) throw new Error("Failed to fetch project");
       const project: { webhook_token: string } = await res.json();
 
-      // Construct the restore URL
+      // Construct the curl command with Bearer auth
       const baseUrl = window.location.origin;
-      const url = `${baseUrl}/api/restore/${backup.id}?token=${project.webhook_token}`;
-      setRestoreUrl(url);
+      const command = `curl ${baseUrl}/api/restore/${backup.id} \\\n  -H "Authorization: Bearer ${project.webhook_token}"`;
+      setRestoreCommand(command);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate restore URL");
+      toast.error(err instanceof Error ? err.message : "Failed to generate restore command");
     } finally {
       setRestoreLoading(false);
     }
   }
 
   async function handleCopyRestoreUrl() {
-    if (!restoreUrl) return;
-    await navigator.clipboard.writeText(restoreUrl);
+    if (!restoreCommand) return;
+    await navigator.clipboard.writeText(restoreCommand);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -471,20 +471,20 @@ export default function BackupDetailPage() {
                   ) : (
                     <Link2 className="h-3.5 w-3.5 mr-1.5" />
                   )}
-                  {restoreUrl ? "Regenerate" : "Generate URL"}
+                  {restoreCommand ? "Regenerate" : "Generate Command"}
                 </Button>
               </div>
 
-              {restoreUrl ? (
+              {restoreCommand ? (
                 <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground break-all">
-                      {restoreUrl}
+                    <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground break-all whitespace-pre-wrap">
+                      {restoreCommand}
                     </code>
                     <Button
                       variant="outline"
                       size="sm"
-                      aria-label="Copy restore URL"
+                      aria-label="Copy restore command"
                       onClick={() => void handleCopyRestoreUrl()}
                       className="shrink-0"
                     >
@@ -495,13 +495,10 @@ export default function BackupDetailPage() {
                       )}
                     </Button>
                   </div>
-                  <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="text-xs text-muted-foreground">
                     <p>
-                      This URL contains the project&apos;s webhook token. The presigned download
-                      link returned expires after <strong>15 minutes</strong>.
-                    </p>
-                    <p className="font-mono bg-muted/50 rounded px-2 py-1 break-all">
-                      curl &quot;{restoreUrl}&quot;
+                      This command uses the project&apos;s webhook token via the Authorization header.
+                      The presigned download link returned expires after <strong>15 minutes</strong>.
                     </p>
                   </div>
                 </div>

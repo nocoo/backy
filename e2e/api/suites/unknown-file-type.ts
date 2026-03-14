@@ -72,7 +72,9 @@ export async function suiteUnknownFileType(): Promise<void> {
 
   // Step 6: Restore should work
   await test("GIVEN an unknown-type backup WHEN restoring THEN returns valid download URL", async () => {
-    const res = await fetch(`${state.baseUrl}/api/restore/${webhookBackupId}?token=${WEBHOOK_TOKEN}`);
+    const res = await fetch(`${state.baseUrl}/api/restore/${webhookBackupId}`, {
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
     assertEqual(res.status, 200, "status");
     const body = await res.json();
     assert(typeof body.url === "string", "url should be a string");

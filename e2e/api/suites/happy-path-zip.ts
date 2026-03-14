@@ -91,7 +91,9 @@ export async function suiteHappyPathZip(): Promise<void> {
 
   // Step 8: Restore endpoint
   await test("GIVEN a ZIP backup WHEN restoring via public endpoint THEN returns valid download URL", async () => {
-    const res = await fetch(`${state.baseUrl}/api/restore/${backupId}?token=${WEBHOOK_TOKEN}`);
+    const res = await fetch(`${state.baseUrl}/api/restore/${backupId}`, {
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
     assertEqual(res.status, 200, "status");
     const body = await res.json();
     assert(typeof body.url === "string", "url");

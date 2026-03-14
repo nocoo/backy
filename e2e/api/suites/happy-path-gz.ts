@@ -116,7 +116,9 @@ export async function suiteHappyPathGz(): Promise<void> {
 
   // Step 10: Restore endpoint works for GZ
   await test("GIVEN a GZ backup WHEN restoring via public endpoint THEN returns valid download URL", async () => {
-    const res = await fetch(`${state.baseUrl}/api/restore/${webhookBackupId}?token=${WEBHOOK_TOKEN}`);
+    const res = await fetch(`${state.baseUrl}/api/restore/${webhookBackupId}`, {
+      headers: { Authorization: `Bearer ${WEBHOOK_TOKEN}` },
+    });
     assertEqual(res.status, 200, "status");
     const body = await res.json();
     assert(typeof body.url === "string", "url should be a string");

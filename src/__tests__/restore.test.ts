@@ -64,28 +64,28 @@ describe("GET /api/restore/[id]", () => {
   });
 
   test("returns 404 for non-existent backup", async () => {
-    const req = new Request("http://localhost:7026/api/restore/no-exist?token=open-token");
+    const req = new Request("http://localhost:7026/api/restore/no-exist", {
+      headers: { Authorization: "Bearer open-token" },
+    });
     const params = Promise.resolve({ id: "no-exist" });
     const res = await GET(req, { params });
     expect(res.status).toBe(404);
   });
 
   test("returns 403 with wrong token", async () => {
-    const req = new Request("http://localhost:7026/api/restore/backup-open?token=wrong-token");
+    const req = new Request("http://localhost:7026/api/restore/backup-open", {
+      headers: { Authorization: "Bearer wrong-token" },
+    });
     const params = Promise.resolve({ id: "backup-open" });
     const res = await GET(req, { params });
     expect(res.status).toBe(403);
   });
 
-  test("returns presigned URL with valid query param token", async () => {
+  test("returns 401 when token is passed as query param (no longer supported)", async () => {
     const req = new Request("http://localhost:7026/api/restore/backup-open?token=open-token");
     const params = Promise.resolve({ id: "backup-open" });
     const res = await GET(req, { params });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.url).toBe("https://r2.example.com/signed-url");
-    expect(body.backup_id).toBe("backup-open");
-    expect(body.expires_in).toBe(900);
+    expect(res.status).toBe(401);
   });
 
   test("returns presigned URL with Bearer token", async () => {
@@ -100,8 +100,8 @@ describe("GET /api/restore/[id]", () => {
 
 describe("GET /api/restore/[id] — IP restriction", () => {
   test("returns 200 when IP is in allowed range", async () => {
-    const req = new Request("http://localhost:7026/api/restore/backup-restricted?token=restricted-token", {
-      headers: { "x-forwarded-for": "10.5.5.5" },
+    const req = new Request("http://localhost:7026/api/restore/backup-restricted", {
+      headers: { Authorization: "Bearer restricted-token", "x-forwarded-for": "10.5.5.5" },
     });
     const params = Promise.resolve({ id: "backup-restricted" });
     const res = await GET(req, { params });
@@ -111,8 +111,8 @@ describe("GET /api/restore/[id] — IP restriction", () => {
   });
 
   test("returns 200 with second allowed range (192.168.x.x)", async () => {
-    const req = new Request("http://localhost:7026/api/restore/backup-restricted?token=restricted-token", {
-      headers: { "x-forwarded-for": "192.168.50.1" },
+    const req = new Request("http://localhost:7026/api/restore/backup-restricted", {
+      headers: { Authorization: "Bearer restricted-token", "x-forwarded-for": "192.168.50.1" },
     });
     const params = Promise.resolve({ id: "backup-restricted" });
     const res = await GET(req, { params });
@@ -120,8 +120,8 @@ describe("GET /api/restore/[id] — IP restriction", () => {
   });
 
   test("returns 403 when IP is outside allowed range", async () => {
-    const req = new Request("http://localhost:7026/api/restore/backup-restricted?token=restricted-token", {
-      headers: { "x-forwarded-for": "172.16.0.1" },
+    const req = new Request("http://localhost:7026/api/restore/backup-restricted", {
+      headers: { Authorization: "Bearer restricted-token", "x-forwarded-for": "172.16.0.1" },
     });
     const params = Promise.resolve({ id: "backup-restricted" });
     const res = await GET(req, { params });
@@ -131,15 +131,17 @@ describe("GET /api/restore/[id] — IP restriction", () => {
   });
 
   test("returns 403 when no x-forwarded-for on restricted project", async () => {
-    const req = new Request("http://localhost:7026/api/restore/backup-restricted?token=restricted-token");
+    const req = new Request("http://localhost:7026/api/restore/backup-restricted", {
+      headers: { Authorization: "Bearer restricted-token" },
+    });
     const params = Promise.resolve({ id: "backup-restricted" });
     const res = await GET(req, { params });
     expect(res.status).toBe(403);
   });
 
   test("open project allows any IP", async () => {
-    const req = new Request("http://localhost:7026/api/restore/backup-open?token=open-token", {
-      headers: { "x-forwarded-for": "8.8.8.8" },
+    const req = new Request("http://localhost:7026/api/restore/backup-open", {
+      headers: { Authorization: "Bearer open-token", "x-forwarded-for": "8.8.8.8" },
     });
     const params = Promise.resolve({ id: "backup-open" });
     const res = await GET(req, { params });
