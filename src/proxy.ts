@@ -5,12 +5,20 @@ import type { NextRequest } from "next/server";
 // Skip auth in E2E test environment
 const SKIP_AUTH = process.env.E2E_SKIP_AUTH === "true";
 
+// Allowed hosts for x-forwarded-host validation (prevents open redirect)
+const ALLOWED_HOSTS = new Set(
+  (process.env.ALLOWED_HOSTS || "backy.dev.hexly.ai,localhost:7026")
+    .split(",")
+    .map((h) => h.trim())
+    .filter(Boolean),
+);
+
 // Build redirect URL respecting reverse proxy headers
 function buildRedirectUrl(req: NextRequest, pathname: string): URL {
   const forwardedHost = req.headers.get("x-forwarded-host");
   const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
 
-  if (forwardedHost) {
+  if (forwardedHost && ALLOWED_HOSTS.has(forwardedHost)) {
     return new URL(pathname, `${forwardedProto}://${forwardedHost}`);
   }
 

@@ -145,5 +145,18 @@ describe("proxy auth rules", () => {
       expect(res.status).toBe(307);
       expect(res.headers.get("location")!).toStartWith("https://");
     });
+
+    test("ignores untrusted x-forwarded-host and falls back to request origin", async () => {
+      const res = await callProxy(
+        createRequest("/projects", {
+          "x-forwarded-host": "evil.attacker.com",
+          "x-forwarded-proto": "https",
+        }),
+      );
+      expect(res.status).toBe(307);
+      const location = res.headers.get("location")!;
+      expect(location).not.toContain("evil.attacker.com");
+      expect(location).toContain("localhost:7026");
+    });
   });
 });
