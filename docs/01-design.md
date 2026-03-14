@@ -218,7 +218,7 @@ Content-Type: multipart/form-data
 
 Fields:
   file: (json, zip, gz, tgz, or any file)
-  environment?: "dev" | "prod" | custom string (optional)
+  environment?: "dev" | "prod" | "staging" | "test" (optional)
   tag?: string (optional)
 ```
 
