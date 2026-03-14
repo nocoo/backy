@@ -29,13 +29,12 @@ const authHandler = auth((req) => {
   const isLoginPage = pathname === "/login";
   const isAuthRoute = pathname.startsWith("/api/auth");
   const isLiveRoute = pathname === "/api/live";
-  const isDbInitRoute = pathname === "/api/db/init";
   const isWebhookRoute = pathname.startsWith("/api/webhook");
   const isRestoreRoute = pathname.startsWith("/api/restore");
   const isCronTriggerRoute = pathname === "/api/cron/trigger";
 
-  // Allow public routes: auth handlers, health check, db init, webhook ingestion, restore downloads, cron trigger
-  if (isAuthRoute || isLiveRoute || isDbInitRoute || isWebhookRoute || isRestoreRoute || isCronTriggerRoute) {
+  // Allow public routes: auth handlers, health check, webhook ingestion, restore downloads, cron trigger
+  if (isAuthRoute || isLiveRoute || isWebhookRoute || isRestoreRoute || isCronTriggerRoute) {
     return NextResponse.next();
   }
 

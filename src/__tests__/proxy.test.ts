@@ -62,9 +62,10 @@ describe("proxy auth rules", () => {
       expect(res.status).not.toBe(307);
     });
 
-    test("allows /api/db/init without auth", async () => {
+    test("redirects /api/db/init to login without auth", async () => {
       const res = await callProxy(createRequest("/api/db/init"));
-      expect(res.status).not.toBe(307);
+      expect(res.status).toBe(307);
+      expect(new URL(res.headers.get("location")!).pathname).toBe("/login");
     });
   });
 
