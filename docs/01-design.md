@@ -10,13 +10,27 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript (strict mode) |
 | UI | Tailwind CSS v4 + shadcn/ui (basalt design system) |
+| Charts | Recharts |
+| Validation | Zod v4 |
 | Auth | NextAuth v5 + Google OAuth (whitelist) |
-| Metadata DB | Cloudflare D1 (remote REST API) |
-| File Storage | Cloudflare R2 (S3-compatible API) |
-| Deployment | Railway + Docker, port 7026 |
+| Metadata DB | Cloudflare D1 (remote REST API, exponential backoff retry) |
+| File Storage | Cloudflare R2 (S3-compatible API, AWS SDK v3) |
+| Deployment | Railway + Docker (3-stage), port 7026 |
 | Domain | backy.dev.hexly.ai |
 
 ## Data Model (D1)
+
+### categories
+
+| Column | Type | Description |
+|---|---|---|
+| id | TEXT PK | nanoid |
+| name | TEXT | Category name |
+| color | TEXT | Hex color (default `#6b7280`) |
+| icon | TEXT | Lucide icon name (default `folder`) |
+| sort_order | INTEGER | Display order |
+| created_at | TEXT | ISO 8601 |
+| updated_at | TEXT | ISO 8601 |
 
 ### projects
 
@@ -26,6 +40,13 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | name | TEXT | Project name |
 | description | TEXT? | Optional description |
 | webhook_token | TEXT UNIQUE | Auto-generated, used by sender in Authorization header |
+| allowed_ips | TEXT? | Comma-separated CIDR whitelist |
+| category_id | TEXT? FK | → categories.id (ON DELETE SET NULL) |
+| auto_backup_enabled | INTEGER | 0/1 flag |
+| auto_backup_interval | INTEGER | Hours between auto-backups (default 24) |
+| auto_backup_webhook | TEXT? | External webhook URL to trigger |
+| auto_backup_header_key | TEXT? | Custom header name for auto-backup request |
+| auto_backup_header_value | TEXT? | Custom header value for auto-backup request |
 | created_at | TEXT | ISO 8601 |
 | updated_at | TEXT | ISO 8601 |
 
@@ -34,56 +55,154 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | Column | Type | Description |
 |---|---|---|
 | id | TEXT PK | nanoid |
-| project_id | TEXT FK | → projects.id |
+| project_id | TEXT FK | → projects.id (ON DELETE CASCADE) |
 | environment | TEXT? | dev/prod, sender-defined |
 | sender_ip | TEXT | Request IP |
 | tag | TEXT? | Sender-defined label |
-| file_key | TEXT | R2 object key (zip) |
-| json_key | TEXT? | R2 object key (extracted json) |
+| file_key | TEXT | R2 object key (original file) |
+| json_key | TEXT? | R2 object key (extracted JSON preview) |
 | file_size | INTEGER | Bytes |
-| is_single_json | INTEGER | 1 if zip contains a single .json file |
-| json_extracted | INTEGER | 1 if user chose to extract json |
+| file_type | TEXT | `json`, `zip`, `gz`, `tgz`, or `unknown` |
+| is_single_json | INTEGER | 1 if archive contains a single .json file |
+| json_extracted | INTEGER | 1 if user chose to extract JSON |
 | created_at | TEXT | ISO 8601 |
 | updated_at | TEXT | ISO 8601 |
+
+### webhook_logs
+
+| Column | Type | Description |
+|---|---|---|
+| id | TEXT PK | nanoid |
+| project_id | TEXT? | Associated project (nullable for bad requests) |
+| method | TEXT | HTTP method |
+| path | TEXT | Request path |
+| status_code | INTEGER | Response status |
+| client_ip | TEXT? | Sender IP |
+| user_agent | TEXT? | Sender user agent |
+| error_code | TEXT? | Structured error code |
+| error_message | TEXT? | Human-readable error |
+| duration_ms | INTEGER? | Request duration |
+| metadata | TEXT? | JSON string with extra context |
+| created_at | TEXT | ISO 8601 |
+
+### cron_logs
+
+| Column | Type | Description |
+|---|---|---|
+| id | TEXT PK | nanoid |
+| project_id | TEXT? FK | → projects.id (ON DELETE CASCADE) |
+| status | TEXT | success/error/skipped |
+| response_code | INTEGER? | HTTP status from triggered webhook |
+| error | TEXT? | Error message |
+| duration_ms | INTEGER? | Execution time |
+| triggered_at | TEXT | ISO 8601 |
+
+### Indexes
+
+```
+idx_backups_project_id      ON backups(project_id)
+idx_backups_created_at      ON backups(created_at)
+idx_backups_file_type       ON backups(file_type)
+idx_projects_webhook_token  ON projects(webhook_token)
+idx_projects_category_id    ON projects(category_id)
+idx_webhook_logs_project_id ON webhook_logs(project_id)
+idx_webhook_logs_created_at ON webhook_logs(created_at)
+idx_webhook_logs_status_code ON webhook_logs(status_code)
+idx_cron_logs_project_id    ON cron_logs(project_id)
+idx_cron_logs_triggered_at  ON cron_logs(triggered_at)
+idx_cron_logs_status        ON cron_logs(status)
+```
 
 ## R2 Storage Layout
 
 ```
 backy-bucket/
-├── {project_id}/
-│   ├── {backup_id}.zip
-│   └── {backup_id}.json        # only when user extracts
+├── backups/{projectId}/
+│   ├── {timestamp}.json          # JSON backup
+│   ├── {timestamp}.zip           # ZIP archive
+│   ├── {timestamp}.gz            # Gzip file
+│   ├── {timestamp}.tar.gz        # Tarball
+│   └── {timestamp}.{ext}         # Unknown type (preserves original extension)
+└── previews/{projectId}/
+    └── {timestamp}.json          # Extracted JSON preview
 ```
 
-## API Routes
+Timestamp format: `2026-03-02T10-30-00-000Z` (ISO 8601 with colons/dots replaced by dashes).
 
-```
-/api/auth/[...nextauth]       Auth handlers
-/api/projects                 GET (list), POST (create)
-/api/projects/[id]            GET, PUT, DELETE
-/api/projects/[id]/token      POST (regenerate webhook token)
-/api/projects/[id]/prompt     GET (AI agent integration guide)
-/api/webhook/[projectId]      POST (receive backup zip, multipart/form-data)
-/api/backups                  GET (list all, with filters)
-/api/backups/[id]             GET, DELETE
-/api/backups/[id]/download    GET (download zip from R2)
-/api/backups/[id]/extract     POST (extract json from zip)
-/api/backups/[id]/preview     GET (load json for preview)
-/api/restore/[id]             GET (authenticated temp download URL for SaaS)
-/api/live                     Health check
-```
+## API Routes (24 files, 37 handlers)
+
+### Auth
+| Route | Methods | Description |
+|---|---|---|
+| `/api/auth/[...nextauth]` | GET, POST | NextAuth v5 handlers |
+
+### Backups
+| Route | Methods | Description |
+|---|---|---|
+| `/api/backups` | GET, POST | List (paginated, filterable), batch delete |
+| `/api/backups/[id]` | GET, DELETE | Get/delete single backup |
+| `/api/backups/[id]/download` | GET | Presigned download URL |
+| `/api/backups/[id]/extract` | POST | Extract JSON from archive |
+| `/api/backups/[id]/preview` | GET | Load JSON for tree preview |
+| `/api/backups/upload` | POST | Manual file upload |
+
+### Categories
+| Route | Methods | Description |
+|---|---|---|
+| `/api/categories` | GET, POST | List/create categories |
+| `/api/categories/[id]` | GET, PUT, DELETE | Get/update/delete category |
+
+### Cron
+| Route | Methods | Description |
+|---|---|---|
+| `/api/cron/trigger` | POST | Trigger auto-backup for all enabled projects |
+| `/api/cron/trigger/[projectId]` | POST | Trigger auto-backup for single project |
+| `/api/cron/logs` | GET, DELETE | List/delete cron logs |
+
+### Infrastructure
+| Route | Methods | Description |
+|---|---|---|
+| `/api/db/init` | POST | Initialize D1 schema + migrations |
+| `/api/ip-info` | GET | IP geolocation proxy |
+| `/api/live` | GET | Health check (D1 + R2 ping) |
+| `/api/logs` | GET, DELETE | Webhook audit logs |
+
+### Projects
+| Route | Methods | Description |
+|---|---|---|
+| `/api/projects` | GET, POST | List/create projects |
+| `/api/projects/[id]` | GET, PUT, DELETE | Get/update/delete project |
+| `/api/projects/[id]/token` | POST | Regenerate webhook token |
+| `/api/projects/[id]/prompt` | GET | AI agent integration prompt |
+
+### Stats
+| Route | Methods | Description |
+|---|---|---|
+| `/api/stats` | GET | Dashboard totals |
+| `/api/stats/charts` | GET | Chart data (activity, projects, cron) |
+
+### Webhook (public)
+| Route | Methods | Description |
+|---|---|---|
+| `/api/webhook/[projectId]` | HEAD, GET, POST | HEAD: token verify, GET: project status, POST: receive backup |
+
+### Restore (public)
+| Route | Methods | Description |
+|---|---|---|
+| `/api/restore/[id]` | GET | Presigned download with restore token |
 
 ## Pages
 
 ```
-/login                        Badge Login (Google OAuth)
-/                             Dashboard (backup stats overview)
-/projects                     Project list
+/login                        Google OAuth login (badge design)
+/                             Dashboard (stats, 4 charts, recent backups)
+/projects                     Project list (with categories)
 /projects/new                 Create project
-/projects/[id]                Project detail + backup list
-/projects/[id]/settings       Project settings (edit, token, prompt)
-/backups                      Global backup list (filter/search/multi-select)
-/backups/[id]                 Backup detail (metadata, json preview, download, restore)
+/projects/[id]                Project detail (settings, webhook, backups, danger zone)
+/backups                      Global backup list (filter, search, multi-select, batch ops)
+/backups/[id]                 Backup detail (metadata, JSON preview, download, restore)
+/logs                         Webhook audit log viewer
+/cron-logs                    Cron execution log viewer
 ```
 
 ## Webhook Protocol
@@ -96,82 +215,42 @@ Authorization: Bearer {webhook_token}
 Content-Type: multipart/form-data
 
 Fields:
-  file: (zip file)
-  environment?: "dev" | "prod" (optional)
+  file: (json, zip, gz, tgz, or any file)
+  environment?: "dev" | "prod" | custom string (optional)
   tag?: string (optional)
+```
+
+Supported file types: JSON, ZIP, GZ, TGZ, unknown (preserved as-is). File size limit: 50 MB.
+
+### Checking status
+
+```
+HEAD /api/webhook/{projectId}
+Authorization: Bearer {webhook_token}
+→ 200 if token valid, 401/404 otherwise
+
+GET /api/webhook/{projectId}
+Authorization: Bearer {webhook_token}
+→ JSON with project info and recent backup stats
 ```
 
 ### Restoring a backup
 
 ```
 GET /api/restore/{backupId}?token={restore_token}
-→ Returns the backup file (zip or json)
+→ Returns the backup file (original format)
 ```
 
-Restore tokens are temporary, generated by backy when user clicks "Generate Restore URL".
+Restore tokens are temporary presigned URLs, generated by Backy when user clicks "Generate Restore URL".
 
 ## Security
 
 - **Web UI**: Google OAuth + ALLOWED_EMAILS whitelist (single-user/small team)
-- **Webhook**: Per-project Bearer token in Authorization header
-- **Restore**: Temporary signed URLs with expiration
+- **Proxy** (`src/proxy.ts`): Next.js 16 convention, protects all routes except public whitelist
+- **Webhook**: Per-project Bearer token (48-char nanoid)
+- **IP restriction**: Project-level CIDR whitelist, fail-closed, IPv6-mapped stripping
+- **Cron**: `CRON_SECRET` Bearer token
+- **Restore**: Temporary presigned URLs with expiration
 - **R2/D1**: Access keys stored as server-side environment variables
-
-## Implementation Phases
-
-### Phase 1: Scaffold & Auth ✅ DONE
-- [x] Design document
-- [x] Initialize Next.js project (bun, package.json, tsconfig, next.config)
-- [x] Basalt design system (CSS tokens, shadcn/ui, layout)
-- [x] Tailwind v4 + postcss
-- [x] NextAuth v5 + Google OAuth + whitelist
-- [x] Badge Login page (from surety)
-- [x] App Shell (placeholder dashboard page)
-- [x] proxy.ts (Next.js 16 middleware)
-- [x] Husky + pre-commit (UT+lint) + pre-push (UT+lint)
-- [x] ESLint + strict mode (tsconfig strict + noUncheckedIndexedAccess + noUnusedLocals + exactOptionalPropertyTypes)
-- [x] Test framework (bun test) + initial tests (utils, health)
-- [x] Dockerfile + .env.example + CLAUDE.md
-
-### Phase 2: Project Management ✅ DONE
-- [x] D1 client setup + schema initialization
-- [x] R2 client setup (S3-compatible)
-- [x] Project CRUD API
-- [x] Project management pages (list, create, detail/settings)
-- [x] Webhook token generation & display
-- [x] AI agent integration prompt generation
-- [x] App Shell with collapsible sidebar and breadcrumbs
-
-### Phase 3: Backup Receiving (Webhook) ✅ DONE
-- [x] Webhook endpoint (receive zip/json via multipart/form-data)
-- [x] Bearer token verification
-- [x] JSON file detection (single json support)
-- [x] R2 upload + D1 metadata insert
-- [x] Request metadata extraction (IP, environment, tag)
-- [x] Content-type validation with charset handling
-- [x] File size limit (50 MB)
-
-### Phase 4: Backup Management UI ✅ DONE
-- [x] Backup list page (global)
-- [x] Dashboard with live stats (projects, backups, storage)
-- [x] Single backup operations (download, delete)
-- [x] Stats API endpoint
-- [x] Filter, search, sort
-- [x] Multi-select + batch operations
-- [x] Pagination
-- [x] Per-project backup list on project detail page
-
-### Phase 5: JSON Preview & Restore ✅ DONE
-- [x] JSON extraction (unzip to R2)
-- [x] JSON tree preview in UI
-- [x] Backup detail page (metadata, preview, extract, download, delete)
-- [x] Restore URL generation (temporary signed URL)
-- [x] Restore API endpoint
-
-### Phase 6: Testing & Deployment ✅ DONE
-- [x] Unit tests (100% functions, 97% lines — threshold 90%)
-- [x] API E2E tests (30 tests: JSON/ZIP happy paths, error paths, cleanup)
-- [x] Lint (zero errors/warnings)
-- [x] Husky hooks (pre-commit: UT+lint, pre-push: UT+lint+E2E)
-- [x] Dockerfile (3-stage build)
-- [x] Railway deployment config (railway.json, GitHub CI auto-deploy)
+- **Client IP**: `x-envoy-external-address` (Railway Envoy) → `x-forwarded-for` rightmost → direct
+- **E2E bypass**: `E2E_SKIP_AUTH=true` for local testing only
