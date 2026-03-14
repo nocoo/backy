@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { isUrlSafe, isPrivateIp, resolveAndValidateUrl } from "@/lib/url";
+import { isUrlSafe, isPrivateIp, isPrivateIpv6, resolveAndValidateUrl } from "@/lib/url";
 
 describe("isUrlSafe", () => {
   let originalAllowlist: string | undefined;
@@ -135,6 +135,30 @@ describe("isUrlSafe", () => {
     expect(isUrlSafe("https://[::1]/hook")).toBe(false);
   });
 
+  test("blocks [fe80::1] IPv6 link-local", () => {
+    expect(isUrlSafe("https://[fe80::1]/hook")).toBe(false);
+  });
+
+  test("blocks [fc00::1] IPv6 ULA", () => {
+    expect(isUrlSafe("https://[fc00::1]/hook")).toBe(false);
+  });
+
+  test("blocks [fd12:3456::1] IPv6 ULA (fd prefix)", () => {
+    expect(isUrlSafe("https://[fd12:3456::1]/hook")).toBe(false);
+  });
+
+  test("blocks [::ffff:127.0.0.1] IPv4-mapped loopback", () => {
+    expect(isUrlSafe("https://[::ffff:127.0.0.1]/hook")).toBe(false);
+  });
+
+  test("blocks [::ffff:169.254.169.254] IPv4-mapped metadata", () => {
+    expect(isUrlSafe("https://[::ffff:169.254.169.254]/hook")).toBe(false);
+  });
+
+  test("allows [2607:f8b0::1] public IPv6", () => {
+    expect(isUrlSafe("https://[2607:f8b0::1]/hook")).toBe(true);
+  });
+
   // --- SSRF_ALLOWLIST bypass ---
 
   test("allowlist bypasses all checks for matching prefix", () => {
@@ -188,6 +212,60 @@ describe("isPrivateIp", () => {
   test("returns false for non-IP strings", () => {
     expect(isPrivateIp("example.com")).toBe(false);
     expect(isPrivateIp("not-an-ip")).toBe(false);
+  });
+});
+
+describe("isPrivateIpv6", () => {
+  test("identifies loopback ::1", () => {
+    expect(isPrivateIpv6("::1")).toBe(true);
+    expect(isPrivateIpv6("[::1]")).toBe(true);
+  });
+
+  test("identifies unspecified ::", () => {
+    expect(isPrivateIpv6("::")).toBe(true);
+  });
+
+  test("identifies link-local fe80::", () => {
+    expect(isPrivateIpv6("fe80::1")).toBe(true);
+    expect(isPrivateIpv6("fe80::abcd:1234")).toBe(true);
+    expect(isPrivateIpv6("[fe80::1]")).toBe(true);
+  });
+
+  test("identifies ULA fc00::/7 (fc00:: and fd00::)", () => {
+    expect(isPrivateIpv6("fc00::1")).toBe(true);
+    expect(isPrivateIpv6("fd00::1")).toBe(true);
+    expect(isPrivateIpv6("fd12:3456:789a::1")).toBe(true);
+  });
+
+  test("identifies IPv4-mapped private addresses", () => {
+    expect(isPrivateIpv6("::ffff:127.0.0.1")).toBe(true);
+    expect(isPrivateIpv6("::ffff:10.0.0.1")).toBe(true);
+    expect(isPrivateIpv6("::ffff:192.168.1.1")).toBe(true);
+    expect(isPrivateIpv6("::ffff:169.254.169.254")).toBe(true);
+  });
+
+  test("allows IPv4-mapped public addresses", () => {
+    expect(isPrivateIpv6("::ffff:8.8.8.8")).toBe(false);
+  });
+
+  test("rejects public IPv6 addresses", () => {
+    expect(isPrivateIpv6("2607:f8b0:4004:800::200e")).toBe(false);
+    expect(isPrivateIpv6("2001:4860:4860::8888")).toBe(false);
+  });
+
+  test("returns false for non-IPv6 strings", () => {
+    expect(isPrivateIpv6("example.com")).toBe(false);
+    expect(isPrivateIpv6("127.0.0.1")).toBe(false);
+    expect(isPrivateIpv6("not-an-ip")).toBe(false);
+  });
+
+  test("handles URL-parsed bracketed IPv4-mapped (hex form)", () => {
+    // URL parser converts [::ffff:127.0.0.1] to [::ffff:7f00:1]
+    expect(isPrivateIpv6("[::ffff:7f00:1]")).toBe(true);
+    // URL parser converts [::ffff:169.254.169.254] to [::ffff:a9fe:a9fe]
+    expect(isPrivateIpv6("[::ffff:a9fe:a9fe]")).toBe(true);
+    // Public: 8.8.8.8 → ::ffff:808:808
+    expect(isPrivateIpv6("[::ffff:808:808]")).toBe(false);
   });
 });
 
@@ -246,5 +324,23 @@ describe("resolveAndValidateUrl", () => {
     // localhost resolves to 127.0.0.1 on most systems
     const result = await resolveAndValidateUrl("https://localhost/hook");
     expect(result.safe).toBe(false);
+  });
+
+  test("blocks IPv6 loopback literal directly", async () => {
+    const result = await resolveAndValidateUrl("https://[::1]/hook");
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toContain("private");
+  });
+
+  test("blocks IPv6 link-local literal directly", async () => {
+    const result = await resolveAndValidateUrl("https://[fe80::1]/hook");
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toContain("private");
+  });
+
+  test("blocks IPv6 ULA literal directly", async () => {
+    const result = await resolveAndValidateUrl("https://[fd00::1]/hook");
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toContain("private");
   });
 });
