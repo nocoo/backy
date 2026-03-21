@@ -144,7 +144,7 @@ This is a personal project with a single developer. Every tool in the gate must 
 
 ---
 
-### Commit 4: `feat: rewrite pre-commit hook for sequential G1→L1`
+### Commit 4: `feat: rewrite pre-commit hook for sequential G1→L1` ✅
 
 **Files:**
 - `.husky/pre-commit` — rewrite to:
