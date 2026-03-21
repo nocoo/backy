@@ -138,9 +138,9 @@ This is a personal project with a single developer. Every tool in the gate must 
 - `bun run gate:security` passes (no known vulnerabilities or leaked secrets)
 - Negative test — verify hard-fail by stripping scanner paths while keeping bun accessible:
   ```bash
-  PATH=/usr/bin:/bin:/Users/nocoo/.bun/bin bun run gate:security
+  PATH="/usr/bin:/bin:$(dirname "$(command -v bun)")" bun run gate:security
   ```
-  This hides Homebrew binaries (`/opt/homebrew/bin`) so `osv-scanner` and `gitleaks` are not found, while `bun` itself still resolves. The script should exit non-zero with an actionable "not found" message.
+  This dynamically resolves bun's directory, then builds a minimal PATH that excludes Homebrew (`/opt/homebrew/bin`) so `osv-scanner` and `gitleaks` are not found. The script should exit non-zero with an actionable "not found" message.
 
 ---
 
