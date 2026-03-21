@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.3] - 2026-03-22
+
+### Added
+
+- **Quality system upgrade (L1+L2+L3+G1+G2)** — Replaced legacy 4-tier testing with 3 test layers + 2 quality gates: G1 static analysis (tsc + ESLint) and G2 security scanning (osv-scanner + gitleaks) now run automatically via Git hooks
+- **G1 typecheck gate** — `tsc --noEmit` runs on every commit, catching type errors before tests
+- **G1 lint-staged** — ESLint runs only on staged files with `--max-warnings 0`, zero tolerance for warnings
+- **G2 security gate** — `osv-scanner` (dependency vulnerabilities) and `gitleaks` (secret leak detection) run in parallel on every push, hard fail if tools missing or findings detected
+- **osv-scanner.toml** — Explicit ignore list for 11 indirect dependency vulnerabilities (MCP SDK, eslint transitive deps) with 90-day review deadline
+
+### Changed
+
+- **Pre-commit hook** — Rewritten to sequential G1→L1: typecheck → lint-staged → test:coverage
+- **Pre-push hook** — Rewritten to parallel L2‖G2: API E2E and security gate run concurrently
+
+### Fixed
+
+- **Railway reverse proxy** — Restored `trustHost` for Railway deployment and updated domain to `backy.hexly.ai`
+- **Docker build** — Excluded `scripts/` and `e2e/` from tsconfig to fix production build
+
+### Security
+
+- **Next.js 16.1.6 → 16.1.7** — Fixes 5 known vulnerabilities (GHSA-3x4c, GHSA-ggv3, GHSA-h27x, GHSA-jcc7, GHSA-mq59)
+- **Dependency patch** — Updated aws-sdk, nanoid, recharts, tailwindcss, eslint, and type packages
+
+### Documentation
+
+- **Quality system upgrade plan** — `docs/04-quality-system-upgrade.md` with gap analysis, atomic commit plan, and verification checklist
+- **CLAUDE.md** — Replaced "Four-Tier Testing" with "Quality System (3 Test Layers + 2 Gates)" including hooks mapping
+- **README.md** — Updated command table (accurate test counts) and replaced "测试体系" with "质量体系" section
+
 ## [1.7.2] - 2026-03-15
 
 ### Security
@@ -237,6 +268,7 @@ Initial release — all 6 implementation phases complete.
 - **Husky git hooks** — pre-commit (UT + lint), pre-push (UT + lint + E2E)
 - **90%+ test coverage** enforced by coverage gate script
 
+[1.7.3]: https://github.com/nocoo/backy/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/nocoo/backy/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/nocoo/backy/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/nocoo/backy/compare/v1.6.0...v1.7.0
