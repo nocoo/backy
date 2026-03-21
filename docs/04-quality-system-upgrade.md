@@ -29,7 +29,7 @@ The project `tsconfig.json` excludes `scripts/` and `e2e/` directories. G1's typ
 
 **What is NOT covered and why:**
 
-- **`scripts/`** — Infrastructure glue (coverage gate, E2E runner, security gate). These files are small, change rarely, and errors surface immediately when the script is invoked. The cost of maintaining a separate tsconfig for ~4 files outweighs the benefit.
+- **`scripts/`** — Infrastructure glue (coverage gate, E2E runner, security gate). These files are small and change rarely. Runtime errors surface when the script is invoked, but **type errors will not** — they pass silently through `bun run`. The cost of maintaining a separate tsconfig for ~4 files outweighs the benefit.
 - **`e2e/`** — Test harnesses with their own runtime assumptions (Playwright globals, custom BDD framework). Adding them to the main tsconfig would require type gymnastics (Playwright's global `expect`, custom `test()` signatures) for code that never ships.
 
 **Note:** Bun does **not** perform type-checking at runtime — `bun run` transpiles and executes TypeScript without enforcing types. Type errors in `scripts/` and `e2e/` will only be caught by IDE tooling or manual `tsc` invocation, not by any automated gate. This is an accepted trade-off for this project's scale.
@@ -45,7 +45,7 @@ The project `tsconfig.json` excludes `scripts/` and `e2e/` directories. G1's typ
 | G2 gitleaks | ❌ Not installed | Secrets leak detection, hard fail if missing | Install + configure |
 | Hook wiring | Sequential L1→G1 | Sequential G1→L1 (see rationale) | Rewrite hooks |
 | Hook wiring | Sequential L1→L2→L3 | Parallel L2‖G2 | Rewrite hooks |
-| Layer renaming | L3→L2, L4→L3 | Script aliases | Update package.json |
+| Layer naming | ✅ `test:e2e:api` and `test:e2e:bdd` already exist | ✅ No change | — |
 | CLAUDE.md | References old 4-tier | Update to new system | Sync documentation |
 
 ## Target Hooks Architecture
@@ -136,7 +136,11 @@ This is a personal project with a single developer. Every tool in the gate must 
 
 **Verification:**
 - `bun run gate:security` passes (no known vulnerabilities or leaked secrets)
-- Temporarily rename `osv-scanner` → confirm the script errors out, does not silently skip
+- Negative test — verify hard-fail by running with an empty PATH override:
+  ```bash
+  PATH=/usr/bin:/bin bun run gate:security
+  ```
+  This hides Homebrew binaries without touching the global install. The script should exit non-zero with an actionable "not found" message.
 
 ---
 
@@ -214,7 +218,7 @@ Replace the current "Four-Tier Testing" section with:
 
 **README.md updates:**
 
-Replace "常用命令" table (lines 255-263) with:
+Replace the command table under the `## 📋 常用命令` section with:
 
 ```markdown
 | 命令 | 说明 |
@@ -231,7 +235,7 @@ Replace "常用命令" table (lines 255-263) with:
 | `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |
 ```
 
-Replace "测试体系" section (lines 265-275) with:
+Replace the entire `## 🧪 测试体系` section (heading through the E2E paragraph) with:
 
 ```markdown
 ## 🧪 质量体系
