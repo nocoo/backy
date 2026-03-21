@@ -1,14 +1,11 @@
 /**
  * G2 Security Gate — osv-scanner + gitleaks
  *
- * Hard-fail behavior: if either tool is missing from $PATH,
- * the script exits non-zero immediately.
- *
- * Both scanners run in parallel:
- * - gitleaks: hard fail on any leaked secret
- * - osv-scanner: report vulnerabilities (warn-only, no hard fail)
- *   Rationale: indirect dependency vulnerabilities are often unfixable
- *   without upstream releases. The gate provides visibility, not blockage.
+ * Hard-fail behavior:
+ * - If either tool is missing from $PATH, exit non-zero immediately.
+ * - osv-scanner: hard fail on any vulnerability (exitCode 1) or scanner error (exitCode > 1).
+ *   Use osv-scanner.toml [[IgnoredVulns]] to suppress known/accepted indirect-dep vulns.
+ * - gitleaks: hard fail on any leaked secret.
  */
 
 import { $ } from "bun";
@@ -48,12 +45,20 @@ async function runOsvScanner(): Promise<ScanResult> {
     if (result.exitCode === 0) {
       return { name, ok: true, warn: false, output: `✅ ${name}: no vulnerabilities found` };
     }
-    // Vulnerabilities found → warn only (indirect deps often unfixable)
+    if (result.exitCode === 1) {
+      return {
+        name,
+        ok: false,
+        warn: false,
+        output: `❌ ${name}: vulnerabilities detected — update deps or add to osv-scanner.toml [[IgnoredVulns]]\n${output}`,
+      };
+    }
+    // exitCode > 1 = scanner error (lockfile parse failure, CLI error, etc.)
     return {
       name,
-      ok: true,
-      warn: true,
-      output: `⚠️  ${name}: vulnerabilities detected (warn-only, see output below)\n${output}`,
+      ok: false,
+      warn: false,
+      output: `❌ ${name}: scanner error (exit ${result.exitCode})\n${output}`,
     };
   } catch (err) {
     return { name, ok: false, warn: false, output: `❌ ${name}: unexpected error — ${err}` };
@@ -100,12 +105,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const warned = results.filter((r) => r.warn);
-  if (warned.length > 0) {
-    console.log(`\n⚠️  G2 passed with warnings: ${warned.map((r) => r.name).join(", ")}`);
-  } else {
-    console.log("\n✅ G2 passed: all security checks clean");
-  }
+  console.log("\n✅ G2 passed: all security checks clean");
 }
 
 main();
