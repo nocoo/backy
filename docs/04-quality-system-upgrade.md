@@ -19,9 +19,19 @@ The new quality system restructures this into **3 test layers** (verifying behav
 |---|---|---|---|
 | **L1** Unit/Component | bun test, ≥90% coverage | pre-commit | <30s |
 | **L2** Integration/API | Real HTTP E2E, 100% endpoint coverage | pre-push | <3min |
-| **L3** System/E2E | Playwright user flows | CI / on-demand | — |
-| **G1** Static Analysis | `tsc --noEmit` + ESLint strict, 0 error/warning | pre-commit (parallel with L1) | <30s |
-| **G2** Security/Perf | osv-scanner + gitleaks | pre-push (parallel with L2) | <30s |
+| **L3** System/E2E | Playwright user flows | on-demand | — |
+| **G1** Static Analysis | `tsc --noEmit` + ESLint strict (`--max-warnings 0`), 0 error/warning | pre-commit (parallel with L1) | <30s |
+| **G2** Security | osv-scanner + gitleaks — **hard fail if tool missing** | pre-push (parallel with L2) | <30s |
+
+### Scope of `tsc --noEmit`
+
+The project `tsconfig.json` excludes `scripts/` and `e2e/` directories. This is intentional:
+
+- **Application source** (`src/`) — checked by `tsc --noEmit` via the main `tsconfig.json`
+- **Quality scripts** (`scripts/`) — TypeScript files executed by `bun run` directly; Bun's own type-checking applies at invocation. These are infrastructure glue, not application logic.
+- **E2E tests** (`e2e/`) — separate test harnesses with their own runtime assumptions (e.g., Playwright globals). Adding them to the main tsconfig would require significant type gymnastics for marginal benefit.
+
+G1's typecheck gate covers the **blast radius that matters**: the application code that ships to production.
 
 ## Gap Analysis
 
@@ -29,10 +39,11 @@ The new quality system restructures this into **3 test layers** (verifying behav
 |---|---|---|---|
 | L1 Unit | ✅ 486 tests, 90% gate | ✅ No change | — |
 | G1 tsc | ❌ No standalone typecheck | `tsc --noEmit` in pre-commit | Add `typecheck` script |
-| G1 lint-staged | ❌ Full lint on every commit | Incremental lint on staged files | Add lint-staged |
-| G2 osv-scanner | ❌ Not installed | Dependency vulnerability scan | Install + configure |
-| G2 gitleaks | ❌ Not installed | Secrets leak detection | Install + configure |
-| Hook wiring | Sequential L1→L2 | Parallel L1‖G1, L2‖G2 | Rewrite hooks |
+| G1 lint-staged | ❌ Full lint on every commit | Incremental lint on staged files, `--max-warnings 0` | Add lint-staged |
+| G2 osv-scanner | ❌ Not installed | Dependency vulnerability scan, hard fail if missing | Install + configure |
+| G2 gitleaks | ❌ Not installed | Secrets leak detection, hard fail if missing | Install + configure |
+| Hook wiring | Sequential L1→G1 | Sequential L1→G1 (no parallel, see rationale) | Rewrite hooks |
+| Hook wiring | Sequential L1→L2→L3 | Parallel L2‖G2 | Rewrite hooks |
 | Layer renaming | L3→L2, L4→L3 | Script aliases | Update package.json |
 | CLAUDE.md | References old 4-tier | Update to new system | Sync documentation |
 
@@ -40,9 +51,9 @@ The new quality system restructures this into **3 test layers** (verifying behav
 
 ```
 pre-commit (<30s)
-├── L1: bun run test:coverage          (unit tests + 90% gate)
-└── G1: bun run typecheck && bun run lint:staged   (tsc + eslint on staged files)
-    ↕ parallel
+├── G1: bun run typecheck && bun run lint:staged   (tsc + eslint on staged files)
+└── L1: bun run test:coverage                      (unit tests + 90% gate)
+    ↕ sequential: G1 first, then L1
 
 pre-push (<3min)
 ├── L2: bun run test:e2e:api           (API E2E on port 17026)
@@ -53,6 +64,10 @@ on-demand
 └── L3: bun run test:e2e:bdd           (Playwright on port 27026)
 ```
 
+### Why pre-commit is sequential, not parallel
+
+lint-staged uses `eslint --max-warnings 0` (check-only, no `--fix`), so it does not modify files. However, running L1 tests and G1 lint in sequence provides a clearer failure narrative: if G1 fails, you see exactly which static analysis issue to fix without interleaved test output. The total budget (<30s) is comfortably met with sequential execution.
+
 ## File Modification Map
 
 | File | Change | Reason |
@@ -60,12 +75,12 @@ on-demand
 | `package.json` | Add scripts: `typecheck`, `lint:staged`, `gate:security` | New quality gates |
 | `package.json` | Add devDeps: `lint-staged` | Incremental lint |
 | `eslint.config.mjs` | No change | Already strict via Next.js presets |
-| `.lintstagedrc.json` | **New file** | lint-staged config |
-| `scripts/gate-security.ts` | **New file** | G2 security gate runner |
-| `.husky/pre-commit` | Rewrite to parallel L1‖G1 | New hook architecture |
+| `.lintstagedrc.json` | **New file** | lint-staged config (check-only, no --fix) |
+| `scripts/gate-security.ts` | **New file** | G2 security gate runner (hard fail if tool missing) |
+| `.husky/pre-commit` | Rewrite to sequential G1→L1 | New hook architecture |
 | `.husky/pre-push` | Rewrite to parallel L2‖G2 | New hook architecture |
 | `CLAUDE.md` | Update testing section | Sync documentation |
-| `docs/README.md` | Add this document | Index maintenance |
+| `docs/README.md` | Add this document (already done in prior commit) | Index maintenance |
 
 ## Atomic Commits
 
@@ -85,12 +100,16 @@ on-demand
 - `.lintstagedrc.json` — new file:
   ```json
   {
-    "*.{ts,tsx}": ["eslint --fix"],
-    "*.{js,mjs}": ["eslint --fix"]
+    "*.{ts,tsx}": ["eslint --max-warnings 0"],
+    "*.{js,mjs}": ["eslint --max-warnings 0"]
   }
   ```
 
-**Verification:** Stage a `.ts` file, run `bun run lint:staged`, confirm only staged files are linted.
+**Design decisions:**
+- **No `--fix`** — lint-staged is a gate, not an auto-formatter. Modifications during commit would introduce a mismatch between tested code and committed code.
+- **`--max-warnings 0`** — ESLint exits 0 on warnings by default. This flag ensures any warning is a hard failure, enforcing the "0 error / 0 warning" contract.
+
+**Verification:** Stage a `.ts` file, run `bun run lint:staged`, confirm only staged files are checked and any warning causes non-zero exit.
 
 ---
 
@@ -98,68 +117,48 @@ on-demand
 
 **Files:**
 - `scripts/gate-security.ts` — new file: runs `osv-scanner` and `gitleaks` in parallel, reports results, exits non-zero on findings
-
-**Verification:**
-- `bun run gate:security` passes (no known vulnerabilities or leaked secrets)
-- Both tools must be available: `osv-scanner --version` and `gitleaks version`
+- `package.json` — add `"gate:security": "bun run scripts/gate-security.ts"` to scripts
 
 **Prerequisites:** Install tools globally:
 ```bash
-# osv-scanner
-brew install osv-scanner
-
-# gitleaks
-brew install gitleaks
+brew install osv-scanner gitleaks
 ```
 
-**Note:** The script gracefully degrades — if a tool is not installed, it prints a warning and skips that check (non-blocking in dev, blocking in CI). This avoids breaking the hook for collaborators who haven't installed the tools.
+**Hard-fail behavior:** If either tool is not found in `$PATH`, the script exits non-zero immediately with an actionable error message:
+
+```
+❌ osv-scanner not found. Install: brew install osv-scanner
+```
+
+This is a personal project with a single developer. Every tool in the gate must be installed — there is no "collaborator without the tool" scenario. A gate that can be silently skipped is not a gate.
+
+**Verification:**
+- `bun run gate:security` passes (no known vulnerabilities or leaked secrets)
+- Temporarily rename `osv-scanner` → confirm the script errors out, does not silently skip
 
 ---
 
-### Commit 4: `feat: add gate:security script to package.json`
-
-**Files:**
-- `package.json` — add `"gate:security": "bun run scripts/gate-security.ts"` to scripts
-
-**Verification:** `bun run gate:security` runs both scanners.
-
----
-
-### Commit 5: `feat: rewrite pre-commit hook for parallel L1‖G1`
+### Commit 4: `feat: rewrite pre-commit hook for sequential G1→L1`
 
 **Files:**
 - `.husky/pre-commit` — rewrite to:
   ```bash
-  #!/bin/sh
-
+  # G1: Static analysis (typecheck + lint on staged files)
   # L1: Unit tests + coverage gate
-  # G1: Static analysis (typecheck + lint-staged)
-  # Run in parallel, fail if either fails
+  # Sequential: G1 first to catch static issues before running tests
 
-  bun run test:coverage &
-  PID_L1=$!
-
-  (bun run typecheck && bun run lint:staged) &
-  PID_G1=$!
-
-  FAIL=0
-  wait $PID_L1 || FAIL=1
-  wait $PID_G1 || FAIL=1
-
-  exit $FAIL
+  bun run typecheck && bun run lint:staged && bun run test:coverage
   ```
 
-**Verification:** Make a commit — both L1 and G1 run in parallel, output interleaves, commit blocked if either fails.
+**Verification:** Make a commit — G1 runs first, then L1. Commit blocked if either fails.
 
 ---
 
-### Commit 6: `feat: rewrite pre-push hook for parallel L2‖G2`
+### Commit 5: `feat: rewrite pre-push hook for parallel L2‖G2`
 
 **Files:**
 - `.husky/pre-push` — rewrite to:
   ```bash
-  #!/bin/sh
-
   # L2: API E2E (integration tests)
   # G2: Security gate (osv-scanner + gitleaks)
   # Run in parallel, fail if either fails
@@ -181,11 +180,10 @@ brew install gitleaks
 
 ---
 
-### Commit 7: `docs: update CLAUDE.md and docs index for quality system upgrade`
+### Commit 6: `docs: update CLAUDE.md for quality system upgrade`
 
 **Files:**
 - `CLAUDE.md` — update "Four-Tier Testing" section to new "Quality System (L1+L2+L3+G1+G2)" with updated table, hook mapping, and port conventions
-- `docs/README.md` — add entry for `04-quality-system-upgrade.md`
 
 **CLAUDE.md testing section update:**
 
@@ -199,19 +197,19 @@ Replace the current "Four-Tier Testing" section with:
 | L1 Unit | bun test | `bun run test:coverage` | pre-commit | 90%+ coverage, 486 tests |
 | L2 Integration/API | Custom BDD runner | `bun run test:e2e:api` | pre-push | 146 tests, 37 route/method combos |
 | L3 System/E2E | Playwright (Chromium) | `bun run test:e2e:bdd` | on-demand | 5 core user flow specs |
-| G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings, strict mode |
-| G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets |
+| G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings (`--max-warnings 0`) |
+| G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
 
 ### Hooks Mapping
 
 | Hook | Budget | Runs |
 |---|---|---|
-| pre-commit | <30s | L1 ‖ G1 (parallel) |
+| pre-commit | <30s | G1 → L1 (sequential) |
 | pre-push | <3min | L2 ‖ G2 (parallel) |
 | on-demand | — | L3 |
 ```
 
-**Verification:** Read CLAUDE.md and docs/README.md — information is accurate and consistent.
+**Verification:** Read CLAUDE.md — information is accurate and consistent with this document.
 
 ---
 
@@ -219,10 +217,10 @@ Replace the current "Four-Tier Testing" section with:
 
 Each commit is atomic and independently revertable:
 
-- Commits 1-4: Safe additions, no existing behavior changed
-- Commit 5: Revert restores old pre-commit (`bun run test:coverage && bun run lint`)
-- Commit 6: Revert restores old pre-push (`bun run test && bun run lint && bun run test:e2e:api`)
-- Commit 7: Documentation only, no runtime impact
+- Commits 1-3: Safe additions, no existing behavior changed
+- Commit 4: Revert restores old pre-commit (`bun run test:coverage && bun run lint`)
+- Commit 5: Revert restores old pre-push (`bun run test && bun run lint && bun run test:e2e:api`)
+- Commit 6: Documentation only, no runtime impact
 
 ## Verification Checklist
 
@@ -230,12 +228,12 @@ After all commits:
 
 - [ ] `bun run typecheck` — 0 errors
 - [ ] `bun run lint` — 0 errors/warnings
-- [ ] `bun run lint:staged` — works on staged files only
-- [ ] `bun run gate:security` — both scanners pass
+- [ ] `bun run lint:staged` — works on staged files only, exits non-zero on any warning
+- [ ] `bun run gate:security` — both scanners present and pass
+- [ ] `bun run gate:security` (with tool removed) — hard fails, does not skip
 - [ ] `bun run test:coverage` — 486 tests pass, ≥90% coverage
 - [ ] `bun run test:e2e:api` — 146 tests pass
 - [ ] `bun run test:e2e:bdd` — 5 specs pass (manual)
-- [ ] `git commit` triggers parallel L1‖G1
+- [ ] `git commit` triggers sequential G1→L1
 - [ ] `git push` triggers parallel L2‖G2
 - [ ] CLAUDE.md reflects new quality system
-- [ ] docs/README.md indexes this document
