@@ -5,6 +5,7 @@
 | # | Document | Description |
 |---|---|---|
 | 01 | [Design](01-design.md) | Architecture, data model, API routes, security |
+| 04 | [Quality System Upgrade](04-quality-system-upgrade.md) | L1+L2+L3+G1+G2 quality system migration plan |
 
 ## Archive
 
