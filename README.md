@@ -257,20 +257,25 @@ curl https://backy.hexly.ai/api/restore/{backupId} \
 | `bun dev` | 启动开发服务器 (端口 7026) |
 | `bun run build` | 生产构建 |
 | `bun start` | 启动生产服务器 |
-| `bun test` | 运行单元测试 (71 tests) |
-| `bun run test:coverage` | 测试覆盖率报告 |
-| `bun run test:e2e` | 运行 E2E 端到端测试 (34 tests, port 17026) |
+| `bun test` | 运行单元测试 (486 tests) |
+| `bun run test:coverage` | 单元测试 + 90% 覆盖率门禁 |
+| `bun run test:e2e:api` | API E2E 测试 (146 tests, port 17026) |
+| `bun run test:e2e:bdd` | Playwright E2E 测试 (5 specs, port 27026) |
+| `bun run typecheck` | TypeScript 类型检查 |
 | `bun run lint` | ESLint 检查 |
+| `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |
 
-## 🧪 测试体系
+## 🧪 质量体系
 
-三层质量门禁，通过 Husky Git hooks 自动执行：
+三层测试 + 两道门控。L1/G1 由 pre-commit 执行，L2/G2 由 pre-push 执行，L3 按需运行：
 
 | 层级 | 工具 | 触发时机 | 要求 |
 |------|------|----------|------|
-| 单元测试 | bun test | pre-commit | 90%+ 覆盖率 |
-| Lint | ESLint | pre-commit | 零错误/零警告 |
-| E2E | BDD 自举测试 | pre-push | 34 tests 全部通过 |
+| L1 单元测试 | bun test | pre-commit | 90%+ 覆盖率，486 tests |
+| L2 API E2E | BDD 自举测试 | pre-push | 146 tests 全部通过 |
+| L3 系统 E2E | Playwright | 按需 | 5 specs 全部通过 |
+| G1 静态分析 | tsc + ESLint | pre-commit | 0 错误 / 0 警告 |
+| G2 安全扫描 | osv-scanner + gitleaks | pre-push | 0 漏洞 / 0 泄露 |
 
 E2E 测试使用 `backy-test` 项目自举：上传真实数据 → 验证完整流程 → 清理。通过 `E2E_SKIP_AUTH=true` 在本地绕过 OAuth。
 

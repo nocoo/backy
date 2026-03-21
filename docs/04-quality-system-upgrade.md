@@ -160,7 +160,7 @@ This is a personal project with a single developer. Every tool in the gate must 
 
 ---
 
-### Commit 5: `feat: rewrite pre-push hook for parallel L2‖G2`
+### Commit 5: `feat: rewrite pre-push hook for parallel L2‖G2` ✅
 
 **Files:**
 - `.husky/pre-push` — rewrite to:

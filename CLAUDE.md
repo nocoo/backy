@@ -61,22 +61,31 @@ scripts/
   run-e2e.ts             # L3 API E2E server lifecycle + runner
 ```
 
-## Four-Tier Testing
+## Quality System (3 Test Layers + 2 Gates)
 
 | Layer | Tool | Script | Trigger | Requirement |
 |---|---|---|---|---|
-| L1 UT | bun test | `bun test` | pre-commit | 90%+ coverage (functions & lines), 35 files, 486 tests |
-| L2 Lint | eslint | `bun run lint` | pre-commit | Zero errors/warnings |
-| L3 API E2E | Custom BDD runner | `bun run test:e2e:api` | pre-push | 146 tests (148 defined, 2 conditional), 37 API route/method combos |
-| L4 BDD E2E | Playwright (Chromium) | `bun run test:e2e:bdd` | on-demand | 5 core user flow specs |
+| L1 Unit | bun test | `bun run test:coverage` | pre-commit | 90%+ coverage, 486 tests |
+| L2 Integration/API | Custom BDD runner | `bun run test:e2e:api` | pre-push | 146 tests, 37 route/method combos |
+| L3 System/E2E | Playwright (Chromium) | `bun run test:e2e:bdd` | on-demand | 5 core user flow specs |
+| G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings (`--max-warnings 0`) |
+| G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
+
+### Hooks Mapping
+
+| Hook | Budget | Runs |
+|---|---|---|
+| pre-commit | <30s | G1 → L1 (sequential) |
+| pre-push | <3min | L2 ‖ G2 (parallel) |
+| on-demand | — | L3 |
 
 ### Port Convention
 
 | Purpose | Port |
 |---|---|
 | Dev server | 7026 |
-| L3 API E2E | 17026 |
-| L4 BDD E2E | 27026 |
+| L2 API E2E | 17026 |
+| L3 BDD E2E | 27026 |
 
 ### Core Principles
 
@@ -89,13 +98,13 @@ scripts/
 ```
 src/__tests__/          # L1 unit tests (35 files, 486 tests)
   helpers.ts            # Shared: mockFetch, d1Success/d1Error, stubs, builders
-e2e/api/                # L3 API E2E (21 suites, 148 defined, 146 run)
+e2e/api/                # L2 API E2E (21 suites, 148 defined, 146 run)
   config.ts             # Constants, shared mutable state
   framework.ts          # Minimal BDD framework (test, assert, assertEqual)
   helpers.ts            # Upload helpers, builders
   runner.ts             # Main runner, exports runE2ETests(url)
   suites/               # 21 individual suite files
-e2e/bdd/                # L4 Playwright BDD E2E (5 specs, 17 tests)
+e2e/bdd/                # L3 Playwright BDD E2E (5 specs, 17 tests)
   playwright.config.ts  # Playwright config (Chromium, serial, headless)
   runner.ts             # Server lifecycle (port 27026) + playwright exec
   specs/                # 5 spec files (dashboard, projects, backup, upload, nav)
@@ -108,9 +117,12 @@ bun dev                # Dev server (7026)
 bun run build          # Production build
 bun test               # Unit tests
 bun run test:coverage  # Unit tests + 90% coverage gate
+bun run typecheck      # TypeScript type check
 bun run lint           # ESLint
-bun run test:e2e:api   # L3 API E2E (port 17026)
-bun run test:e2e:bdd   # L4 Playwright BDD E2E (port 27026)
+bun run lint:staged    # ESLint on staged files only
+bun run gate:security  # Security scan (osv-scanner + gitleaks)
+bun run test:e2e:api   # L2 API E2E (port 17026)
+bun run test:e2e:bdd   # L3 Playwright BDD E2E (port 27026)
 ```
 
 ## Retrospective
