@@ -240,7 +240,7 @@ Replace the entire `## 🧪 测试体系` section (heading through the E2E parag
 ```markdown
 ## 🧪 质量体系
 
-三层测试 + 两道门控，通过 Husky Git hooks 自动执行：
+三层测试 + 两道门控。L1/G1 由 pre-commit 执行，L2/G2 由 pre-push 执行，L3 按需运行：
 
 | 层级 | 工具 | 触发时机 | 要求 |
 |------|------|----------|------|
