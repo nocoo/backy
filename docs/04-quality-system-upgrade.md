@@ -20,18 +20,19 @@ The new quality system restructures this into **3 test layers** (verifying behav
 | **L1** Unit/Component | bun test, ≥90% coverage | pre-commit | <30s |
 | **L2** Integration/API | Real HTTP E2E, 100% endpoint coverage | pre-push | <3min |
 | **L3** System/E2E | Playwright user flows | on-demand | — |
-| **G1** Static Analysis | `tsc --noEmit` + ESLint strict (`--max-warnings 0`), 0 error/warning | pre-commit (parallel with L1) | <30s |
+| **G1** Static Analysis | `tsc --noEmit` + ESLint strict (`--max-warnings 0`), 0 error/warning | pre-commit (sequential, before L1) | <30s |
 | **G2** Security | osv-scanner + gitleaks — **hard fail if tool missing** | pre-push (parallel with L2) | <30s |
 
 ### Scope of `tsc --noEmit`
 
-The project `tsconfig.json` excludes `scripts/` and `e2e/` directories. This is intentional:
+The project `tsconfig.json` excludes `scripts/` and `e2e/` directories. G1's typecheck gate intentionally covers only `src/` — the application code that ships to production.
 
-- **Application source** (`src/`) — checked by `tsc --noEmit` via the main `tsconfig.json`
-- **Quality scripts** (`scripts/`) — TypeScript files executed by `bun run` directly; Bun's own type-checking applies at invocation. These are infrastructure glue, not application logic.
-- **E2E tests** (`e2e/`) — separate test harnesses with their own runtime assumptions (e.g., Playwright globals). Adding them to the main tsconfig would require significant type gymnastics for marginal benefit.
+**What is NOT covered and why:**
 
-G1's typecheck gate covers the **blast radius that matters**: the application code that ships to production.
+- **`scripts/`** — Infrastructure glue (coverage gate, E2E runner, security gate). These files are small, change rarely, and errors surface immediately when the script is invoked. The cost of maintaining a separate tsconfig for ~4 files outweighs the benefit.
+- **`e2e/`** — Test harnesses with their own runtime assumptions (Playwright globals, custom BDD framework). Adding them to the main tsconfig would require type gymnastics (Playwright's global `expect`, custom `test()` signatures) for code that never ships.
+
+**Note:** Bun does **not** perform type-checking at runtime — `bun run` transpiles and executes TypeScript without enforcing types. Type errors in `scripts/` and `e2e/` will only be caught by IDE tooling or manual `tsc` invocation, not by any automated gate. This is an accepted trade-off for this project's scale.
 
 ## Gap Analysis
 
@@ -42,7 +43,7 @@ G1's typecheck gate covers the **blast radius that matters**: the application co
 | G1 lint-staged | ❌ Full lint on every commit | Incremental lint on staged files, `--max-warnings 0` | Add lint-staged |
 | G2 osv-scanner | ❌ Not installed | Dependency vulnerability scan, hard fail if missing | Install + configure |
 | G2 gitleaks | ❌ Not installed | Secrets leak detection, hard fail if missing | Install + configure |
-| Hook wiring | Sequential L1→G1 | Sequential L1→G1 (no parallel, see rationale) | Rewrite hooks |
+| Hook wiring | Sequential L1→G1 | Sequential G1→L1 (see rationale) | Rewrite hooks |
 | Hook wiring | Sequential L1→L2→L3 | Parallel L2‖G2 | Rewrite hooks |
 | Layer renaming | L3→L2, L4→L3 | Script aliases | Update package.json |
 | CLAUDE.md | References old 4-tier | Update to new system | Sync documentation |
@@ -80,6 +81,7 @@ lint-staged uses `eslint --max-warnings 0` (check-only, no `--fix`), so it does 
 | `.husky/pre-commit` | Rewrite to sequential G1→L1 | New hook architecture |
 | `.husky/pre-push` | Rewrite to parallel L2‖G2 | New hook architecture |
 | `CLAUDE.md` | Update testing section | Sync documentation |
+| `README.md` | Update "常用命令" and "测试体系" sections | Sync documentation (outdated test counts + old 3-tier model) |
 | `docs/README.md` | Add this document (already done in prior commit) | Index maintenance |
 
 ## Atomic Commits
@@ -180,10 +182,11 @@ This is a personal project with a single developer. Every tool in the gate must 
 
 ---
 
-### Commit 6: `docs: update CLAUDE.md for quality system upgrade`
+### Commit 6: `docs: update CLAUDE.md and README.md for quality system upgrade`
 
 **Files:**
 - `CLAUDE.md` — update "Four-Tier Testing" section to new "Quality System (L1+L2+L3+G1+G2)" with updated table, hook mapping, and port conventions
+- `README.md` — update "常用命令" table (fix outdated test counts) and replace "测试体系" section with new quality system
 
 **CLAUDE.md testing section update:**
 
@@ -209,7 +212,44 @@ Replace the current "Four-Tier Testing" section with:
 | on-demand | — | L3 |
 ```
 
-**Verification:** Read CLAUDE.md — information is accurate and consistent with this document.
+**README.md updates:**
+
+Replace "常用命令" table (lines 255-263) with:
+
+```markdown
+| 命令 | 说明 |
+|------|------|
+| `bun dev` | 启动开发服务器 (端口 7026) |
+| `bun run build` | 生产构建 |
+| `bun start` | 启动生产服务器 |
+| `bun test` | 运行单元测试 (486 tests) |
+| `bun run test:coverage` | 单元测试 + 90% 覆盖率门禁 |
+| `bun run test:e2e:api` | API E2E 测试 (146 tests, port 17026) |
+| `bun run test:e2e:bdd` | Playwright E2E 测试 (5 specs, port 27026) |
+| `bun run typecheck` | TypeScript 类型检查 |
+| `bun run lint` | ESLint 检查 |
+| `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |
+```
+
+Replace "测试体系" section (lines 265-275) with:
+
+```markdown
+## 🧪 质量体系
+
+三层测试 + 两道门控，通过 Husky Git hooks 自动执行：
+
+| 层级 | 工具 | 触发时机 | 要求 |
+|------|------|----------|------|
+| L1 单元测试 | bun test | pre-commit | 90%+ 覆盖率，486 tests |
+| L2 API E2E | BDD 自举测试 | pre-push | 146 tests 全部通过 |
+| L3 系统 E2E | Playwright | 按需 | 5 specs 全部通过 |
+| G1 静态分析 | tsc + ESLint | pre-commit | 0 错误 / 0 警告 |
+| G2 安全扫描 | osv-scanner + gitleaks | pre-push | 0 漏洞 / 0 泄露 |
+
+E2E 测试使用 `backy-test` 项目自举：上传真实数据 → 验证完整流程 → 清理。通过 `E2E_SKIP_AUTH=true` 在本地绕过 OAuth。
+```
+
+**Verification:** Read CLAUDE.md and README.md — information is accurate and consistent with this document.
 
 ---
 
@@ -237,3 +277,4 @@ After all commits:
 - [ ] `git commit` triggers sequential G1→L1
 - [ ] `git push` triggers parallel L2‖G2
 - [ ] CLAUDE.md reflects new quality system
+- [ ] README.md reflects new quality system (test counts, command table, 质量体系 section)
