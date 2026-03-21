@@ -136,11 +136,11 @@ This is a personal project with a single developer. Every tool in the gate must 
 
 **Verification:**
 - `bun run gate:security` passes (no known vulnerabilities or leaked secrets)
-- Negative test — verify hard-fail by running with an empty PATH override:
+- Negative test — verify hard-fail by stripping scanner paths while keeping bun accessible:
   ```bash
-  PATH=/usr/bin:/bin bun run gate:security
+  PATH=/usr/bin:/bin:/Users/nocoo/.bun/bin bun run gate:security
   ```
-  This hides Homebrew binaries without touching the global install. The script should exit non-zero with an actionable "not found" message.
+  This hides Homebrew binaries (`/opt/homebrew/bin`) so `osv-scanner` and `gitleaks` are not found, while `bun` itself still resolves. The script should exit non-zero with an actionable "not found" message.
 
 ---
 
@@ -274,7 +274,7 @@ After all commits:
 - [ ] `bun run lint` — 0 errors/warnings
 - [ ] `bun run lint:staged` — works on staged files only, exits non-zero on any warning
 - [ ] `bun run gate:security` — both scanners present and pass
-- [ ] `bun run gate:security` (with tool removed) — hard fails, does not skip
+- [ ] `bun run gate:security` (with PATH override hiding Homebrew) — hard fails, does not skip
 - [ ] `bun run test:coverage` — 486 tests pass, ≥90% coverage
 - [ ] `bun run test:e2e:api` — 146 tests pass
 - [ ] `bun run test:e2e:bdd` — 5 specs pass (manual)
