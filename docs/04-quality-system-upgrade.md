@@ -86,7 +86,7 @@ lint-staged uses `eslint --max-warnings 0` (check-only, no `--fix`), so it does 
 
 ## Atomic Commits
 
-### Commit 1: `feat: add G1 typecheck script`
+### Commit 1: `feat: add G1 typecheck script` ✅
 
 **Files:**
 - `package.json` — add `"typecheck": "tsc --noEmit"` to scripts
@@ -95,7 +95,7 @@ lint-staged uses `eslint --max-warnings 0` (check-only, no `--fix`), so it does 
 
 ---
 
-### Commit 2: `feat: add lint-staged for incremental G1 lint`
+### Commit 2: `feat: add lint-staged for incremental G1 lint` ✅
 
 **Files:**
 - `package.json` — add `lint-staged` to devDependencies, add `"lint:staged": "lint-staged"` script
@@ -115,7 +115,7 @@ lint-staged uses `eslint --max-warnings 0` (check-only, no `--fix`), so it does 
 
 ---
 
-### Commit 3: `feat: add G2 security gate (osv-scanner + gitleaks)`
+### Commit 3: `feat: add G2 security gate (osv-scanner + gitleaks)` ✅
 
 **Files:**
 - `scripts/gate-security.ts` — new file: runs `osv-scanner` and `gitleaks` in parallel, reports results, exits non-zero on findings
