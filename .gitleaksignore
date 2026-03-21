@@ -1,0 +1,3 @@
+# E2E test webhook token for backy-test project (permanent test fixture, not a real secret)
+ea81687e6535c48e886f8695b93e75430de6f995:e2e/api/config.ts:generic-api-key:6
+5dc2de06b8994a9bc6ab0af13ba8addc01e73403:scripts/e2e-tests.ts:generic-api-key:21
