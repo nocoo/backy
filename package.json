@@ -12,6 +12,7 @@
     "test:e2e": "bun run scripts/run-e2e.ts",
     "test:e2e:api": "bun run scripts/run-e2e.ts",
     "test:e2e:bdd": "bun run e2e/bdd/runner.ts",
+    "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },
   "dependencies": {
