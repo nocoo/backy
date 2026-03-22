@@ -277,7 +277,7 @@ curl https://backy.hexly.ai/api/restore/{backupId} \
 | G1 静态分析 | tsc + ESLint | pre-commit | 0 错误 / 0 警告 |
 | G2 安全扫描 | osv-scanner + gitleaks | pre-push | 0 漏洞 / 0 泄露 |
 
-E2E 测试使用 `backy-test` 项目自举：上传真实数据 → 验证完整流程 → 清理。通过 `E2E_SKIP_AUTH=true` 在本地绕过 OAuth。
+E2E 测试使用**独立的测试资源**（D1: `backy-db-test`，R2: `backy-test`），通过 `.env.test` 覆盖生产凭据，确保测试永远不会触及生产数据。`backy-test` 项目由 seed 端点自动创建和维护。通过 `E2E_SKIP_AUTH=true` 在本地绕过 OAuth。详见 `.env.example` 中的配置说明。
 
 ## 📄 License
 
