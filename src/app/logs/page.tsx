@@ -150,11 +150,12 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
   useEffect(() => {
     if (!log.client_ip || ipInfo || ipLoading) return;
 
+    const clientIp = log.client_ip;
     async function fetchIpInfo() {
       try {
         setIpLoading(true);
         const res = await fetch(
-          `/api/ip-info?ip=${encodeURIComponent(log.client_ip!)}`,
+          `/api/ip-info?ip=${encodeURIComponent(clientIp)}`,
         );
         if (!res.ok) return;
         const data: IpInfo = await res.json();

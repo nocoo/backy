@@ -154,10 +154,11 @@ export default function BackupDetailPage() {
     if (!backup || ipInfo || ipInfoLoading) return;
     if (backup.sender_ip === "unknown") return;
 
+    const senderIp = backup.sender_ip;
     async function fetchIpInfo() {
       try {
         setIpInfoLoading(true);
-        const res = await fetch(`/api/ip-info?ip=${encodeURIComponent(backup!.sender_ip)}`);
+        const res = await fetch(`/api/ip-info?ip=${encodeURIComponent(senderIp)}`);
         if (!res.ok) return; // Silently fail — IP info is supplementary
         const data: IpInfo = await res.json();
         setIpInfo(data);
