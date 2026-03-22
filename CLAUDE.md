@@ -56,8 +56,10 @@ src/
     r2/                  # S3-compatible R2 client (upload, download, presign, delete)
     id.ts                # nanoid generators (21-char ID, 48-char webhook token)
     ip.ts                # IP/CIDR validation and enforcement
+    test-project.ts      # E2E test project constants (single source of truth)
 scripts/
   check-coverage.ts      # Coverage gate (90%+ threshold)
+  load-env-test.ts       # .env.test loader with three-layer safety
   run-e2e.ts             # L3 API E2E server lifecycle + runner
 ```
 
@@ -125,11 +127,24 @@ bun run test:e2e:api   # L2 API E2E (port 17026)
 bun run test:e2e:bdd   # L3 Playwright BDD E2E (port 27026)
 ```
 
+## Test Resource Isolation
+
+E2E tests (L2 + L3) use **dedicated Cloudflare D1 + R2** to prevent production data corruption.
+
+| Resource | Production | Test |
+|---|---|---|
+| D1 database | `backy-db` | `backy-db-test` |
+| R2 bucket | `backy` | `backy-test` |
+
+**Mechanism:** `.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
+
+**Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state (name, token, all optional fields reset). Gated by `E2E_SKIP_AUTH`.
+
 ## Retrospective
 
 - **AWS SDK v3 Body is not ReadableStream**: When using `@aws-sdk/client-s3` `GetObjectCommand`, the `response.Body` is a `SdkStreamMixin` (not a Web `ReadableStream`). Must use `body.transformToByteArray()` or `body.transformToString()` instead of `body.getReader()`. This caused 500 errors in preview and extract routes — caught by E2E.
 - **Bun's `typeof fetch` requires `preconnect`**: When mocking `globalThis.fetch` in Bun tests, the type includes a `preconnect` property. Use a helper function that adds `fn.preconnect = () => {}` to satisfy the type.
-- **E2E self-bootstrap pattern**: The `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`) is permanently available in D1 for E2E testing. Tests upload real data, verify round-trip, then clean up. Uses `E2E_SKIP_AUTH=true` to bypass OAuth for protected routes during local testing.
+- **E2E self-bootstrap pattern**: The `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`) is auto-seeded in the test D1 (`backy-db-test`) via `POST /api/db/seed-test-project`. Tests upload real data to test R2 (`backy-test`), verify round-trip, then clean up. Uses `E2E_SKIP_AUTH=true` to bypass OAuth. Test resources are isolated from production — see "Test Resource Isolation" section.
 - **D1 timeout (error 7429) needs retry**: Cloudflare D1 HTTP API can return transient `7429` timeout errors (`D1 DB storage operation exceeded timeout which caused object to be reset.`) even for simple INSERT queries. Without retry logic, this causes 500s in the webhook POST endpoint. Fixed by adding exponential backoff retry (3 attempts, 500/1000/2000ms) to `executeD1Query` in `d1-client.ts`.
 - **Schema migration ordering: indexes on migration columns**: When `initializeSchema` creates indexes in `SCHEMA_SQL` that reference columns added by later `ALTER TABLE` migrations, existing databases fail with `SQLITE_ERROR: no such column`. Fix: indexes depending on migration columns must execute *after* the migration, not in the main `SCHEMA_SQL` block.
 - **Next.js `.next/dev/lock` prevents parallel instances**: Two Next.js dev servers sharing the same project directory will conflict on `.next/dev/lock` even on different ports. The E2E runner must clean stale lock files before starting its own server on a dedicated port (17026). Never rely on detecting/reusing an existing dev server — always start a fresh one with known env vars.
