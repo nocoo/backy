@@ -304,7 +304,7 @@ describe("resolveAndValidateUrl", () => {
     // example.com is a well-known domain that resolves to public IPs
     const result = await resolveAndValidateUrl("https://example.com/hook");
     expect(result.safe).toBe(true);
-  });
+  }, 15_000);
 
   test("blocks IP address in private range directly", async () => {
     const result = await resolveAndValidateUrl("https://127.0.0.1/hook");
@@ -327,7 +327,7 @@ describe("resolveAndValidateUrl", () => {
     const result = await resolveAndValidateUrl("https://this-domain-does-not-exist-xyzzy.example/hook");
     expect(result.safe).toBe(false);
     expect((result as { reason: string }).reason).toContain("DNS resolution failed");
-  });
+  }, 15_000);
 
   test("allowlist bypasses DNS check", async () => {
     process.env.SSRF_ALLOWLIST = "http://localhost:17026";
@@ -339,7 +339,7 @@ describe("resolveAndValidateUrl", () => {
     // localhost resolves to 127.0.0.1 on most systems
     const result = await resolveAndValidateUrl("https://localhost/hook");
     expect(result.safe).toBe(false);
-  });
+  }, 15_000);
 
   test("blocks IPv6 loopback literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[::1]/hook");

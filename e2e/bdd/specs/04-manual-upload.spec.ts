@@ -29,7 +29,7 @@ test.describe("Manual Upload", () => {
   test("GIVEN /backups page WHEN clicking upload THEN upload dialog opens", async ({ page }) => {
     await page.goto("/backups");
 
-    await expect(page.getByText("Project")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: "Backups" })).toBeVisible({ timeout: 15_000 });
 
     // Look for the upload backup button
     const uploadButton = page.getByRole("button", { name: /upload backup/i });
@@ -48,7 +48,7 @@ test.describe("Manual Upload", () => {
   test("GIVEN upload dialog WHEN selecting project and file THEN upload succeeds", async ({ page }) => {
     await page.goto("/backups");
 
-    await expect(page.getByText("Project")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: "Backups" })).toBeVisible({ timeout: 15_000 });
 
     const uploadButton = page.getByRole("button", { name: /upload backup/i });
     if (!(await uploadButton.isVisible({ timeout: 5_000 }).catch(() => false))) {
