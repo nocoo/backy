@@ -85,10 +85,10 @@ export function ipToInt(ip: string): number | null {
   const match = ip.trim().match(IPV4_REGEX);
   if (!match) return null;
 
-  const a = parseInt(match[1]!, 10);
-  const b = parseInt(match[2]!, 10);
-  const c = parseInt(match[3]!, 10);
-  const d = parseInt(match[4]!, 10);
+  const a = parseInt(match[1] ?? "", 10);
+  const b = parseInt(match[2] ?? "", 10);
+  const c = parseInt(match[3] ?? "", 10);
+  const d = parseInt(match[4] ?? "", 10);
 
   if (a > 255 || b > 255 || c > 255 || d > 255) return null;
 
@@ -105,10 +105,10 @@ function isIpInCidr(ip: string, cidr: string): boolean {
   if (ipInt === null) return false;
 
   const parts = cidr.trim().split("/");
-  const rangeIp = ipToInt(parts[0]!);
+  const rangeIp = ipToInt(parts[0] ?? "");
   if (rangeIp === null) return false;
 
-  const prefix = parts.length === 2 ? parseInt(parts[1]!, 10) : 32;
+  const prefix = parts.length === 2 ? parseInt(parts[1] ?? "", 10) : 32;
   if (isNaN(prefix) || prefix < 0 || prefix > 32) return false;
 
   if (prefix === 0) return true; // 0.0.0.0/0 matches everything

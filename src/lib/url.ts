@@ -99,8 +99,8 @@ export function isPrivateIpv6(addr: string): boolean {
   if (expanded.startsWith("0000:0000:0000:0000:0000:ffff:")) {
     const v4Hex = expanded.slice(30); // "XXYY:ZZWW"
     const parts = v4Hex.split(":");
-    const hi = parseInt(parts[0]!, 16);
-    const lo = parseInt(parts[1]!, 16);
+    const hi = parseInt(parts[0] ?? "0", 16);
+    const lo = parseInt(parts[1] ?? "0", 16);
     const a = (hi >> 8) & 0xff;
     const b = hi & 0xff;
     const c = (lo >> 8) & 0xff;
@@ -129,8 +129,8 @@ function expandIpv6(addr: string): string | null {
     if (v4Parts.length !== 4) return null;
     const nums = v4Parts.map((p) => parseInt(p, 10));
     if (nums.some((n) => isNaN(n) || n < 0 || n > 255)) return null;
-    const hi = ((nums[0]! << 8) | nums[1]!) & 0xffff;
-    const lo = ((nums[2]! << 8) | nums[3]!) & 0xffff;
+    const hi = (((nums[0] ?? 0) << 8) | (nums[1] ?? 0)) & 0xffff;
+    const lo = (((nums[2] ?? 0) << 8) | (nums[3] ?? 0)) & 0xffff;
     normalized = normalized.slice(0, lastColon + 1) +
       hi.toString(16).padStart(4, "0") + ":" +
       lo.toString(16).padStart(4, "0");
