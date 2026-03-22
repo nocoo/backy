@@ -1,4 +1,4 @@
 {
-  "*.{ts,tsx}": ["eslint --max-warnings 0"],
-  "*.{js,mjs}": ["eslint --max-warnings 0"]
+  "*.{ts,tsx}": ["eslint --max-warnings 0 --no-warn-ignored"],
+  "*.{js,mjs}": ["eslint --max-warnings 0 --no-warn-ignored"]
 }

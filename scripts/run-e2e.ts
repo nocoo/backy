@@ -14,6 +14,8 @@ import { execSync, spawn } from "child_process";
 import { unlinkSync } from "fs";
 import { join } from "path";
 import { runE2ETests } from "../e2e/api/runner";
+import { seedTestProject } from "../e2e/api/config";
+import { loadTestEnv } from "./load-env-test";
 
 const E2E_PORT = 17026;
 const STARTUP_TIMEOUT = 60_000; // 60s for Next.js to compile
@@ -70,9 +72,10 @@ async function main() {
 
   console.log("🚀 Starting E2E test server on port", E2E_PORT);
 
+  const testEnv = loadTestEnv();
   const server = spawn("bun", ["next", "dev", "--port", String(E2E_PORT)], {
     env: {
-      ...process.env,
+      ...testEnv,
       E2E_SKIP_AUTH: "true",
       SSRF_ALLOWLIST: `http://localhost:${E2E_PORT}`,
     },
@@ -90,7 +93,14 @@ async function main() {
   try {
     console.log("⏳ Waiting for server to be ready...");
     await waitForServer(baseUrl, STARTUP_TIMEOUT);
-    console.log("✅ Server is ready\n");
+    console.log("✅ Server is ready");
+
+    // Initialize test database schema + seed test project
+    console.log("🗄️  Initializing test database schema...");
+    await fetch(`${baseUrl}/api/db/init`, { method: "POST" });
+    console.log("🌱 Seeding test project...");
+    await seedTestProject(baseUrl);
+    console.log("");
   } catch (error) {
     console.error("\n❌ E2E server failed to start:", error);
     if (serverOutput) {
