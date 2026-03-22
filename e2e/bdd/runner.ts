@@ -14,6 +14,8 @@
 import { execSync, spawn } from "child_process";
 import { unlinkSync } from "fs";
 import { join } from "path";
+import { loadTestEnv } from "../../scripts/load-env-test";
+import { seedTestProject } from "../api/config";
 
 const BDD_PORT = 27026;
 const STARTUP_TIMEOUT = 60_000;
@@ -66,8 +68,9 @@ async function main() {
 
   console.log("🚀 Starting BDD E2E server on port", BDD_PORT);
 
+  const testEnv = loadTestEnv();
   const server = spawn("bun", ["next", "dev", "--port", String(BDD_PORT)], {
-    env: { ...process.env, E2E_SKIP_AUTH: "true" },
+    env: { ...testEnv, E2E_SKIP_AUTH: "true" },
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -82,7 +85,14 @@ async function main() {
   try {
     console.log("⏳ Waiting for server to be ready...");
     await waitForServer(baseUrl, STARTUP_TIMEOUT);
-    console.log("✅ Server is ready\n");
+    console.log("✅ Server is ready");
+
+    // Initialize test database schema + seed test project
+    console.log("🗄️  Initializing test database schema...");
+    await fetch(`${baseUrl}/api/db/init`, { method: "POST" });
+    console.log("🌱 Seeding test project...");
+    await seedTestProject(baseUrl);
+    console.log("");
   } catch (error) {
     console.error("\n❌ BDD server failed to start:", error);
     if (serverOutput) {
@@ -98,7 +108,7 @@ async function main() {
     execSync(`bunx playwright test --config "${configPath}"`, {
       encoding: "utf-8",
       stdio: "inherit",
-      env: { ...process.env, BASE_URL: baseUrl },
+      env: { ...testEnv, BASE_URL: baseUrl },
     });
   } catch {
     // Playwright exits with code 1 on test failure — captured by execSync throw
