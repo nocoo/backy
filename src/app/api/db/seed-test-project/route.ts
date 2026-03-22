@@ -89,8 +89,11 @@ export async function POST() {
     }
 
     // Check if ALL fields match baseline
-    // Safe to assert — we already checked existing.length > 0 above
-    const row = existing[0]!;
+    // Guard: we already checked existing.length > 0 above
+    const row = existing[0];
+    if (!row) {
+      return NextResponse.json({ error: "Unexpected: empty result after length check" }, { status: 500 });
+    }
     const isClean =
       row.name === name &&
       row.description === description &&

@@ -54,6 +54,12 @@ export async function POST(request: NextRequest) {
   const summary = { total: projects.length, triggered: 0, skipped: 0, failed: 0 };
 
   for (const project of projects) {
+    // Skip projects without a webhook URL configured
+    if (!project.auto_backup_webhook) {
+      summary.skipped++;
+      continue;
+    }
+
     // Check if this project should run this hour
     if (!shouldTrigger(project.auto_backup_interval, now)) {
       void createCronLog({
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // SSRF check: static validation + DNS resolution to block rebinding attacks
-    if (!isUrlSafe(project.auto_backup_webhook!)) {
+    if (!isUrlSafe(project.auto_backup_webhook)) {
       void createCronLog({
         projectId: project.id,
         status: "failed",
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    const dnsCheck = await resolveAndValidateUrl(project.auto_backup_webhook!);
+    const dnsCheck = await resolveAndValidateUrl(project.auto_backup_webhook);
     if (!dnsCheck.safe) {
       void createCronLog({
         projectId: project.id,
@@ -96,7 +102,7 @@ export async function POST(request: NextRequest) {
         headers[project.auto_backup_header_key] = project.auto_backup_header_value;
       }
 
-      const res = await fetch(project.auto_backup_webhook!, {
+      const res = await fetch(project.auto_backup_webhook, {
         method: "POST",
         headers,
         signal: AbortSignal.timeout(30_000),
