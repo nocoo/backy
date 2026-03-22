@@ -38,8 +38,8 @@ if (!allFilesMatch) {
   process.exit(1);
 }
 
-const funcCov = parseFloat(allFilesMatch[1]!);
-const lineCov = parseFloat(allFilesMatch[2]!);
+const funcCov = parseFloat(allFilesMatch[1] ?? "0");
+const lineCov = parseFloat(allFilesMatch[2] ?? "0");
 
 console.log(`\n📊 Coverage: ${funcCov}% functions, ${lineCov}% lines (threshold: ${THRESHOLD}%)`);
 
