@@ -89,7 +89,11 @@ async function main() {
 
     // Initialize test database schema + seed test project
     console.log("🗄️  Initializing test database schema...");
-    await fetch(`${baseUrl}/api/db/init`, { method: "POST" });
+    const initRes = await fetch(`${baseUrl}/api/db/init`, { method: "POST" });
+    if (!initRes.ok) {
+      const err = await initRes.text();
+      throw new Error(`Schema init failed (${initRes.status}): ${err}`);
+    }
     console.log("🌱 Seeding test project...");
     await seedTestProject(baseUrl);
     console.log("");
