@@ -33,7 +33,7 @@ export function detectFileType(fileName: string, contentType: string): FileType 
   if (name.endsWith(".gz")) return "gz";
 
   // Content-Type fallback (strip charset params like ";charset=utf-8")
-  const normalized = contentType.split(";")[0]!.trim().toLowerCase();
+  const normalized = (contentType.split(";")[0] ?? "").trim().toLowerCase();
   return CONTENT_TYPE_MAP[normalized] ?? "unknown";
 }
 
@@ -76,5 +76,5 @@ export function isExtractable(fileType: FileType): boolean {
  * Normalize a raw Content-Type header by stripping charset parameters.
  */
 export function normalizeContentType(rawType: string): string {
-  return rawType.split(";")[0]!.trim().toLowerCase();
+  return (rawType.split(";")[0] ?? "").trim().toLowerCase();
 }

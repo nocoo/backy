@@ -83,15 +83,19 @@ export async function extractFromZip(buffer: Uint8Array): Promise<ExtractOutcome
   }
 
   const jsonFiles = Object.keys(zip.files)
-    .filter((name) => name.endsWith(".json") && !zip.files[name]!.dir)
+    .filter((name) => name.endsWith(".json") && !zip.files[name]?.dir)
     .sort();
 
   if (jsonFiles.length === 0) {
     return { success: false, reason: "No JSON files found in the ZIP archive" };
   }
 
-  const jsonFileName = jsonFiles[0]!;
-  const jsonContent = await zip.files[jsonFileName]!.async("uint8array");
+  const jsonFileName = jsonFiles[0];
+  const zipEntry = jsonFileName ? zip.files[jsonFileName] : undefined;
+  if (!jsonFileName || !zipEntry) {
+    return { success: false, reason: "No JSON files found in the ZIP archive" };
+  }
+  const jsonContent = await zipEntry.async("uint8array");
 
   if (jsonContent.byteLength > MAX_JSON_SIZE) {
     return {
@@ -196,7 +200,10 @@ export async function extractFromTgz(buffer: Uint8Array): Promise<ExtractOutcome
 
   // Sort alphabetically and pick the first
   jsonEntries.sort((a, b) => a.name.localeCompare(b.name));
-  const entry = jsonEntries[0]!;
+  const entry = jsonEntries[0];
+  if (!entry) {
+    return { success: false, reason: "No JSON files found in the TAR.GZ archive" };
+  }
 
   if (entry.content.byteLength > MAX_JSON_SIZE) {
     return {
