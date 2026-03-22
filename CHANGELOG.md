@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.4] - 2026-03-22
+
+### Added
+
+- **E2E test resource isolation** — Dedicated Cloudflare D1 (`backy-db-test`) and R2 (`backy-test`) for E2E tests, production data is never touched
+- **Three-layer `.env.test` safety** — `scripts/load-env-test.ts` validates: file exists → required keys present → values differ from production. Falls back to `process.env` and hard-fails if isolation cannot be verified
+- **Test project seed endpoint** — `POST /api/db/seed-test-project` auto-creates/resets the `backy-test` project with baseline state, gated by `E2E_SKIP_AUTH`
+- **Single source of truth for test constants** — `src/lib/test-project.ts` exports ID, name, token for E2E project
+
+### Changed
+
+- **E2E runners rewired** — Both L2 (`scripts/run-e2e.ts`) and L3 (`e2e/bdd/runner.ts`) now use `loadTestEnv()` instead of raw `process.env`, with schema init response checking and seed before test execution
+- **L3 Playwright specs** — Adapted backup list/detail specs to work with empty test DB (no pre-existing data assumption)
+- **DNS test timeouts** — Increased from 5s to 15s for tests performing real DNS lookups
+
+### Fixed
+
+- **Layer 3 safety fail-closed** — Previously silently skipped isolation check when `.env` was absent; now falls back to `process.env` and hard-fails if neither source has a production value
+- **Schema init response check** — E2E runners now abort on `POST /api/db/init` failure instead of silently continuing
+
+### Documentation
+
+- **CLAUDE.md** — Added "Test Resource Isolation" section, updated project structure and retrospective
+- **README.md** — Updated E2E section to describe dedicated test resources
+
 ## [1.7.3] - 2026-03-22
 
 ### Added
