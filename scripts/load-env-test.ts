@@ -4,11 +4,11 @@
  * Three-layer safety:
  * 1. File must exist (.env.test)
  * 2. Both D1_DATABASE_ID and R2_BUCKET_NAME must be present in overrides
- * 3. Neither value may equal the production value from .env
+ * 3. Neither value may equal the production value from .env or process.env
  *
- * Layer 3 explicitly parses .env to get production values, rather than
- * relying on Bun's implicit .env auto-loading into process.env. This
- * ensures the safety check works regardless of runtime behavior.
+ * Layer 3 checks .env first, then falls back to process.env. If neither
+ * source has a production value, the function fails closed — it refuses
+ * to proceed without verifiable isolation.
  *
  * If any check fails, the runner aborts — E2E will never silently hit production.
  *
@@ -86,21 +86,30 @@ export function loadTestEnv(): Record<string, string> {
   }
 
   // Layer 3: test values must differ from production values
-  // Explicitly parse .env to get production values — do not rely on
-  // Bun's implicit auto-loading, which is a runtime convenience, not
-  // a contract we control.
+  //
+  // Primary source: parse .env from disk (explicit, not runtime-dependent).
+  // Fallback source: process.env (covers CI / shell-inherited credentials).
+  // If neither source has a value for a key, we cannot verify isolation —
+  // fail closed rather than silently proceeding.
   let prodEnv: Record<string, string> = {};
   try {
     prodEnv = parseDotenv(envPath);
   } catch {
-    // .env doesn't exist — can't compare, but also means process.env
-    // lacks credentials, so the child server will fail anyway.
+    // .env doesn't exist — fall through to process.env comparison below
   }
   for (const key of REQUIRED_OVERRIDES) {
-    const prodValue = prodEnv[key];
-    if (prodValue && overrides[key] === prodValue) {
+    // Try .env first, then fall back to process.env
+    const prodValue = prodEnv[key] || process.env[key];
+    if (!prodValue) {
       throw new Error(
-        `.env.test ${key} is identical to the production value from .env!\n` +
+        `Cannot verify test isolation for ${key}: no production value found.\n` +
+          `Neither .env nor process.env contains ${key}.\n` +
+          "Ensure .env exists with production credentials, or that the environment provides them.",
+      );
+    }
+    if (overrides[key] === prodValue) {
+      throw new Error(
+        `.env.test ${key} is identical to the production value!\n` +
           `Production: ${prodValue}\n` +
           `Test:       ${overrides[key]}\n` +
           "E2E tests MUST use separate resources. Fix .env.test to point to the test database/bucket.",
