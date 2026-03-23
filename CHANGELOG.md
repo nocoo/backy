@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.5] - 2026-03-24
+
+### Added
+
+- **TypeScript ESLint strict rules** — Enabled `tseslint.configs.strict` in ESLint config for stronger type-aware linting
+
+### Changed
+
+- **Removed non-null assertions project-wide** — Replaced `!` assertions with proper null checks across route handlers, page components, backup libs, IP/URL utilities, and scripts (6 commits, 12 files)
+
+### Fixed
+
+- **Gitleaks incremental scanning** — Optimized from full-repo scan to incremental (`--log-opts` with commit range), significantly faster pre-push gate
+
 ## [1.7.4] - 2026-03-22
 
 ### Added
