@@ -65,6 +65,20 @@ async function runOsvScanner(): Promise<ScanResult> {
   }
 }
 
+function resolveUpstreamRange(): { range: string; fallback: boolean } {
+  try {
+    const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]);
+    if (result.exitCode === 0) {
+      const upstream = new TextDecoder().decode(result.stdout).trim();
+      return { range: `${upstream}..HEAD`, fallback: false };
+    }
+  } catch {
+    // no upstream branch
+  }
+  // Fallback: scan last 20 commits when no upstream exists (e.g., new branch)
+  return { range: "-20", fallback: true };
+}
+
 async function runGitleaks(): Promise<ScanResult> {
   const name = "gitleaks";
   if (!toolExists(name)) {
@@ -76,15 +90,18 @@ async function runGitleaks(): Promise<ScanResult> {
     };
   }
 
+  const { range, fallback } = resolveUpstreamRange();
+  const mode = fallback ? "last 20 commits (no upstream)" : range;
+
   try {
-    const result = await $`gitleaks detect --source=. --no-banner 2>&1`.quiet().nothrow();
+    const result = await $`gitleaks git --log-opts=${range} --no-banner 2>&1`.quiet().nothrow();
     const output = result.text();
 
     // gitleaks exits 0 = no leaks, 1 = leaks found
     if (result.exitCode === 0) {
-      return { name, ok: true, warn: false, output: `✅ ${name}: no secrets detected` };
+      return { name, ok: true, warn: false, output: `✅ ${name}: no secrets detected (${mode})` };
     }
-    return { name, ok: false, warn: false, output: `❌ ${name}: secrets detected\n${output}` };
+    return { name, ok: false, warn: false, output: `❌ ${name}: secrets detected (${mode})\n${output}` };
   } catch (err) {
     return { name, ok: false, warn: false, output: `❌ ${name}: unexpected error — ${err}` };
   }
