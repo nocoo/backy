@@ -140,6 +140,21 @@ E2E tests (L2 + L3) use **dedicated Cloudflare D1 + R2** to prevent production d
 
 **Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state (name, token, all optional fields reset). Gated by `E2E_SKIP_AUTH`.
 
+## Release
+
+Version is managed in `package.json` (single source of truth). Versioning follows SemVer: X (major/breaking), Y (minor/feature), Z (patch/fix). Default bump is Z+1.
+
+> **Full spec**: `search-memory "开发规范：版本号的维护"`
+
+```bash
+bun run release              # Z+1 patch (default)
+bun run release -- minor     # Y+1 minor
+bun run release -- major     # X+1 major
+bun run release -- --dry-run # preview without side effects
+```
+
+The script auto-detects project name and CHANGELOG format, then: bumps version → syncs lockfile → generates CHANGELOG → commits → pushes → tags → creates GitHub release.
+
 ## Retrospective
 
 - **AWS SDK v3 Body is not ReadableStream**: When using `@aws-sdk/client-s3` `GetObjectCommand`, the `response.Body` is a `SdkStreamMixin` (not a Web `ReadableStream`). Must use `body.transformToByteArray()` or `body.transformToString()` instead of `body.getReader()`. This caused 500 errors in preview and extract routes — caught by E2E.
