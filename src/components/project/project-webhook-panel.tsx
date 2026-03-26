@@ -74,7 +74,13 @@ export function ProjectWebhookPanel({
             <Label>Authorization Token</Label>
             <div className="flex items-center gap-2">
               <code className="flex-1 truncate rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground">
-                {tokenVisible ? webhookToken : "•".repeat(24)}
+                {!webhookToken ? (
+                  "Token hidden - regenerate to view"
+                ) : tokenVisible ? (
+                  webhookToken
+                ) : (
+                  "•".repeat(24)
+                )}
               </code>
               <Button
                 variant="outline"
@@ -82,6 +88,7 @@ export function ProjectWebhookPanel({
                 aria-label={tokenVisible ? "Hide authorization token" : "Show authorization token"}
                 onClick={onToggleTokenVisible}
                 className="shrink-0"
+                disabled={!webhookToken}
               >
                 {tokenVisible ? (
                   <EyeOff className="h-3.5 w-3.5" />
@@ -95,6 +102,7 @@ export function ProjectWebhookPanel({
                 aria-label="Copy authorization token"
                 onClick={() => void onCopy(webhookToken, "token")}
                 className="shrink-0"
+                disabled={!webhookToken}
               >
                 {copied === "token" ? (
                   <Check className="h-3.5 w-3.5" />

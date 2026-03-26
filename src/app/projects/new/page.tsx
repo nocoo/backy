@@ -43,7 +43,9 @@ export default function NewProjectPage() {
         throw new Error(data.error ?? "Failed to create project");
       }
 
-      const project: { id: string } = await res.json();
+      const project: { id: string; webhook_token: string } = await res.json();
+      // Store token in sessionStorage so the detail page can show it
+      sessionStorage.setItem(`project_token_${project.id}`, project.webhook_token);
       router.push(`/projects/${project.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");

@@ -47,14 +47,11 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
-  webhook_token: string;
   allowed_ips: string | null;
   category_id: string | null;
   auto_backup_enabled: number;
   auto_backup_interval: number;
   auto_backup_webhook: string | null;
-  auto_backup_header_key: string | null;
-  auto_backup_header_value: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -110,6 +107,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [webhookToken, setWebhookToken] = useState<string | null>(null);
 
   // Edit state
   const [name, setName] = useState("");
@@ -167,8 +165,16 @@ export default function ProjectDetailPage() {
       setAutoBackupEnabled(data.auto_backup_enabled);
       setAutoBackupInterval(data.auto_backup_interval);
       setAutoBackupWebhook(data.auto_backup_webhook ?? "");
-      setAutoBackupHeaderKey(data.auto_backup_header_key ?? "");
-      setAutoBackupHeaderValue(data.auto_backup_header_value ?? "");
+      // Note: auto_backup_header_key/value are NOT returned by GET (sanitized)
+      // so we DON'T reset them - they stay as-is in local state unless user explicitly changes
+      // Try to get webhook_token from sessionStorage (set after creation)
+      const storedToken = sessionStorage.getItem(`project_token_${id}`);
+      if (storedToken) {
+        setWebhookToken(storedToken);
+        // Clear from sessionStorage after loading (one-time transfer)
+        sessionStorage.removeItem(`project_token_${id}`);
+      }
+      // Note: if token not in storage, it stays null - user needs to regenerate to see it
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -207,7 +213,7 @@ export default function ProjectDetailPage() {
     void fetchBackups();
   }, [fetchProject, fetchCategories, fetchBackups]);
 
-  // Track dirty state
+  // Track dirty state (note: auto_backup_header_key/value are tracked locally but not compared against project since they're sanitized)
   useEffect(() => {
     if (!project) return;
     const nameChanged = name.trim() !== project.name;
@@ -217,9 +223,11 @@ export default function ProjectDetailPage() {
     const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
     const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
     const abWebhookChanged = (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
-    const abHeaderKeyChanged = (autoBackupHeaderKey.trim() || null) !== (project.auto_backup_header_key ?? null);
-    const abHeaderValueChanged = (autoBackupHeaderValue.trim() || null) !== (project.auto_backup_header_value ?? null);
-    setDirty(nameChanged || descChanged || ipsChanged || catChanged || abEnabledChanged || abIntervalChanged || abWebhookChanged || abHeaderKeyChanged || abHeaderValueChanged);
+    // For header fields, track if they're non-empty (user has entered a value) vs empty
+    const abHeaderKeyHasValue = autoBackupHeaderKey.trim().length > 0;
+    const abHeaderValueHasValue = autoBackupHeaderValue.trim().length > 0;
+    const abHeaderChanged = abHeaderKeyHasValue || abHeaderValueHasValue;
+    setDirty(nameChanged || descChanged || ipsChanged || catChanged || abEnabledChanged || abIntervalChanged || abWebhookChanged || abHeaderChanged);
   }, [name, description, allowedIps, categoryId, autoBackupEnabled, autoBackupInterval, autoBackupWebhook, autoBackupHeaderKey, autoBackupHeaderValue, project]);
 
   async function handleSave() {
@@ -227,20 +235,34 @@ export default function ProjectDetailPage() {
     setIpError(null);
     try {
       setSaving(true);
+
+      // Build partial update payload - only include fields that actually changed
+      const payload: Record<string, unknown> = {};
+      const nameChanged = name.trim() !== project.name;
+      const descChanged = (description.trim() || null) !== (project.description ?? null);
+      const ipsChanged = (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
+      const catChanged = categoryId !== project.category_id;
+      const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
+      const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
+      const abWebhookChanged = (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
+      const abHeaderKeyHasValue = autoBackupHeaderKey.trim().length > 0;
+      const abHeaderValueHasValue = autoBackupHeaderValue.trim().length > 0;
+
+      if (nameChanged) payload.name = name.trim();
+      if (descChanged) payload.description = description.trim() || undefined;
+      if (ipsChanged) payload.allowed_ips = allowedIps.trim() || null;
+      if (catChanged) payload.category_id = categoryId;
+      if (abEnabledChanged) payload.auto_backup_enabled = autoBackupEnabled;
+      if (abIntervalChanged) payload.auto_backup_interval = autoBackupInterval;
+      if (abWebhookChanged) payload.auto_backup_webhook = autoBackupWebhook.trim() || null;
+      // Only send header fields if user has explicitly entered values
+      if (abHeaderKeyHasValue) payload.auto_backup_header_key = autoBackupHeaderKey.trim() || null;
+      if (abHeaderValueHasValue) payload.auto_backup_header_value = autoBackupHeaderValue.trim() || null;
+
       const res = await fetch(`/api/projects/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || undefined,
-          allowed_ips: allowedIps.trim() || null,
-          category_id: categoryId,
-          auto_backup_enabled: autoBackupEnabled,
-          auto_backup_interval: autoBackupInterval,
-          auto_backup_webhook: autoBackupWebhook.trim() || null,
-          auto_backup_header_key: autoBackupHeaderKey.trim() || null,
-          auto_backup_header_value: autoBackupHeaderValue.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Failed to update project" })) as { error: string; invalid?: string[] };
@@ -259,8 +281,8 @@ export default function ProjectDetailPage() {
       setAutoBackupEnabled(updated.auto_backup_enabled);
       setAutoBackupInterval(updated.auto_backup_interval);
       setAutoBackupWebhook(updated.auto_backup_webhook ?? "");
-      setAutoBackupHeaderKey(updated.auto_backup_header_key ?? "");
-      setAutoBackupHeaderValue(updated.auto_backup_header_value ?? "");
+      // Note: header fields are NOT returned by PUT (sanitized), so we keep local state as-is
+      // This allows users to set headers once and they persist without being exposed
       toast.success("Project settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save project");
@@ -276,7 +298,7 @@ export default function ProjectDetailPage() {
       const res = await fetch(`/api/projects/${id}/token`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to regenerate token");
       const data: { webhook_token: string } = await res.json();
-      setProject({ ...project, webhook_token: data.webhook_token });
+      setWebhookToken(data.webhook_token);
       setTokenVisible(true);
       toast.success("Token regenerated successfully");
     } catch (err) {
@@ -436,8 +458,8 @@ export default function ProjectDetailPage() {
                 setAutoBackupEnabled(project.auto_backup_enabled);
                 setAutoBackupInterval(project.auto_backup_interval);
                 setAutoBackupWebhook(project.auto_backup_webhook ?? "");
-                setAutoBackupHeaderKey(project.auto_backup_header_key ?? "");
-                setAutoBackupHeaderValue(project.auto_backup_header_value ?? "");
+                // Note: auto_backup_header_key/value are NOT reset since they're not in Project (sanitized)
+                // Users need to manually clear them if desired
                 setIpError(null);
               }}
               disabled={saving}
@@ -693,7 +715,7 @@ export default function ProjectDetailPage() {
           {/* Right column */}
           <ProjectWebhookPanel
             webhookUrl={webhookUrl}
-            webhookToken={project.webhook_token}
+            webhookToken={webhookToken ?? ""}
             tokenVisible={tokenVisible}
             copied={copied}
             regenerating={regenerating}
