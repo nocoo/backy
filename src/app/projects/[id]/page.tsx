@@ -52,6 +52,7 @@ interface Project {
   auto_backup_enabled: number;
   auto_backup_interval: number;
   auto_backup_webhook: string | null;
+  auto_backup_headers_configured: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -124,6 +125,8 @@ export default function ProjectDetailPage() {
   const [autoBackupWebhook, setAutoBackupWebhook] = useState("");
   const [autoBackupHeaderKey, setAutoBackupHeaderKey] = useState("");
   const [autoBackupHeaderValue, setAutoBackupHeaderValue] = useState("");
+  // Track if headers are configured in DB (without exposing actual values)
+  const [headersConfigured, setHeadersConfigured] = useState(false);
   const [headerValueVisible, setHeaderValueVisible] = useState(false);
   const [testingTrigger, setTestingTrigger] = useState(false);
 
@@ -165,8 +168,10 @@ export default function ProjectDetailPage() {
       setAutoBackupEnabled(data.auto_backup_enabled);
       setAutoBackupInterval(data.auto_backup_interval);
       setAutoBackupWebhook(data.auto_backup_webhook ?? "");
-      // Note: auto_backup_header_key/value are NOT returned by GET (sanitized)
-      // so we DON'T reset them - they stay as-is in local state unless user explicitly changes
+      // Track if headers are configured in DB (without exposing values)
+      setHeadersConfigured(data.auto_backup_headers_configured);
+      // Note: actual header values are NOT returned (sanitized), so inputs stay empty
+      // If user wants to change headers, they re-enter them entirely
       // Try to get webhook_token from sessionStorage (set after creation)
       const storedToken = sessionStorage.getItem(`project_token_${id}`);
       if (storedToken) {
@@ -213,7 +218,7 @@ export default function ProjectDetailPage() {
     void fetchBackups();
   }, [fetchProject, fetchCategories, fetchBackups]);
 
-  // Track dirty state (note: auto_backup_header_key/value are tracked locally but not compared against project since they're sanitized)
+  // Track dirty state
   useEffect(() => {
     if (!project) return;
     const nameChanged = name.trim() !== project.name;
@@ -223,12 +228,12 @@ export default function ProjectDetailPage() {
     const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
     const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
     const abWebhookChanged = (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
-    // For header fields, track if they're non-empty (user has entered a value) vs empty
-    const abHeaderKeyHasValue = autoBackupHeaderKey.trim().length > 0;
-    const abHeaderValueHasValue = autoBackupHeaderValue.trim().length > 0;
-    const abHeaderChanged = abHeaderKeyHasValue || abHeaderValueHasValue;
-    setDirty(nameChanged || descChanged || ipsChanged || catChanged || abEnabledChanged || abIntervalChanged || abWebhookChanged || abHeaderChanged);
-  }, [name, description, allowedIps, categoryId, autoBackupEnabled, autoBackupInterval, autoBackupWebhook, autoBackupHeaderKey, autoBackupHeaderValue, project]);
+    // For header fields: dirty if user entered values OR if user cleared configured headers
+    const userEnteredHeaderKey = autoBackupHeaderKey.trim().length > 0;
+    const userEnteredHeaderValue = autoBackupHeaderValue.trim().length > 0;
+    const abHeadersChanged = userEnteredHeaderKey || userEnteredHeaderValue || (headersConfigured && (autoBackupHeaderKey.trim().length === 0 || autoBackupHeaderValue.trim().length === 0));
+    setDirty(nameChanged || descChanged || ipsChanged || catChanged || abEnabledChanged || abIntervalChanged || abWebhookChanged || abHeadersChanged);
+  }, [name, description, allowedIps, categoryId, autoBackupEnabled, autoBackupInterval, autoBackupWebhook, autoBackupHeaderKey, autoBackupHeaderValue, headersConfigured, project]);
 
   async function handleSave() {
     if (!project || !dirty) return;
@@ -245,8 +250,6 @@ export default function ProjectDetailPage() {
       const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
       const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
       const abWebhookChanged = (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
-      const abHeaderKeyHasValue = autoBackupHeaderKey.trim().length > 0;
-      const abHeaderValueHasValue = autoBackupHeaderValue.trim().length > 0;
 
       if (nameChanged) payload.name = name.trim();
       if (descChanged) payload.description = description.trim() || undefined;
@@ -255,9 +258,15 @@ export default function ProjectDetailPage() {
       if (abEnabledChanged) payload.auto_backup_enabled = autoBackupEnabled;
       if (abIntervalChanged) payload.auto_backup_interval = autoBackupInterval;
       if (abWebhookChanged) payload.auto_backup_webhook = autoBackupWebhook.trim() || null;
-      // Only send header fields if user has explicitly entered values
-      if (abHeaderKeyHasValue) payload.auto_backup_header_key = autoBackupHeaderKey.trim() || null;
-      if (abHeaderValueHasValue) payload.auto_backup_header_value = autoBackupHeaderValue.trim() || null;
+
+      // For header fields: send if user entered values OR if clearing configured headers
+      const userEnteredHeaderKey = autoBackupHeaderKey.trim().length > 0;
+      const userEnteredHeaderValue = autoBackupHeaderValue.trim().length > 0;
+      const clearingConfiguredHeaders = headersConfigured && !userEnteredHeaderKey && !userEnteredHeaderValue;
+      if (userEnteredHeaderKey || userEnteredHeaderValue || clearingConfiguredHeaders) {
+        payload.auto_backup_header_key = autoBackupHeaderKey.trim() || null;
+        payload.auto_backup_header_value = autoBackupHeaderValue.trim() || null;
+      }
 
       const res = await fetch(`/api/projects/${id}`, {
         method: "PUT",
@@ -281,8 +290,10 @@ export default function ProjectDetailPage() {
       setAutoBackupEnabled(updated.auto_backup_enabled);
       setAutoBackupInterval(updated.auto_backup_interval);
       setAutoBackupWebhook(updated.auto_backup_webhook ?? "");
-      // Note: header fields are NOT returned by PUT (sanitized), so we keep local state as-is
-      // This allows users to set headers once and they persist without being exposed
+      setHeadersConfigured(updated.auto_backup_headers_configured);
+      // Clear header inputs after save (values are sanitized, not returned)
+      setAutoBackupHeaderKey("");
+      setAutoBackupHeaderValue("");
       toast.success("Project settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save project");
@@ -458,8 +469,8 @@ export default function ProjectDetailPage() {
                 setAutoBackupEnabled(project.auto_backup_enabled);
                 setAutoBackupInterval(project.auto_backup_interval);
                 setAutoBackupWebhook(project.auto_backup_webhook ?? "");
-                // Note: auto_backup_header_key/value are NOT reset since they're not in Project (sanitized)
-                // Users need to manually clear them if desired
+                setAutoBackupHeaderKey("");
+                setAutoBackupHeaderValue("");
                 setIpError(null);
               }}
               disabled={saving}
