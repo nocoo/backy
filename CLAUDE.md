@@ -23,9 +23,9 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 ```
 src/
   app/
-    api/                 # 24 route files, 37 HTTP method handlers
+    api/                 # 26 route files, 39 HTTP method handlers
       auth/              # NextAuth v5 handler (Google OAuth)
-      backups/           # CRUD + upload, download, preview, extract
+      backups/           # CRUD + upload, download, preview, extract, restore-command
       categories/        # CRUD
       cron/              # Auto-backup trigger + logs
       db/init/           # D1 schema initialization
@@ -55,6 +55,8 @@ src/
     db/                  # D1 client, schema, CRUD modules (projects, backups, categories, webhook-logs, cron-logs)
     r2/                  # S3-compatible R2 client (upload, download, presign, delete)
     id.ts                # nanoid generators (21-char ID, 48-char webhook token)
+    hosts.ts             # Shared ALLOWED_HOSTS set + buildBaseUrl() for reverse proxy
+    sanitize.ts          # Strip sensitive fields from Project records for API responses
     ip.ts                # IP/CIDR validation and enforcement
     test-project.ts      # E2E test project constants (single source of truth)
 scripts/
@@ -167,3 +169,7 @@ The script auto-detects project name and CHANGELOG format, then: bumps version �
 - **Quality system: osv-scanner must hard fail on vulns**: Initial implementation treated osv-scanner exitCode 1 (vulnerabilities found) as warn-only (`ok: true, warn: true`), allowing pushes with known vulnerabilities. This violated the "0 vulnerabilities" gate contract. Fix: all non-zero exit codes are hard failures. Indirect deps that can't be fixed go in `osv-scanner.toml` with 90-day expiry. Memory ref: `c64f9f90` (backy: 质量体系 L1+L2+L3+G1+G2 实施记录).
 - **Quality system: lint-staged must not --fix**: lint-staged is a gate, not a formatter. Using `--fix` during commit creates a mismatch between tested code and committed code. Always use check-only mode (`eslint --max-warnings 0` without `--fix`).
 - **Quality system: push tag with --no-verify**: `git push origin vX.Y.Z --no-verify` is correct for tag pushes. Code was already verified by the main branch push (L2 146/146 + G2 clean). Running pre-push hook again for a tag is redundant and can fail due to dev server resource contention.
+- **Security: decompression bomb defense requires streaming limits**: `gunzipAsync(buffer)` fully decompresses into memory before any size check. A 50MB high-compression-ratio archive can decompress to GB+. Fix: use `createGunzip()` streaming with incremental byte counting and early `destroy()` when exceeding `MAX_DECOMPRESSED_SIZE` (50MB). ZIP entries should check `_data.uncompressedSize` metadata before decompressing. Tar entries need per-entry `header.size` checks during streaming.
+- **Security: sensitive fields must be stripped at API boundary**: `SELECT *` in DB queries is fine for internal use, but API routes must sanitize before responding. Use explicit field allowlisting (not field deletion) in `sanitizeProject()` to prevent future schema additions from being accidentally exposed.
+- **Security: x-forwarded-host must be validated against ALLOWED_HOSTS**: Any route that uses `x-forwarded-host` to build URLs containing credentials (tokens, secrets) MUST validate against the host allowlist first. Extracted to shared `src/lib/hosts.ts` to prevent duplication.
+- **Security: SSRF CIDR blocklist must cover all RFC-reserved ranges**: Initial blocklist only covered 6 common private ranges. Missing: `100.64.0.0/10` (CGN), `198.18.0.0/15` (benchmarking), TEST-NETs, `240.0.0.0/4` (reserved), broadcast. IPv6 needs `100::/64` (discard) and `2001:db8::/32` (documentation).
