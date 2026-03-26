@@ -159,6 +159,66 @@ describe("isUrlSafe", () => {
     expect(isUrlSafe("https://[2607:f8b0::1]/hook")).toBe(true);
   });
 
+  // --- Blocked: newly added reserved IPv4 ranges ---
+
+  test("blocks 100.64.0.1 (shared address space / CGN)", () => {
+    expect(isUrlSafe("https://100.64.0.1/hook")).toBe(false);
+  });
+
+  test("blocks 100.127.255.255 (shared address space upper bound)", () => {
+    expect(isUrlSafe("https://100.127.255.255/hook")).toBe(false);
+  });
+
+  test("allows 100.128.0.1 (outside shared address space)", () => {
+    expect(isUrlSafe("https://100.128.0.1/hook")).toBe(true);
+  });
+
+  test("blocks 198.18.0.1 (benchmarking)", () => {
+    expect(isUrlSafe("https://198.18.0.1/hook")).toBe(false);
+  });
+
+  test("blocks 198.19.255.255 (benchmarking upper bound)", () => {
+    expect(isUrlSafe("https://198.19.255.255/hook")).toBe(false);
+  });
+
+  test("allows 198.20.0.1 (outside benchmarking)", () => {
+    expect(isUrlSafe("https://198.20.0.1/hook")).toBe(true);
+  });
+
+  test("blocks 192.0.2.1 (TEST-NET-1)", () => {
+    expect(isUrlSafe("https://192.0.2.1/hook")).toBe(false);
+  });
+
+  test("blocks 198.51.100.1 (TEST-NET-2)", () => {
+    expect(isUrlSafe("https://198.51.100.1/hook")).toBe(false);
+  });
+
+  test("blocks 203.0.113.1 (TEST-NET-3)", () => {
+    expect(isUrlSafe("https://203.0.113.1/hook")).toBe(false);
+  });
+
+  test("blocks 240.0.0.1 (reserved for future use)", () => {
+    expect(isUrlSafe("https://240.0.0.1/hook")).toBe(false);
+  });
+
+  test("blocks 255.255.255.255 (broadcast)", () => {
+    expect(isUrlSafe("https://255.255.255.255/hook")).toBe(false);
+  });
+
+  // --- Blocked: newly added IPv6 ranges ---
+
+  test("blocks [100::1] IPv6 discard prefix (RFC 6666)", () => {
+    expect(isUrlSafe("https://[100::1]/hook")).toBe(false);
+  });
+
+  test("blocks [2001:db8::1] IPv6 documentation prefix (RFC 3849)", () => {
+    expect(isUrlSafe("https://[2001:db8::1]/hook")).toBe(false);
+  });
+
+  test("allows [2001:db9::1] (outside documentation prefix)", () => {
+    expect(isUrlSafe("https://[2001:db9::1]/hook")).toBe(true);
+  });
+
   // --- SSRF_ALLOWLIST bypass ---
 
   test("allowlist bypasses all checks for matching origin", () => {
@@ -218,6 +278,33 @@ describe("isPrivateIp", () => {
     expect(isPrivateIp("169.254.169.254")).toBe(true);
   });
 
+  test("identifies shared address space (RFC 6598)", () => {
+    expect(isPrivateIp("100.64.0.1")).toBe(true);
+    expect(isPrivateIp("100.127.255.255")).toBe(true);
+    expect(isPrivateIp("100.128.0.1")).toBe(false); // outside range
+  });
+
+  test("identifies benchmarking (RFC 2544)", () => {
+    expect(isPrivateIp("198.18.0.1")).toBe(true);
+    expect(isPrivateIp("198.19.255.255")).toBe(true);
+    expect(isPrivateIp("198.20.0.1")).toBe(false); // outside range
+  });
+
+  test("identifies IETF protocol assignments (RFC 6890)", () => {
+    expect(isPrivateIp("192.0.0.1")).toBe(true);
+  });
+
+  test("identifies TEST-NET ranges (RFC 5737)", () => {
+    expect(isPrivateIp("192.0.2.1")).toBe(true);   // TEST-NET-1
+    expect(isPrivateIp("198.51.100.1")).toBe(true); // TEST-NET-2
+    expect(isPrivateIp("203.0.113.1")).toBe(true);  // TEST-NET-3
+  });
+
+  test("identifies reserved and broadcast", () => {
+    expect(isPrivateIp("240.0.0.1")).toBe(true);
+    expect(isPrivateIp("255.255.255.255")).toBe(true);
+  });
+
   test("rejects public IPs", () => {
     expect(isPrivateIp("8.8.8.8")).toBe(false);
     expect(isPrivateIp("1.1.1.1")).toBe(false);
@@ -257,6 +344,22 @@ describe("isPrivateIpv6", () => {
     expect(isPrivateIpv6("::ffff:10.0.0.1")).toBe(true);
     expect(isPrivateIpv6("::ffff:192.168.1.1")).toBe(true);
     expect(isPrivateIpv6("::ffff:169.254.169.254")).toBe(true);
+  });
+
+  test("identifies discard prefix 100::/64 (RFC 6666)", () => {
+    expect(isPrivateIpv6("100::1")).toBe(true);
+    expect(isPrivateIpv6("0100::abcd")).toBe(true);
+    expect(isPrivateIpv6("[100::1]")).toBe(true);
+  });
+
+  test("identifies documentation prefix 2001:db8::/32 (RFC 3849)", () => {
+    expect(isPrivateIpv6("2001:db8::1")).toBe(true);
+    expect(isPrivateIpv6("2001:0db8:1234::1")).toBe(true);
+    expect(isPrivateIpv6("[2001:db8::1]")).toBe(true);
+  });
+
+  test("allows addresses outside documentation prefix", () => {
+    expect(isPrivateIpv6("2001:db9::1")).toBe(false);
   });
 
   test("allows IPv4-mapped public addresses", () => {

@@ -33,12 +33,20 @@ const BLOCKED_HOSTNAME_SUFFIXES = [
  * Each entry is [networkInt, mask].
  */
 const BLOCKED_CIDRS: Array<[number, number]> = [
-  cidr("127.0.0.0", 8),    // loopback
-  cidr("10.0.0.0", 8),     // private class A
-  cidr("172.16.0.0", 12),  // private class B
-  cidr("192.168.0.0", 16), // private class C
-  cidr("169.254.0.0", 16), // link-local
-  cidr("0.0.0.0", 8),      // "this" network
+  cidr("127.0.0.0", 8),       // loopback
+  cidr("10.0.0.0", 8),        // private class A
+  cidr("172.16.0.0", 12),     // private class B
+  cidr("192.168.0.0", 16),    // private class C
+  cidr("169.254.0.0", 16),    // link-local
+  cidr("0.0.0.0", 8),         // "this" network
+  cidr("100.64.0.0", 10),     // shared address space (RFC 6598, CGN/cloud)
+  cidr("198.18.0.0", 15),     // benchmarking (RFC 2544)
+  cidr("192.0.0.0", 24),      // IETF protocol assignments (RFC 6890)
+  cidr("192.0.2.0", 24),      // TEST-NET-1 (RFC 5737)
+  cidr("198.51.100.0", 24),   // TEST-NET-2 (RFC 5737)
+  cidr("203.0.113.0", 24),    // TEST-NET-3 (RFC 5737)
+  cidr("240.0.0.0", 4),       // reserved for future use
+  cidr("255.255.255.255", 32), // limited broadcast
 ];
 
 function cidr(ip: string, prefix: number): [number, number] {
@@ -66,6 +74,8 @@ export function isPrivateIp(ip: string): boolean {
  *   - ::1             loopback
  *   - fe80::/10       link-local
  *   - fc00::/7        unique local (ULA: fc00::/8 + fd00::/8)
+ *   - 100::/64        discard prefix (RFC 6666)
+ *   - 2001:db8::/32   documentation (RFC 3849)
  *   - ::ffff:0:0/96   IPv4-mapped (delegates to isPrivateIp for the embedded v4)
  *   - ::              unspecified
  */
@@ -93,6 +103,12 @@ export function isPrivateIpv6(addr: string): boolean {
 
   // fc00::/7 — unique local (first 7 bits = 1111 110)
   if ((firstGroup & 0xfe00) === 0xfc00) return true;
+
+  // 100::/64 — discard prefix (RFC 6666)
+  if (expanded.startsWith("0100:0000:0000:0000:")) return true;
+
+  // 2001:db8::/32 — documentation prefix (RFC 3849)
+  if (expanded.startsWith("2001:0db8:")) return true;
 
   // ::ffff:x.x.x.x — IPv4-mapped IPv6
   // Expanded form: 0000:0000:0000:0000:0000:ffff:XXYY:ZZWW
