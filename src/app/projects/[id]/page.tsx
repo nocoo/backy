@@ -125,8 +125,8 @@ export default function ProjectDetailPage() {
   const [autoBackupWebhook, setAutoBackupWebhook] = useState("");
   const [autoBackupHeaderKey, setAutoBackupHeaderKey] = useState("");
   const [autoBackupHeaderValue, setAutoBackupHeaderValue] = useState("");
-  // Track if headers are configured in DB (without exposing actual values)
-  const [headersConfigured, setHeadersConfigured] = useState(false);
+  // Track header configuration state
+  const [userHasModifiedHeaders, setUserHasModifiedHeaders] = useState(false); // User touched header inputs
   const [headerValueVisible, setHeaderValueVisible] = useState(false);
   const [testingTrigger, setTestingTrigger] = useState(false);
 
@@ -168,8 +168,8 @@ export default function ProjectDetailPage() {
       setAutoBackupEnabled(data.auto_backup_enabled);
       setAutoBackupInterval(data.auto_backup_interval);
       setAutoBackupWebhook(data.auto_backup_webhook ?? "");
-      // Track if headers are configured in DB (without exposing values)
-      setHeadersConfigured(data.auto_backup_headers_configured);
+      // Note: actual header values are NOT returned (sanitized), so inputs stay empty
+      setUserHasModifiedHeaders(false); // Reset modification flag on load
       // Note: actual header values are NOT returned (sanitized), so inputs stay empty
       // If user wants to change headers, they re-enter them entirely
       // Try to get webhook_token from sessionStorage (set after creation)
@@ -228,12 +228,9 @@ export default function ProjectDetailPage() {
     const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
     const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
     const abWebhookChanged = (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
-    // For header fields: dirty if user entered values OR if user cleared configured headers
-    const userEnteredHeaderKey = autoBackupHeaderKey.trim().length > 0;
-    const userEnteredHeaderValue = autoBackupHeaderValue.trim().length > 0;
-    const abHeadersChanged = userEnteredHeaderKey || userEnteredHeaderValue || (headersConfigured && (autoBackupHeaderKey.trim().length === 0 || autoBackupHeaderValue.trim().length === 0));
-    setDirty(nameChanged || descChanged || ipsChanged || catChanged || abEnabledChanged || abIntervalChanged || abWebhookChanged || abHeadersChanged);
-  }, [name, description, allowedIps, categoryId, autoBackupEnabled, autoBackupInterval, autoBackupWebhook, autoBackupHeaderKey, autoBackupHeaderValue, headersConfigured, project]);
+    // For header fields: only dirty if user actually modified them
+    setDirty(nameChanged || descChanged || ipsChanged || catChanged || abEnabledChanged || abIntervalChanged || abWebhookChanged || userHasModifiedHeaders);
+  }, [name, description, allowedIps, categoryId, autoBackupEnabled, autoBackupInterval, autoBackupWebhook, userHasModifiedHeaders, project]);
 
   async function handleSave() {
     if (!project || !dirty) return;
@@ -259,11 +256,8 @@ export default function ProjectDetailPage() {
       if (abIntervalChanged) payload.auto_backup_interval = autoBackupInterval;
       if (abWebhookChanged) payload.auto_backup_webhook = autoBackupWebhook.trim() || null;
 
-      // For header fields: send if user entered values OR if clearing configured headers
-      const userEnteredHeaderKey = autoBackupHeaderKey.trim().length > 0;
-      const userEnteredHeaderValue = autoBackupHeaderValue.trim().length > 0;
-      const clearingConfiguredHeaders = headersConfigured && !userEnteredHeaderKey && !userEnteredHeaderValue;
-      if (userEnteredHeaderKey || userEnteredHeaderValue || clearingConfiguredHeaders) {
+      // For header fields: only send if user actually modified them
+      if (userHasModifiedHeaders) {
         payload.auto_backup_header_key = autoBackupHeaderKey.trim() || null;
         payload.auto_backup_header_value = autoBackupHeaderValue.trim() || null;
       }
@@ -290,7 +284,7 @@ export default function ProjectDetailPage() {
       setAutoBackupEnabled(updated.auto_backup_enabled);
       setAutoBackupInterval(updated.auto_backup_interval);
       setAutoBackupWebhook(updated.auto_backup_webhook ?? "");
-      setHeadersConfigured(updated.auto_backup_headers_configured);
+      setUserHasModifiedHeaders(false); // Reset modification flag
       // Clear header inputs after save (values are sanitized, not returned)
       setAutoBackupHeaderKey("");
       setAutoBackupHeaderValue("");
@@ -471,6 +465,7 @@ export default function ProjectDetailPage() {
                 setAutoBackupWebhook(project.auto_backup_webhook ?? "");
                 setAutoBackupHeaderKey("");
                 setAutoBackupHeaderValue("");
+                setUserHasModifiedHeaders(false);
                 setIpError(null);
               }}
               disabled={saving}
@@ -656,7 +651,10 @@ export default function ProjectDetailPage() {
                       <Input
                         id="ab-header-key"
                         value={autoBackupHeaderKey}
-                        onChange={(e) => setAutoBackupHeaderKey(e.target.value)}
+                        onChange={(e) => {
+                          setAutoBackupHeaderKey(e.target.value);
+                          if (!userHasModifiedHeaders) setUserHasModifiedHeaders(true);
+                        }}
                         placeholder="e.g. X-Api-Key, Authorization"
                         disabled={saving}
                       />
@@ -672,7 +670,10 @@ export default function ProjectDetailPage() {
                           id="ab-header-value"
                           type={headerValueVisible ? "text" : "password"}
                           value={autoBackupHeaderValue}
-                          onChange={(e) => setAutoBackupHeaderValue(e.target.value)}
+                          onChange={(e) => {
+                            setAutoBackupHeaderValue(e.target.value);
+                            if (!userHasModifiedHeaders) setUserHasModifiedHeaders(true);
+                          }}
                           placeholder="Your API key or token"
                           disabled={saving}
                           className="flex-1"
