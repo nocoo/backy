@@ -9,6 +9,7 @@ export async function suiteProjectCrud(): Promise<void> {
   console.log("\n📋 Suite: Project CRUD Lifecycle");
 
   let projectId = "";
+  let projectToken = "";
 
   // Step 1: Create project
   await test("GIVEN valid project data WHEN creating via POST THEN returns 201 with project object", async () => {
@@ -22,9 +23,11 @@ export async function suiteProjectCrud(): Promise<void> {
     assert(typeof body.id === "string" && body.id.length > 0, "id should be a non-empty string");
     assertEqual(body.name, "E2E Test Project", "name");
     assertEqual(body.description, "Created by E2E tests", "description");
-    assert(typeof body.webhook_token === "string" && body.webhook_token.length > 0, "webhook_token should exist");
+    assert(typeof body.webhook_token === "string" && body.webhook_token.length > 0, "webhook_token should exist in POST response");
     projectId = body.id;
+    projectToken = body.webhook_token;
     state.createdProjectIds.push(projectId);
+    state.createdProjectTokens.push(projectToken);
   });
 
   // Step 2: List projects
@@ -39,14 +42,14 @@ export async function suiteProjectCrud(): Promise<void> {
   });
 
   // Step 3: Get project by ID
-  await test("GIVEN a created project WHEN getting by ID THEN returns full project data", async () => {
+  await test("GIVEN a created project WHEN getting by ID THEN returns sanitized project data (no webhook_token)", async () => {
     const res = await fetch(`${state.baseUrl}/api/projects/${projectId}`);
     assertEqual(res.status, 200, "status");
     const body = await res.json();
     assertEqual(body.id, projectId, "id");
     assertEqual(body.name, "E2E Test Project", "name");
     assertEqual(body.description, "Created by E2E tests", "description");
-    assert(typeof body.webhook_token === "string", "webhook_token should be a string");
+    assert(body.webhook_token === undefined, "webhook_token should NOT be present in GET response (sanitized)");
     assertEqual(body.allowed_ips, null, "allowed_ips should be null by default");
     assertEqual(body.category_id, null, "category_id should be null by default");
   });

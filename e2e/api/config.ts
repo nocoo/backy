@@ -35,6 +35,7 @@ export const state = {
   createdBackupIds: [] as string[],
   createdCategoryIds: [] as string[],
   createdProjectIds: [] as string[],
+  createdProjectTokens: [] as string[],
 };
 
 /**

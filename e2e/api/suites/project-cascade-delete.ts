@@ -10,16 +10,17 @@ export async function suiteProjectCascadeDelete(): Promise<void> {
 
   // Uses the project created by suiteProjectCrud (createdProjectIds[0])
   assert(state.createdProjectIds.length > 0, "suiteProjectCrud must run first");
+  assert(state.createdProjectTokens.length > 0, "suiteProjectCrud must store token");
   const projectId = state.createdProjectIds[0]!;
+  const projectToken = state.createdProjectTokens[0]!;
 
-  // Get the project's token for uploading
-  let projectToken = "";
-  await test("GIVEN a test project WHEN getting it THEN retrieve its token", async () => {
+  // Verify project exists (sanitized response)
+  await test("GIVEN a test project WHEN getting it THEN returns sanitized data (token stored separately)", async () => {
     const res = await fetch(`${state.baseUrl}/api/projects/${projectId}`);
     assertEqual(res.status, 200, "status");
     const body = await res.json();
-    projectToken = body.webhook_token;
-    assert(projectToken.length > 0, "token should exist");
+    assert(body.webhook_token === undefined, "webhook_token should NOT be present in GET response");
+    assertEqual(body.id, projectId, "id");
   });
 
   // Upload 2 backups to this project

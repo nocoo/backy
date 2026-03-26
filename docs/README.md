@@ -6,6 +6,7 @@
 |---|---|---|
 | 01 | [Design](01-design.md) | Architecture, data model, API routes, security |
 | 04 | [Quality System Upgrade](04-quality-system-upgrade.md) | L1+L2+L3+G1+G2 quality system migration plan |
+| 05 | [Test Resource Isolation](05-test-resource-isolation.md) | Dedicated D1 + R2 for E2E, production safety |
 
 ## Archive
 

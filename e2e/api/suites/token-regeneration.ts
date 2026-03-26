@@ -10,16 +10,17 @@ export async function suiteTokenRegeneration(): Promise<void> {
 
   // This suite uses the project created by suiteProjectCrud
   assert(state.createdProjectIds.length > 0, "suiteProjectCrud must run first");
+  assert(state.createdProjectTokens.length > 0, "suiteProjectCrud must store token");
   const projectId = state.createdProjectIds[0]!;
+  const oldToken = state.createdProjectTokens[0]!;
 
-  // Step 1: Get current token
-  let oldToken = "";
-  await test("GIVEN a project WHEN getting it THEN has a webhook_token", async () => {
+  // Step 1: Verify project exists (sanitized, no webhook_token in GET)
+  await test("GIVEN a project WHEN getting it THEN returns sanitized data without webhook_token", async () => {
     const res = await fetch(`${state.baseUrl}/api/projects/${projectId}`);
     assertEqual(res.status, 200, "status");
     const body = await res.json();
-    assert(typeof body.webhook_token === "string" && body.webhook_token.length > 0, "webhook_token should exist");
-    oldToken = body.webhook_token;
+    assert(body.webhook_token === undefined, "webhook_token should NOT be present in GET response");
+    assertEqual(body.id, projectId, "id");
   });
 
   // Step 2: Regenerate token
@@ -31,9 +32,11 @@ export async function suiteTokenRegeneration(): Promise<void> {
     assert(typeof body.webhook_token === "string" && body.webhook_token.length > 0, "new webhook_token should exist");
     assert(body.webhook_token !== oldToken, "new token should differ from old token");
     newToken = body.webhook_token;
+    // Update stored token for subsequent tests
+    state.createdProjectTokens[0] = newToken;
   });
 
-  // Step 3: Verify old token fails on HEAD
+  // Step 3: Verify old token fails on HEAD (returns 403 Forbidden since token is now invalid)
   await test("GIVEN a regenerated token WHEN using old token on HEAD THEN returns 403", async () => {
     const res = await fetch(`${state.baseUrl}/api/webhook/${projectId}`, {
       method: "HEAD",
