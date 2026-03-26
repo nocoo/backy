@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listProjects, createProject } from "@/lib/db/projects";
+import { sanitizeProject } from "@/lib/sanitize";
 import { z } from "zod";
 
 const CreateProjectSchema = z.object({
@@ -13,7 +14,7 @@ const CreateProjectSchema = z.object({
 export async function GET() {
   try {
     const projects = await listProjects();
-    return NextResponse.json(projects);
+    return NextResponse.json(projects.map(sanitizeProject));
   } catch (error) {
     console.error("Failed to list projects:", error);
     return NextResponse.json(

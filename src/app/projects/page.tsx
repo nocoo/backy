@@ -13,7 +13,6 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
-  webhook_token: string;
   category_id: string | null;
   created_at: string;
   updated_at: string;

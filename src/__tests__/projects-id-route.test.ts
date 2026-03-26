@@ -48,6 +48,20 @@ describe("/api/projects/[id]", () => {
       expect(body.id).toBe("proj-test");
     });
 
+    test("strips sensitive fields from response", async () => {
+      const project = makeProject({ webhook_token: "secret", auto_backup_header_value: "Bearer abc" });
+      mockGetProject = async () => project;
+
+      const res = await GET(new Request("http://localhost/api/projects/proj-test"), makeParams("proj-test"));
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body.webhook_token).toBeUndefined();
+      expect(body.auto_backup_header_key).toBeUndefined();
+      expect(body.auto_backup_header_value).toBeUndefined();
+      expect(body.name).toBeDefined();
+    });
+
     test("returns 404 when not found", async () => {
       const res = await GET(new Request("http://localhost/api/projects/missing"), makeParams("missing"));
       expect(res.status).toBe(404);
@@ -84,6 +98,26 @@ describe("/api/projects/[id]", () => {
 
       expect(res.status).toBe(200);
       expect(body.name).toBe("Updated");
+    });
+
+    test("strips sensitive fields from PUT response", async () => {
+      const updated = makeProject({ name: "Updated", webhook_token: "tok-secret" });
+      mockUpdateProject = async () => updated;
+
+      const res = await PUT(
+        new Request("http://localhost/api/projects/proj-test", {
+          method: "PUT",
+          body: JSON.stringify({ name: "Updated" }),
+          headers: { "Content-Type": "application/json" },
+        }),
+        makeParams("proj-test"),
+      );
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body.webhook_token).toBeUndefined();
+      expect(body.auto_backup_header_key).toBeUndefined();
+      expect(body.auto_backup_header_value).toBeUndefined();
     });
 
     test("validates and normalizes allowed_ips", async () => {

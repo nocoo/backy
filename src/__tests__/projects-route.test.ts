@@ -39,6 +39,22 @@ describe("/api/projects", () => {
       expect(body[0].id).toBe("p1");
     });
 
+    test("strips sensitive fields from response", async () => {
+      const projects = [makeProject({ webhook_token: "secret-tok", auto_backup_header_value: "Bearer xyz" })];
+      mockListProjects = async () => projects;
+
+      const res = await GET();
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body[0].webhook_token).toBeUndefined();
+      expect(body[0].auto_backup_header_key).toBeUndefined();
+      expect(body[0].auto_backup_header_value).toBeUndefined();
+      // Non-sensitive fields still present
+      expect(body[0].name).toBeDefined();
+      expect(body[0].id).toBeDefined();
+    });
+
     test("returns empty array when no projects", async () => {
       mockListProjects = async () => [];
 

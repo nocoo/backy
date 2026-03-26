@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, updateProject, deleteProject } from "@/lib/db/projects";
 import { validateAllowedIps, normalizeAllowedIps } from "@/lib/ip";
 import { isUrlSafe } from "@/lib/url";
+import { sanitizeProject } from "@/lib/sanitize";
 import { z } from "zod";
 
 const UpdateProjectSchema = z.object({
@@ -31,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    return NextResponse.json(project);
+    return NextResponse.json(sanitizeProject(project));
   } catch (error) {
     console.error("Failed to get project:", error);
     return NextResponse.json(
@@ -114,7 +115,7 @@ export async function PUT(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    return NextResponse.json(project);
+    return NextResponse.json(sanitizeProject(project));
   } catch (error) {
     console.error("Failed to update project:", error);
     return NextResponse.json(

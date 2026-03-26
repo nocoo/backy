@@ -238,15 +238,11 @@ export default function BackupDetailPage() {
     if (!backup) return;
     try {
       setRestoreLoading(true);
-      // Fetch the project to get its webhook token
-      const res = await fetch(`/api/projects/${backup.project_id}`);
-      if (!res.ok) throw new Error("Failed to fetch project");
-      const project: { webhook_token: string } = await res.json();
-
-      // Construct the curl command with Bearer auth
-      const baseUrl = window.location.origin;
-      const command = `curl ${baseUrl}/api/restore/${backup.id} \\\n  -H "Authorization: Bearer ${project.webhook_token}"`;
-      setRestoreCommand(command);
+      // Fetch the restore command from the server (token never reaches the browser)
+      const res = await fetch(`/api/backups/${backup.id}/restore-command`);
+      if (!res.ok) throw new Error("Failed to generate restore command");
+      const data: { command: string } = await res.json();
+      setRestoreCommand(data.command);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate restore command");
     } finally {
