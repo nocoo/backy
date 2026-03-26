@@ -4,6 +4,11 @@
  * Given a raw file buffer and its FileType, attempts to extract JSON content.
  * Uses the Strategy pattern so each archive format has an isolated handler.
  *
+ * Security: All decompression is size-limited to prevent decompression bomb
+ * DoS attacks. Streaming gunzip aborts early when the decompressed output
+ * exceeds MAX_DECOMPRESSED_SIZE. ZIP entries are checked via metadata before
+ * decompression. Tar entries are size-checked during streaming.
+ *
  * Dependencies:
  *  - jszip (existing) for ZIP files
  *  - node:zlib (built-in) for gzip decompression
@@ -12,14 +17,14 @@
 
 import type { FileType } from "./file-type";
 import JSZip from "jszip";
-import { gunzip } from "node:zlib";
-import { promisify } from "node:util";
+import { createGunzip } from "node:zlib";
 import tar from "tar-stream";
-
-const gunzipAsync = promisify(gunzip);
 
 /** Max extracted JSON size: 10 MB */
 const MAX_JSON_SIZE = 10 * 1024 * 1024;
+
+/** Max decompressed archive size: 50 MB (decompression bomb defense) */
+export const MAX_DECOMPRESSED_SIZE = 50 * 1024 * 1024;
 
 /** Successful extraction result. */
 export interface ExtractSuccess {
@@ -40,6 +45,49 @@ export interface ExtractFailure {
 }
 
 export type ExtractOutcome = ExtractSuccess | ExtractFailure;
+
+// ---------------------------------------------------------------------------
+// Internal: size-limited gunzip
+// ---------------------------------------------------------------------------
+
+/**
+ * Streaming gunzip with early abort when output exceeds maxBytes.
+ * Prevents decompression bombs from exhausting server memory.
+ */
+function gunzipWithLimit(input: Buffer, maxBytes: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const gunzip = createGunzip();
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    let destroyed = false;
+
+    gunzip.on("data", (chunk: Buffer) => {
+      if (destroyed) return;
+      totalBytes += chunk.length;
+      if (totalBytes > maxBytes) {
+        destroyed = true;
+        gunzip.destroy();
+        reject(
+          new Error(
+            `Decompressed output exceeds ${(maxBytes / 1024 / 1024).toFixed(0)}MB limit (possible decompression bomb)`,
+          ),
+        );
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    gunzip.on("end", () => {
+      if (!destroyed) resolve(Buffer.concat(chunks));
+    });
+
+    gunzip.on("error", (err) => {
+      if (!destroyed) reject(err);
+    });
+
+    gunzip.end(input);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -73,6 +121,9 @@ export async function extractJson(
 /**
  * Extract the first .json file from a ZIP archive.
  * Sorted alphabetically for deterministic selection.
+ *
+ * Checks entry metadata (uncompressed size) before decompression to
+ * reject obviously oversized entries without decompressing.
  */
 export async function extractFromZip(buffer: Uint8Array): Promise<ExtractOutcome> {
   let zip: JSZip;
@@ -95,7 +146,25 @@ export async function extractFromZip(buffer: Uint8Array): Promise<ExtractOutcome
   if (!jsonFileName || !zipEntry) {
     return { success: false, reason: "No JSON files found in the ZIP archive" };
   }
+
+  // Check metadata-declared uncompressed size before decompressing (decompression bomb defense)
+  const declaredSize = (zipEntry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
+  if (declaredSize !== undefined && declaredSize > MAX_DECOMPRESSED_SIZE) {
+    return {
+      success: false,
+      reason: `JSON file uncompressed size (${(declaredSize / 1024 / 1024).toFixed(1)}MB) exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`,
+    };
+  }
+
   const jsonContent = await zipEntry.async("uint8array");
+
+  // Post-decompression size check (catches cases where metadata is missing or inaccurate)
+  if (jsonContent.byteLength > MAX_DECOMPRESSED_SIZE) {
+    return {
+      success: false,
+      reason: `Decompressed JSON file exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit (possible decompression bomb)`,
+    };
+  }
 
   if (jsonContent.byteLength > MAX_JSON_SIZE) {
     return {
@@ -128,13 +197,17 @@ export async function extractFromZip(buffer: Uint8Array): Promise<ExtractOutcome
  * Decompress a gzip file and check if the content is valid JSON.
  *
  * .gz only compresses a single file, so the entire decompressed output
- * is checked as one unit.
+ * is checked as one unit. Uses streaming gunzip with size limit.
  */
 export async function extractFromGz(buffer: Uint8Array): Promise<ExtractOutcome> {
   let decompressed: Buffer;
   try {
-    decompressed = await gunzipAsync(Buffer.from(buffer));
-  } catch {
+    decompressed = await gunzipWithLimit(Buffer.from(buffer), MAX_DECOMPRESSED_SIZE);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("limit")) {
+      return { success: false, reason: message };
+    }
     return { success: false, reason: "Failed to decompress GZ file — file may be corrupt" };
   }
 
@@ -171,13 +244,20 @@ export async function extractFromGz(buffer: Uint8Array): Promise<ExtractOutcome>
 /**
  * Decompress a .tar.gz, then scan tar entries for the first .json file.
  * Collects all JSON entry names, picks the first alphabetically for determinism.
+ *
+ * Uses size-limited gunzip for the decompression step. Tar entry parsing
+ * also enforces per-entry size limits via header metadata.
  */
 export async function extractFromTgz(buffer: Uint8Array): Promise<ExtractOutcome> {
-  // Step 1: gunzip
+  // Step 1: gunzip with size limit
   let tarBuffer: Buffer;
   try {
-    tarBuffer = await gunzipAsync(Buffer.from(buffer));
-  } catch {
+    tarBuffer = await gunzipWithLimit(Buffer.from(buffer), MAX_DECOMPRESSED_SIZE);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("limit")) {
+      return { success: false, reason: message };
+    }
     return { success: false, reason: "Failed to decompress TGZ file — file may be corrupt" };
   }
 
@@ -190,7 +270,11 @@ export async function extractFromTgz(buffer: Uint8Array): Promise<ExtractOutcome
         jsonEntries.push({ name, content });
       }
     });
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("limit")) {
+      return { success: false, reason: message };
+    }
     return { success: false, reason: "Failed to parse TAR archive — file may be corrupt" };
   }
 
@@ -235,6 +319,9 @@ export async function extractFromTgz(buffer: Uint8Array): Promise<ExtractOutcome
 /**
  * Parse a tar buffer and invoke a callback for each file entry.
  * Skips directories and other non-file entries.
+ *
+ * Enforces per-entry size limit via header.size metadata to prevent
+ * individual oversized entries from exhausting memory.
  */
 function parseTarEntries(
   tarBuffer: Buffer,
@@ -242,6 +329,7 @@ function parseTarEntries(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const extract = tar.extract();
+    let rejected = false;
 
     extract.on("entry", (header, stream, next) => {
       if (header.type !== "file") {
@@ -250,17 +338,56 @@ function parseTarEntries(
         return;
       }
 
+      // Check declared entry size before reading (decompression bomb defense)
+      if (header.size != null && header.size > MAX_DECOMPRESSED_SIZE) {
+        rejected = true;
+        stream.destroy();
+        extract.destroy();
+        reject(
+          new Error(
+            `Tar entry "${header.name}" size (${(header.size / 1024 / 1024).toFixed(1)}MB) exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`,
+          ),
+        );
+        return;
+      }
+
       const chunks: Buffer[] = [];
-      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-      stream.on("end", () => {
-        onEntry(header.name, Buffer.concat(chunks));
-        next();
+      let entryBytes = 0;
+
+      stream.on("data", (chunk: Buffer) => {
+        if (rejected) return;
+        entryBytes += chunk.length;
+        if (entryBytes > MAX_DECOMPRESSED_SIZE) {
+          rejected = true;
+          stream.destroy();
+          extract.destroy();
+          reject(
+            new Error(
+              `Tar entry "${header.name}" exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit during read`,
+            ),
+          );
+          return;
+        }
+        chunks.push(chunk);
       });
-      stream.on("error", reject);
+
+      stream.on("end", () => {
+        if (!rejected) {
+          onEntry(header.name, Buffer.concat(chunks));
+          next();
+        }
+      });
+      stream.on("error", (err) => {
+        if (!rejected) reject(err);
+      });
     });
 
-    extract.on("finish", resolve);
-    extract.on("error", reject);
+    extract.on("finish", () => {
+      if (!rejected) resolve();
+    });
+    extract.on("error", (err) => {
+      if (!rejected) reject(err);
+    });
 
     // Feed the tar buffer into the extract stream
     extract.end(tarBuffer);

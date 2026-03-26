@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBackup, updateBackup } from "@/lib/db/backups";
 import { downloadFromR2, uploadToR2 } from "@/lib/r2/client";
-import { extractJson } from "@/lib/backup/extractors";
+import { extractJson, MAX_DECOMPRESSED_SIZE } from "@/lib/backup/extractors";
 import { isExtractable } from "@/lib/backup/file-type";
 import type { FileType } from "@/lib/backup/file-type";
 import { generatePreviewKey } from "@/lib/backup/storage";
@@ -56,6 +56,16 @@ export async function POST(
       return NextResponse.json(
         { error: "Failed to download backup file from storage" },
         { status: 500 },
+      );
+    }
+
+    // Early size guard: reject archives larger than decompression budget
+    // (a compressed file is always smaller than its decompressed output,
+    // but files close to the limit still warrant a fast-path rejection)
+    if (r2Response.contentLength && r2Response.contentLength > MAX_DECOMPRESSED_SIZE) {
+      return NextResponse.json(
+        { error: `Archive too large for extraction (${(r2Response.contentLength / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit)` },
+        { status: 400 },
       );
     }
 

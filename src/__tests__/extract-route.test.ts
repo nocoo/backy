@@ -15,6 +15,7 @@ let mockGetBackupResult: Record<string, unknown> | undefined = {
 };
 
 let mockDownloadBody: { transformToByteArray: () => Promise<Uint8Array> } | null = null;
+let mockDownloadContentLength: number | undefined = 0;
 const uploadCalls: Array<{ key: string; contentType: string }> = [];
 const updateCalls: Array<{ id: string; data: Record<string, unknown> }> = [];
 
@@ -31,7 +32,7 @@ mock.module("@/lib/r2/client", () => ({
   downloadFromR2: async () => ({
     body: mockDownloadBody,
     contentType: "application/octet-stream",
-    contentLength: 0,
+    contentLength: mockDownloadContentLength,
   }),
   uploadToR2: async (key: string, _data: unknown, contentType: string) => {
     uploadCalls.push({ key, contentType });
@@ -66,6 +67,7 @@ describe("POST /api/backups/[id]/extract", () => {
       file_size: 1000,
     };
     mockDownloadBody = null;
+    mockDownloadContentLength = 0;
     uploadCalls.length = 0;
     updateCalls.length = 0;
   });
@@ -204,5 +206,19 @@ describe("POST /api/backups/[id]/extract", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("not valid JSON");
+  });
+
+  test("returns 400 when R2 archive exceeds decompression size limit", async () => {
+    // Simulate R2 object larger than MAX_DECOMPRESSED_SIZE (50MB)
+    mockDownloadContentLength = 100 * 1024 * 1024; // 100MB
+    mockDownloadBody = {
+      transformToByteArray: async () => new Uint8Array(0),
+    };
+
+    const res = await callPOST("backup-1");
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("too large");
+    expect(body.error).toContain("limit");
   });
 });
