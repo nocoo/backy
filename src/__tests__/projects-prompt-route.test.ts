@@ -73,14 +73,14 @@ describe("/api/projects/[id]/prompt", () => {
     expect(body.prompt).toContain("not yet enabled");
   });
 
-  test("uses x-forwarded-host for base URL when present", async () => {
+  test("uses x-forwarded-host for base URL when in ALLOWED_HOSTS", async () => {
     const project = makeProject();
     mockGetProject = async () => project;
 
     const res = await GET(
       new Request("http://localhost:7026/api/projects/proj-test/prompt", {
         headers: {
-          "x-forwarded-host": "backy.dev.hexly.ai",
+          "x-forwarded-host": "backy.hexly.ai",
           "x-forwarded-proto": "https",
         },
       }),
@@ -88,7 +88,27 @@ describe("/api/projects/[id]/prompt", () => {
     );
     const body = await res.json();
 
-    expect(body.prompt).toContain("https://backy.dev.hexly.ai");
+    expect(body.prompt).toContain("https://backy.hexly.ai");
+  });
+
+  test("ignores x-forwarded-host not in ALLOWED_HOSTS (host injection defense)", async () => {
+    const project = makeProject();
+    mockGetProject = async () => project;
+
+    const res = await GET(
+      new Request("http://localhost:7026/api/projects/proj-test/prompt", {
+        headers: {
+          "x-forwarded-host": "evil.com",
+          "x-forwarded-proto": "https",
+        },
+      }),
+      makeParams("proj-test"),
+    );
+    const body = await res.json();
+
+    // Should fall back to request origin, NOT use evil.com
+    expect(body.prompt).not.toContain("evil.com");
+    expect(body.prompt).toContain("localhost:7026");
   });
 
   test("returns 404 when project not found", async () => {

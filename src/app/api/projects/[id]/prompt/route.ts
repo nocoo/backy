@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProject } from "@/lib/db/projects";
+import { buildBaseUrl } from "@/lib/hosts";
 
 /**
  * GET /api/projects/[id]/prompt — Generate AI agent integration prompt.
@@ -16,13 +17,8 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Derive base URL respecting reverse proxy headers
-    const forwardedHost = request.headers.get("x-forwarded-host");
-    const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-    const url = new URL(request.url);
-    const baseUrl = forwardedHost
-      ? `${forwardedProto}://${forwardedHost}`
-      : `${url.protocol}//${url.host}`;
+    // Derive base URL respecting reverse proxy headers (validated against allowlist)
+    const baseUrl = buildBaseUrl(request);
 
     const webhookEndpoint = `${baseUrl}/api/webhook/${project.id}`;
     const token = project.webhook_token;
