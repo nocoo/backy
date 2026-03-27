@@ -1,6 +1,9 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { PROJECT_STUBS, makeProject } from "./helpers";
 
+// Ensure backy.hexly.ai is in ALLOWED_HOSTS for x-forwarded-host tests
+process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7026";
+
 // --- Mutable mock state ---
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

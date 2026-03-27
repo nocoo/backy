@@ -149,7 +149,7 @@ backy/
 ### 验证 API Key (HEAD)
 
 ```bash
-curl -I https://backy.hexly.ai/api/webhook/{projectId} \
+curl -I https://your-domain.example.com/api/webhook/{projectId} \
   -H "Authorization: Bearer {webhook_token}"
 ```
 
@@ -164,11 +164,11 @@ curl -I https://backy.hexly.ai/api/webhook/{projectId} \
 ### 查询备份状态 (GET)
 
 ```bash
-curl https://backy.hexly.ai/api/webhook/{projectId} \
+curl https://your-domain.example.com/api/webhook/{projectId} \
   -H "Authorization: Bearer {webhook_token}"
 
 # 按环境过滤
-curl https://backy.hexly.ai/api/webhook/{projectId}?environment=prod \
+curl https://your-domain.example.com/api/webhook/{projectId}?environment=prod \
   -H "Authorization: Bearer {webhook_token}"
 ```
 
@@ -201,7 +201,7 @@ curl https://backy.hexly.ai/api/webhook/{projectId}?environment=prod \
 ### 发送备份 (POST)
 
 ```bash
-curl -X POST https://backy.hexly.ai/api/webhook/{projectId} \
+curl -X POST https://your-domain.example.com/api/webhook/{projectId} \
   -H "Authorization: Bearer {webhook_token}" \
   -F "file=@backup.zip" \
   -F "environment=prod" \
@@ -218,10 +218,10 @@ curl -X POST https://backy.hexly.ai/api/webhook/{projectId} \
 
 ```bash
 # 方式 1: query param
-curl https://backy.hexly.ai/api/restore/{backupId}?token={webhook_token}
+curl https://your-domain.example.com/api/restore/{backupId}?token={webhook_token}
 
 # 方式 2: Bearer token
-curl https://backy.hexly.ai/api/restore/{backupId} \
+curl https://your-domain.example.com/api/restore/{backupId} \
   -H "Authorization: Bearer {webhook_token}"
 ```
 

@@ -5,13 +5,25 @@
  * against an explicit allowlist before trusting it.
  */
 
-/** Trusted hosts parsed from ALLOWED_HOSTS env (comma-separated). */
-export const ALLOWED_HOSTS = new Set(
-  (process.env.ALLOWED_HOSTS ?? "backy.hexly.ai,localhost:7026")
-    .split(",")
-    .map((h) => h.trim())
-    .filter(Boolean),
-);
+/** Parse ALLOWED_HOSTS from env — reads fresh on each call. */
+function parseAllowedHosts(): Set<string> {
+  return new Set(
+    (process.env.ALLOWED_HOSTS ?? "localhost:7026")
+      .split(",")
+      .map((h) => h.trim())
+      .filter(Boolean),
+  );
+}
+
+/**
+ * Trusted hosts for the current request cycle.
+ * Re-reads process.env on every access so tests can modify it via beforeEach.
+ */
+export const ALLOWED_HOSTS = {
+  has(host: string): boolean {
+    return parseAllowedHosts().has(host);
+  },
+};
 
 /**
  * Build the base URL for the current request, respecting reverse-proxy

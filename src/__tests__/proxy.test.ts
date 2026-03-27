@@ -1,6 +1,9 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { NextRequest, NextResponse } from "next/server";
 
+// Ensure backy.hexly.ai is in ALLOWED_HOSTS for x-forwarded-host tests
+process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7026";
+
 // Track what auth() callback returns based on auth state
 let mockIsLoggedIn = false;
 

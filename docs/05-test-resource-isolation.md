@@ -8,7 +8,7 @@ Backy currently uses a **single set of Cloudflare D1 + R2** for both production 
 
 | Resource | Current Name | UUID |
 |---|---|---|
-| D1 database | `backy` | `a5bdd8e1-1a2d-41e0-bc7c-ff533fb5e49c` |
+| D1 database | `backy` | `<old-uuid>` (superseded) |
 | R2 bucket | `backy` | — |
 
 E2E tests (L2 API E2E + L3 Playwright BDD) start a dedicated Next.js dev server with `...process.env`, inheriting production D1/R2 credentials. The only protection is logical isolation — a dedicated `backy-test` project with cleanup routines. If a test bug skips cleanup or targets the wrong project, production data is at risk.
@@ -156,7 +156,7 @@ wrangler d1 execute backy --command "SELECT 'projects' AS t, count(*) AS n FROM 
 railway variables set D1_DATABASE_ID=<new-backy-db-uuid>
 
 # 6. Verify production is working
-curl https://backy.dev.hexly.ai/api/live
+curl https://your-domain.example.com/api/live
 
 # 7. Verify local dev server works
 bun dev
@@ -707,7 +707,7 @@ After all commits:
 - [ ] `.env.test` exists with `backy-db-test` UUID and `R2_BUCKET_NAME=backy-test`
 - [ ] D1 migration: ALL 5 tables (projects, backups, categories, webhook_logs, cron_logs) row counts match
 - [ ] `bun dev` — dashboard loads, data intact (from `backy-db`)
-- [ ] `curl https://backy.dev.hexly.ai/api/live` — production healthy (after Railway env update)
+- [ ] `curl https://your-domain.example.com/api/live` — production healthy (after Railway env update)
 - [ ] `bun run test:e2e:api` — 146 tests pass (against test resources)
 - [ ] `bun run test:e2e:bdd` — 5 specs pass (against test resources, seed creates `backy-test` project)
 - [ ] Production D1 unchanged — row counts match pre-migration snapshot

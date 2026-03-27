@@ -1,9 +1,15 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { buildBaseUrl, ALLOWED_HOSTS } from "@/lib/hosts";
+import { describe, expect, test } from "bun:test";
+
+// Set up environment BEFORE importing the module
+const TEST_HOSTS = "example.com,backy.hexly.ai,localhost:7026";
+process.env.ALLOWED_HOSTS = TEST_HOSTS;
+
+// Re-import to pick up the env var (Bun evaluates at import time)
+const { buildBaseUrl, ALLOWED_HOSTS } = await import("@/lib/hosts");
 
 describe("ALLOWED_HOSTS", () => {
-  test("contains default allowed hosts", () => {
-    expect(ALLOWED_HOSTS.has("backy.hexly.ai")).toBe(true);
+  test("contains expected hosts from env", () => {
+    expect(ALLOWED_HOSTS.has("example.com")).toBe(true);
     expect(ALLOWED_HOSTS.has("localhost:7026")).toBe(true);
   });
 
@@ -14,20 +20,6 @@ describe("ALLOWED_HOSTS", () => {
 });
 
 describe("buildBaseUrl", () => {
-  let savedAllowedHosts: string | undefined;
-
-  beforeEach(() => {
-    savedAllowedHosts = process.env.ALLOWED_HOSTS;
-  });
-
-  afterEach(() => {
-    if (savedAllowedHosts === undefined) {
-      delete process.env.ALLOWED_HOSTS;
-    } else {
-      process.env.ALLOWED_HOSTS = savedAllowedHosts;
-    }
-  });
-
   test("returns request origin when no x-forwarded-host", () => {
     const req = new Request("https://localhost:7026/api/projects/1/prompt");
     expect(buildBaseUrl(req)).toBe("https://localhost:7026");

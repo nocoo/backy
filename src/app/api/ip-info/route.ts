@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 
-const ECHO_API_URL = "https://echo.nocoo.cloud/api/ip";
+const ECHO_API_URL = process.env.ECHO_API_URL ?? "";
 const ECHO_API_KEY = process.env.ECHO_API_KEY ?? "";
 
 /**
- * GET /api/ip-info?ip=x.x.x.x — Proxy IP geolocation lookup to echo.nocoo.cloud.
+ * GET /api/ip-info?ip=x.x.x.x — Proxy IP geolocation lookup.
+ * Requires ECHO_API_URL and ECHO_API_KEY environment variables.
  */
 export async function GET(request: Request) {
+  if (!ECHO_API_URL) {
+    return NextResponse.json(
+      { error: "IP info service not configured" },
+      { status: 503 },
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const ip = searchParams.get("ip");

@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Railway reverse proxy** — Restored `trustHost` for Railway deployment and updated domain to `backy.hexly.ai`
+- **Railway reverse proxy** — Restored `trustHost` for Railway deployment and updated domain to `your-domain.example.com`
 - **Docker build** — Excluded `scripts/` and `e2e/` from tsconfig to fix production build
 
 ### Security

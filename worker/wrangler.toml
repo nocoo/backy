@@ -5,5 +5,7 @@ compatibility_date = "2025-01-01"
 [triggers]
 crons = ["0 * * * *"]
 
-[vars]
-BACKY_URL = "https://backy.dev.hexly.ai"
+# BACKY_URL must be set via environment variable (wrangler secret or platform env):
+# wrangler secret put BACKY_URL
+# Or set BACKY_URL=<your-deployment-url> in your platform's env config.
+# Do NOT hardcode deployment URLs in this file.

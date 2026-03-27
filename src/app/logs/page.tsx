@@ -58,7 +58,7 @@ interface ProjectInfo {
 const PAGE_SIZE = 50;
 
 /** The project names grouped under the optional test-traffic exclusion filter. */
-const EXCLUDED_PROJECT_NAMES = ["GunTest", "backy-test"];
+const EXCLUDED_PROJECT_NAMES = (process.env.EXCLUDED_LOG_PROJECT_NAMES ?? "backy-test").split(",").map((s) => s.trim());
 
 /** Client IPs grouped under the optional test-traffic exclusion filter. */
 const EXCLUDED_CLIENT_IPS = ["::1"];

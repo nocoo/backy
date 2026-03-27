@@ -16,7 +16,7 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | Metadata DB | Cloudflare D1 (remote REST API) |
 | File Storage | Cloudflare R2 (S3-compatible API) |
 | Deployment | Railway + Docker, port 7026 |
-| Domain | backy.dev.hexly.ai |
+| Domain | your-domain.example.com |
 
 ## Project Structure
 
