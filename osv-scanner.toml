@@ -25,3 +25,12 @@ reason = "Indirect: minimatch via eslint, @typescript-eslint, @ts-morph"
 id = "GHSA-7r86-cg39-jmmj"
 ignoreUntil = 2026-06-20
 reason = "Indirect: minimatch via eslint, @typescript-eslint, @ts-morph"
+
+# --- minimatch transitive dep ---
+# brace-expansion@2.0.2 is pulled by minimatch@9 (eslint, @typescript-eslint).
+# No fixed version available yet that satisfies minimatch's ^2.0.2 range.
+
+[[IgnoredVulns]]
+id = "GHSA-f886-m6hf-6m8v"
+ignoreUntil = 2026-06-26
+reason = "Indirect: brace-expansion@2.0.2 via minimatch@9 — no fixed version satisfies minimatch ^2.0.2"
