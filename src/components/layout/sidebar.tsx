@@ -16,10 +16,39 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { APP_VERSION } from "@/lib/version";
 import { useSidebar } from "./sidebar-context";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 import type { LucideIcon } from "lucide-react";
+
+const AVATAR_COLORS = [
+  "bg-red-600",
+  "bg-orange-600",
+  "bg-amber-600",
+  "bg-emerald-600",
+  "bg-teal-600",
+  "bg-cyan-600",
+  "bg-blue-600",
+  "bg-indigo-600",
+  "bg-violet-600",
+  "bg-pink-600",
+] as const;
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? "bg-blue-600";
+}
 
 interface NavItem {
   href: string;
@@ -134,7 +163,7 @@ export function Sidebar() {
     <aside
       className={cn(
         "sticky top-0 flex h-screen shrink-0 flex-col bg-background transition-all duration-300 ease-in-out overflow-hidden",
-        collapsed ? "w-[68px]" : "w-[240px]",
+        collapsed ? "w-[68px]" : "w-[260px]",
       )}
     >
       {collapsed ? (
@@ -163,28 +192,35 @@ export function Sidebar() {
 
           {/* Navigation (flat icons when collapsed) */}
           <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto pt-1">
-            {allNavItems.map((item) => {
-              const isActive =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(item.href);
+            <TooltipProvider delayDuration={0}>
+              {allNavItems.map((item) => {
+                const isActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(item.href);
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={item.label}
-                  className={cn(
-                    "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                    isActive
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
-                >
-                  <item.icon className="h-4 w-4" strokeWidth={1.5} />
-                </Link>
-              );
-            })}
+                return (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+                          isActive
+                            ? "bg-accent text-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" strokeWidth={1.5} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}>
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </TooltipProvider>
           </nav>
 
           {/* User sign out */}
@@ -192,27 +228,20 @@ export function Sidebar() {
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               title={`${userName} - Sign out`}
-              className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+              className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all rounded-full"
             >
-              {userImage ? (
-                <Image
-                  src={userImage}
-                  alt={userName}
-                  width={36}
-                  height={36}
-                  className="h-9 w-9 rounded-full object-cover"
-                />
-              ) : (
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
+              <Avatar className="h-9 w-9 shrink-0">
+                {userImage && <AvatarImage src={userImage} alt={userName} />}
+                <AvatarFallback className={cn("text-xs text-white", getAvatarColor(userName))}>
                   {userInitial}
-                </span>
-              )}
+                </AvatarFallback>
+              </Avatar>
             </button>
           </div>
         </div>
       ) : (
         /* ── Expanded view ── */
-        <div className="flex h-screen w-[240px] flex-col">
+        <div className="flex h-screen w-[260px] flex-col">
           {/* Header: logo + collapse toggle */}
           <div className="px-3 h-14 flex items-center">
             <div className="flex w-full items-center justify-between px-3">
@@ -226,7 +255,7 @@ export function Sidebar() {
                 />
                 <span className="text-lg font-bold tracking-tighter">backy</span>
                 <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  v{process.env.NEXT_PUBLIC_APP_VERSION}
+                  v{APP_VERSION}
                 </span>
               </div>
               <button
@@ -253,21 +282,12 @@ export function Sidebar() {
           {/* User info + sign out */}
           <div className="px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full overflow-hidden">
-                {userImage ? (
-                  <Image
-                    src={userImage}
-                    alt={userName}
-                    width={36}
-                    height={36}
-                    className="h-9 w-9 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
-                    {userInitial}
-                  </span>
-                )}
-              </div>
+              <Avatar className="h-9 w-9 shrink-0">
+                {userImage && <AvatarImage src={userImage} alt={userName} />}
+                <AvatarFallback className={cn("text-xs text-white", getAvatarColor(userName))}>
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{userName}</p>
                 <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
