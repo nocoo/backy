@@ -168,14 +168,15 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {groups.map((group) => {
+            {groups.map((group, i) => {
               const key = group.category?.id ?? "__uncategorized__";
               return (
-                <CategorySection
-                  key={key}
-                  group={group}
-                  showHeader={categories.length > 0}
-                />
+                <div key={key} className="animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+                  <CategorySection
+                    group={group}
+                    showHeader={categories.length > 0}
+                  />
+                </div>
               );
             })}
           </div>
