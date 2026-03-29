@@ -1,6 +1,6 @@
 {
   "name": "backy",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "private": true,
   "scripts": {
     "dev": "next dev --port 7026",
@@ -21,10 +21,12 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",
     "@aws-sdk/s3-request-presigner": "^3.1014.0",
+    "brace-expansion": "^5.0.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
+    "minimatch": "^9.0.9",
     "nanoid": "^5.1.7",
     "next": "16.1.7",
     "next-auth": "^5.0.0-beta.30",
