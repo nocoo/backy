@@ -473,7 +473,7 @@ export default function BackupDetailPage() {
               </div>
 
               {restoreCommand ? (
-                <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
+                <div className="rounded-[var(--radius-widget)] bg-secondary p-4 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground break-all whitespace-pre-wrap">
                       {restoreCommand}
@@ -531,7 +531,7 @@ export default function BackupDetailPage() {
             />
 
             {/* Sender IP card with geo info */}
-            <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
+            <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2">
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Globe className="h-4 w-4" />
                 <span className="text-xs">Sender</span>
@@ -585,7 +585,7 @@ export default function BackupDetailPage() {
             )}
 
             {/* File info */}
-            <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
+            <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2">
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <span className="text-xs">File Info</span>
               </div>
@@ -642,7 +642,7 @@ function MetadataItem({
   href?: string | undefined;
 }) {
   const content = (
-    <div className="rounded-lg border bg-card p-3 flex flex-col gap-1">
+    <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-1">
       <div className="flex items-center gap-1.5 text-muted-foreground">
         {icon}
         <span className="text-xs">{label}</span>
