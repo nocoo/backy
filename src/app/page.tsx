@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Archive, Loader2 } from "lucide-react";
+import { Archive } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   BackupsByProjectChart,
@@ -119,9 +120,7 @@ export default function HomePage() {
 
         {/* Stats cards */}
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <DashboardSkeleton />
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -218,5 +217,57 @@ function StatsCard({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="text-2xl font-semibold text-foreground mt-1">{value}</p>
     </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <>
+      {/* Stats row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-lg border border-border bg-background/50 p-4">
+            <Skeleton className="h-3 w-24 mb-2" />
+            <Skeleton className="h-7 w-16" />
+          </div>
+        ))}
+      </div>
+      {/* Chart row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="rounded-[var(--radius-card)] bg-secondary p-6">
+            <Skeleton className="h-4 w-32 mb-1" />
+            <Skeleton className="h-3 w-48 mb-4" />
+            <Skeleton className="h-[200px] w-full rounded-md" />
+          </div>
+        ))}
+      </div>
+      {/* Second chart row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="rounded-[var(--radius-card)] bg-secondary p-6">
+            <Skeleton className="h-4 w-32 mb-1" />
+            <Skeleton className="h-3 w-48 mb-4" />
+            <Skeleton className="h-[200px] w-full rounded-md" />
+          </div>
+        ))}
+      </div>
+      {/* Recent backups */}
+      <div>
+        <Skeleton className="h-3 w-28 mb-3" />
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-background/50 px-4 py-3">
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-32 mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
