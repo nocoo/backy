@@ -272,6 +272,12 @@ export default function BackupsPage() {
       : <ArrowUp className="h-3 w-3 text-primary" />;
   }
 
+  // aria-sort helper
+  function getAriaSort(column: SortBy): "ascending" | "descending" | "none" {
+    if (sortBy !== column) return "none";
+    return sortOrder === "asc" ? "ascending" : "descending";
+  }
+
   return (
     <AppShell breadcrumbs={[{ label: "Backups" }]}>
       <div className="relative flex flex-col gap-4">
@@ -430,36 +436,42 @@ export default function BackupsPage() {
         ) : data ? (
           <>
             {/* Table header */}
-            <div className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
-              <div className="w-5 shrink-0">
+            <div role="row" className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
+              <div role="columnheader" className="w-5 shrink-0">
                 <Checkbox
                   checked={allSelected ? true : someSelected ? "indeterminate" : false}
                   onCheckedChange={(checked) => handleSelectAll(checked === true)}
                 />
               </div>
-              <div className="w-9 shrink-0" />
-              <button
-                type="button"
-                className="flex items-center gap-1 min-w-0 flex-1 hover:text-foreground transition-colors cursor-pointer"
-                onClick={() => handleSort("project_name")}
-              >
-                Project <SortIcon column="project_name" />
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1 w-[140px] shrink-0 hover:text-foreground transition-colors cursor-pointer"
-                onClick={() => handleSort("created_at")}
-              >
-                Date <SortIcon column="created_at" />
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1 w-[80px] shrink-0 hover:text-foreground transition-colors cursor-pointer"
-                onClick={() => handleSort("file_size")}
-              >
-                Size <SortIcon column="file_size" />
-              </button>
-              <div className="w-[110px] shrink-0" />
+              <div role="columnheader" className="w-9 shrink-0" />
+              <div role="columnheader" aria-sort={getAriaSort("project_name")} className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                  onClick={() => handleSort("project_name")}
+                >
+                  Project <SortIcon column="project_name" />
+                </button>
+              </div>
+              <div role="columnheader" aria-sort={getAriaSort("created_at")} className="w-[140px] shrink-0">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                  onClick={() => handleSort("created_at")}
+                >
+                  Date <SortIcon column="created_at" />
+                </button>
+              </div>
+              <div role="columnheader" aria-sort={getAriaSort("file_size")} className="w-[80px] shrink-0">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                  onClick={() => handleSort("file_size")}
+                >
+                  Size <SortIcon column="file_size" />
+                </button>
+              </div>
+              <div role="columnheader" className="w-[110px] shrink-0" />
             </div>
 
             {/* Backup rows */}
