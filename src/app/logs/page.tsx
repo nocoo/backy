@@ -457,7 +457,7 @@ export default function LogsPage() {
 
   return (
     <AppShell breadcrumbs={[{ label: "Logs" }]}>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 md:gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
