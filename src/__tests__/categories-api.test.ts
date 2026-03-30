@@ -35,7 +35,7 @@ const { GET: getGET, PUT, DELETE: routeDELETE } = await import("@/app/api/catego
 // --- Helpers ---
 
 function jsonRequest(body: unknown, method = "POST"): Request {
-  return new Request("http://localhost:7026/api/categories", {
+  return new Request("http://localhost:7017/api/categories", {
     method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -144,7 +144,7 @@ describe("GET /api/categories/[id]", () => {
   });
 
   test("returns a single category by ID", async () => {
-    const req = new Request("http://localhost:7026/api/categories/cat-1");
+    const req = new Request("http://localhost:7017/api/categories/cat-1");
     const params = Promise.resolve({ id: "cat-1" });
     const res = await getGET(req, { params });
     expect(res.status).toBe(200);
@@ -155,7 +155,7 @@ describe("GET /api/categories/[id]", () => {
 
   test("returns 404 when category not found", async () => {
     mockGetResult = undefined;
-    const req = new Request("http://localhost:7026/api/categories/nonexistent");
+    const req = new Request("http://localhost:7017/api/categories/nonexistent");
     const params = Promise.resolve({ id: "nonexistent" });
     const res = await getGET(req, { params });
     expect(res.status).toBe(404);
@@ -170,7 +170,7 @@ describe("PUT /api/categories/[id]", () => {
   });
 
   test("updates a category with valid data and returns 200", async () => {
-    const req = new Request("http://localhost:7026/api/categories/cat-1", {
+    const req = new Request("http://localhost:7017/api/categories/cat-1", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Updated", color: "#10b981" }),
@@ -184,7 +184,7 @@ describe("PUT /api/categories/[id]", () => {
 
   test("returns 404 when updating nonexistent category", async () => {
     mockUpdateResult = undefined;
-    const req = new Request("http://localhost:7026/api/categories/nonexistent", {
+    const req = new Request("http://localhost:7017/api/categories/nonexistent", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Nope" }),
@@ -197,7 +197,7 @@ describe("PUT /api/categories/[id]", () => {
   });
 
   test("rejects invalid color format with 400", async () => {
-    const req = new Request("http://localhost:7026/api/categories/cat-1", {
+    const req = new Request("http://localhost:7017/api/categories/cat-1", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ color: "not-a-color" }),
@@ -208,7 +208,7 @@ describe("PUT /api/categories/[id]", () => {
   });
 
   test("rejects empty name with 400", async () => {
-    const req = new Request("http://localhost:7026/api/categories/cat-1", {
+    const req = new Request("http://localhost:7017/api/categories/cat-1", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "" }),
@@ -220,7 +220,7 @@ describe("PUT /api/categories/[id]", () => {
 
   test("accepts partial updates (only icon)", async () => {
     mockUpdateResult = { ...mockCategory, icon: "star" };
-    const req = new Request("http://localhost:7026/api/categories/cat-1", {
+    const req = new Request("http://localhost:7017/api/categories/cat-1", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ icon: "star" }),
@@ -239,7 +239,7 @@ describe("DELETE /api/categories/[id]", () => {
   });
 
   test("deletes an existing category and returns 200", async () => {
-    const req = new Request("http://localhost:7026/api/categories/cat-1", { method: "DELETE" });
+    const req = new Request("http://localhost:7017/api/categories/cat-1", { method: "DELETE" });
     const params = Promise.resolve({ id: "cat-1" });
     const res = await routeDELETE(req, { params });
     expect(res.status).toBe(200);
@@ -249,7 +249,7 @@ describe("DELETE /api/categories/[id]", () => {
 
   test("returns 404 when deleting nonexistent category", async () => {
     mockDeleteResult = false;
-    const req = new Request("http://localhost:7026/api/categories/nonexistent", { method: "DELETE" });
+    const req = new Request("http://localhost:7017/api/categories/nonexistent", { method: "DELETE" });
     const params = Promise.resolve({ id: "nonexistent" });
     const res = await routeDELETE(req, { params });
     expect(res.status).toBe(404);

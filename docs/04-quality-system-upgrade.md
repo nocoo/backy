@@ -57,12 +57,12 @@ pre-commit (<30s)
     ↕ sequential: G1 first, then L1
 
 pre-push (<3min)
-├── L2: bun run test:e2e:api           (API E2E on port 17026)
+├── L2: bun run test:e2e:api           (API E2E on port 17017)
 └── G2: bun run gate:security          (osv-scanner + gitleaks)
     ↕ parallel
 
 on-demand
-└── L3: bun run test:e2e:bdd           (Playwright on port 27026)
+└── L3: bun run test:e2e:bdd           (Playwright on port 27017)
 ```
 
 ### Why pre-commit is sequential, not parallel
@@ -223,13 +223,13 @@ Replace the command table under the `## 📋 常用命令` section with:
 ```markdown
 | 命令 | 说明 |
 |------|------|
-| `bun dev` | 启动开发服务器 (端口 7026) |
+| `bun dev` | 启动开发服务器 (端口 7017) |
 | `bun run build` | 生产构建 |
 | `bun start` | 启动生产服务器 |
 | `bun test` | 运行单元测试 (486 tests) |
 | `bun run test:coverage` | 单元测试 + 90% 覆盖率门禁 |
-| `bun run test:e2e:api` | API E2E 测试 (146 tests, port 17026) |
-| `bun run test:e2e:bdd` | Playwright E2E 测试 (5 specs, port 27026) |
+| `bun run test:e2e:api` | API E2E 测试 (146 tests, port 17017) |
+| `bun run test:e2e:bdd` | Playwright E2E 测试 (5 specs, port 27017) |
 | `bun run typecheck` | TypeScript 类型检查 |
 | `bun run lint` | ESLint 检查 |
 | `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |

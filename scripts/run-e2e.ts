@@ -1,6 +1,6 @@
 /**
  * E2E test runner — starts a dedicated dev server with E2E_SKIP_AUTH=true
- * on port 17026, runs all E2E tests, cleans up test data, and exits.
+ * on port 17017, runs all E2E tests, cleans up test data, and exits.
  *
  * Startup sequence:
  * 1. Kill any orphan process on E2E_PORT (from previous crashed runs)
@@ -17,7 +17,7 @@ import { runE2ETests } from "../e2e/api/runner";
 import { seedTestProject } from "../e2e/api/config";
 import { loadTestEnv } from "./load-env-test";
 
-const E2E_PORT = 17026;
+const E2E_PORT = 17017;
 const STARTUP_TIMEOUT = 60_000; // 60s for Next.js to compile
 
 async function isServerReady(url: string): Promise<boolean> {

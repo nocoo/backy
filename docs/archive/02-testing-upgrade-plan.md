@@ -9,7 +9,7 @@ Upgrade from 3-tier testing to 4-tier testing architecture.
 | L1 - UT | ✅ Complete | 34 test files, 421 tests, 93.9% functions / 96.4% lines, shared helpers in `src/__tests__/helpers.ts` |
 | L2 - Lint | ✅ Complete | ESLint + next/core-web-vitals + typescript, pre-commit, zero errors |
 | L3 - API E2E | ✅ Complete | 21 suites in `e2e/api/suites/`, 146 tests, 31 API route/method combos |
-| L4 - BDD E2E | ✅ Complete | 5 Playwright specs, 17 tests, port 27026 |
+| L4 - BDD E2E | ✅ Complete | 5 Playwright specs, 17 tests, port 27017 |
 
 ## Target State
 
@@ -17,8 +17,8 @@ Upgrade from 3-tier testing to 4-tier testing architecture.
 |---|---|---|---|
 | L1 - UT | bun test | pre-commit | 90%+ coverage |
 | L2 - Lint | eslint | pre-commit | Zero errors/warnings |
-| L3 - API E2E | custom runner (port 17026) | pre-push | 100% API routes |
-| L4 - BDD E2E | Playwright (port 27026) | pre-push | Core user flows |
+| L3 - API E2E | custom runner (port 17017) | pre-push | 100% API routes |
+| L4 - BDD E2E | Playwright (port 27017) | pre-push | Core user flows |
 
 ## Execution Plan
 
@@ -54,7 +54,7 @@ Split monolith `scripts/e2e-tests.ts` into `e2e/api/` modules.
 Introduce browser-level tests for core user flows.
 
 - [x] 4.1 Install Playwright + configure `e2e/bdd/playwright.config.ts`
-- [x] 4.2 Create `e2e/bdd/runner.ts` — starts dev server on port 27026, runs Playwright
+- [x] 4.2 Create `e2e/bdd/runner.ts` — starts dev server on port 27017, runs Playwright
 - [x] 4.3 Write BDD specs for 5 core flows:
   - Dashboard renders with stat cards and charts
   - Project list, creation, and detail navigation

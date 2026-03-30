@@ -48,7 +48,7 @@ const { POST } = await import("@/app/api/backups/[id]/extract/route");
 // --- Helpers ---
 
 function callPOST(id: string) {
-  const req = new Request(`http://localhost:7026/api/backups/${id}/extract`, {
+  const req = new Request(`http://localhost:7017/api/backups/${id}/extract`, {
     method: "POST",
   });
   return POST(req, { params: Promise.resolve({ id }) });

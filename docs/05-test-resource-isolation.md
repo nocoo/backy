@@ -18,8 +18,8 @@ E2E tests (L2 API E2E + L3 Playwright BDD) start a dedicated Next.js dev server 
 ```
 .env (production credentials)
     ↓ ...process.env
-scripts/run-e2e.ts → dev server :17026 → SAME D1 + R2 as production
-e2e/bdd/runner.ts  → dev server :27026 → SAME D1 + R2 as production
+scripts/run-e2e.ts → dev server :17017 → SAME D1 + R2 as production
+e2e/bdd/runner.ts  → dev server :27017 → SAME D1 + R2 as production
 ```
 
 ## Target Naming Convention
@@ -67,7 +67,7 @@ backy-db (new, uuid <new>)
   D1_DATABASE_ID=<backy-db-uuid>   D1_DATABASE_ID=<backy-db-test-uuid>
   R2_BUCKET_NAME=backy              R2_BUCKET_NAME=backy-test
 
-Dev server (port 7026)           E2E servers (port 17026, 27026)
+Dev server (port 7017)           E2E servers (port 17017, 27017)
   → reads .env                     → reads .env, then overrides with .env.test
   → hits backy-db D1 + backy R2    → hits backy-db-test D1 + backy-test R2
 ```
@@ -588,7 +588,7 @@ wrangler r2 bucket create backy-test
 1. `bun run test:e2e:api` — all 146 tests pass against test D1 + R2
 2. `wrangler d1 execute backy-db-test --command "SELECT id, name, webhook_token, allowed_ips FROM projects"` — shows baseline state
 3. Production D1 unaffected — `wrangler d1 execute backy-db --command "SELECT count(*) FROM projects"` shows unchanged count
-4. Dev server auth gate — `curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:7026/api/db/seed-test-project` returns 307 (proxy redirects unauthenticated requests to /login; confirms seed endpoint is not publicly accessible on a non-E2E dev server. On Railway production, `E2E_SKIP_AUTH` is also unset, so the route handler itself would return 403 as a second layer)
+4. Dev server auth gate — `curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:7017/api/db/seed-test-project` returns 307 (proxy redirects unauthenticated requests to /login; confirms seed endpoint is not publicly accessible on a non-E2E dev server. On Railway production, `E2E_SKIP_AUTH` is also unset, so the route handler itself would return 403 as a second layer)
 5. Dirty data test: `wrangler d1 execute backy-db-test --command "UPDATE projects SET allowed_ips = '10.0.0.0/8' WHERE id = 'mnp039joh6yiala5UY0Hh'"` → run E2E → seed reports "reset" → all tests pass
 6. Orphan cleanup test: `wrangler d1 execute backy-db-test --command "INSERT INTO backups (id, project_id, r2_key, file_name, file_type, file_size, created_at) VALUES ('orphan-test', 'mnp039joh6yiala5UY0Hh', 'fake/key', 'orphan.txt', 'text/plain', 1, datetime('now'))"` → run E2E → seed log shows "cleaned 1 orphaned backups" → `SELECT count(*) FROM backups WHERE id = 'orphan-test'` returns 0
 
@@ -715,7 +715,7 @@ After all commits:
 - [ ] Removing `.env.test` causes E2E runner to hard-fail with clear message
 - [ ] `.env.test` with production `D1_DATABASE_ID` causes E2E runner to hard-fail with "identical to production" error
 - [ ] `.env.test` with production `R2_BUCKET_NAME=backy` causes E2E runner to hard-fail with "identical to production" error
-- [ ] Dev server auth gate: `curl -X POST http://localhost:7026/api/db/seed-test-project` returns 307 redirect (proxy blocks unauthenticated access; on Railway production `E2E_SKIP_AUTH` is unset so route itself also returns 403)
+- [ ] Dev server auth gate: `curl -X POST http://localhost:7017/api/db/seed-test-project` returns 307 redirect (proxy blocks unauthenticated access; on Railway production `E2E_SKIP_AUTH` is unset so route itself also returns 403)
 - [ ] Dirty data test: set `allowed_ips = '10.0.0.0/8'` on test project → seed reports "reset" → all fields back to baseline → E2E passes
 - [ ] Orphan cleanup test: manually insert a fake backup row for the test project in `backy-db-test` → run E2E → seed log shows "cleaned 1 orphaned backups" → row no longer in D1
 - [ ] `bun run test:coverage` — L1 unaffected, 486+ tests pass

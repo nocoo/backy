@@ -15,7 +15,7 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 | Auth | NextAuth v5 + Google OAuth (whitelist) |
 | Metadata DB | Cloudflare D1 (remote REST API, exponential backoff retry) |
 | File Storage | Cloudflare R2 (S3-compatible API, AWS SDK v3) |
-| Deployment | Railway + Docker (3-stage), port 7026 |
+| Deployment | Railway + Docker (3-stage), port 7017 |
 | Domain | your-domain.example.com |
 
 ## Data Model (D1)

@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { PROJECT_STUBS, makeProject } from "./helpers";
 
 // Ensure backy.hexly.ai is in ALLOWED_HOSTS for x-forwarded-host tests
-process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7026";
+process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7017";
 
 // --- Mutable mock state ---
 
@@ -32,7 +32,7 @@ describe("/api/projects/[id]/prompt", () => {
     mockGetProject = async () => project;
 
     const res = await GET(
-      new Request("http://localhost:7026/api/projects/proj-abc/prompt"),
+      new Request("http://localhost:7017/api/projects/proj-abc/prompt"),
       makeParams("proj-abc"),
     );
     const body = await res.json();
@@ -53,7 +53,7 @@ describe("/api/projects/[id]/prompt", () => {
     mockGetProject = async () => project;
 
     const res = await GET(
-      new Request("http://localhost:7026/api/projects/proj-test/prompt"),
+      new Request("http://localhost:7017/api/projects/proj-test/prompt"),
       makeParams("proj-test"),
     );
     const body = await res.json();
@@ -68,7 +68,7 @@ describe("/api/projects/[id]/prompt", () => {
     mockGetProject = async () => project;
 
     const res = await GET(
-      new Request("http://localhost:7026/api/projects/proj-test/prompt"),
+      new Request("http://localhost:7017/api/projects/proj-test/prompt"),
       makeParams("proj-test"),
     );
     const body = await res.json();
@@ -81,7 +81,7 @@ describe("/api/projects/[id]/prompt", () => {
     mockGetProject = async () => project;
 
     const res = await GET(
-      new Request("http://localhost:7026/api/projects/proj-test/prompt", {
+      new Request("http://localhost:7017/api/projects/proj-test/prompt", {
         headers: {
           "x-forwarded-host": "backy.hexly.ai",
           "x-forwarded-proto": "https",
@@ -99,7 +99,7 @@ describe("/api/projects/[id]/prompt", () => {
     mockGetProject = async () => project;
 
     const res = await GET(
-      new Request("http://localhost:7026/api/projects/proj-test/prompt", {
+      new Request("http://localhost:7017/api/projects/proj-test/prompt", {
         headers: {
           "x-forwarded-host": "evil.com",
           "x-forwarded-proto": "https",
@@ -111,12 +111,12 @@ describe("/api/projects/[id]/prompt", () => {
 
     // Should fall back to request origin, NOT use evil.com
     expect(body.prompt).not.toContain("evil.com");
-    expect(body.prompt).toContain("localhost:7026");
+    expect(body.prompt).toContain("localhost:7017");
   });
 
   test("returns 404 when project not found", async () => {
     const res = await GET(
-      new Request("http://localhost:7026/api/projects/missing/prompt"),
+      new Request("http://localhost:7017/api/projects/missing/prompt"),
       makeParams("missing"),
     );
     expect(res.status).toBe(404);
@@ -128,7 +128,7 @@ describe("/api/projects/[id]/prompt", () => {
     };
 
     const res = await GET(
-      new Request("http://localhost:7026/api/projects/proj-test/prompt"),
+      new Request("http://localhost:7017/api/projects/proj-test/prompt"),
       makeParams("proj-test"),
     );
     expect(res.status).toBe(500);

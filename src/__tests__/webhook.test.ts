@@ -126,7 +126,7 @@ function createRequest(options: {
     formData.append("tag", options.tag);
   }
 
-  return new Request("http://localhost:7026/api/webhook/proj-123", {
+  return new Request("http://localhost:7017/api/webhook/proj-123", {
     method: "POST",
     headers,
     body: formData,
@@ -159,7 +159,7 @@ describe("POST /api/webhook/[projectId]", () => {
 
   test("rejects requests without file", async () => {
     const formData = new FormData();
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       method: "POST",
       headers: { Authorization: "Bearer valid-token" },
       body: formData,
@@ -226,7 +226,7 @@ describe("HEAD /api/webhook/[projectId]", () => {
   const params = Promise.resolve({ projectId: "proj-123" });
 
   test("returns 200 with valid token and matching project", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       method: "HEAD",
       headers: { Authorization: "Bearer valid-token" },
     });
@@ -237,7 +237,7 @@ describe("HEAD /api/webhook/[projectId]", () => {
   });
 
   test("returns 401 without Authorization header", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       method: "HEAD",
     });
     const res = await HEAD(req, { params });
@@ -246,7 +246,7 @@ describe("HEAD /api/webhook/[projectId]", () => {
   });
 
   test("returns 403 with invalid token", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       method: "HEAD",
       headers: { Authorization: "Bearer wrong-token" },
     });
@@ -256,7 +256,7 @@ describe("HEAD /api/webhook/[projectId]", () => {
   });
 
   test("returns 403 with project ID mismatch", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/wrong-id", {
+    const req = new Request("http://localhost:7017/api/webhook/wrong-id", {
       method: "HEAD",
       headers: { Authorization: "Bearer valid-token" },
     });
@@ -267,7 +267,7 @@ describe("HEAD /api/webhook/[projectId]", () => {
   });
 
   test("returns 401 with malformed Authorization header", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       method: "HEAD",
       headers: { Authorization: "Basic dXNlcjpwYXNz" },
     });
@@ -281,13 +281,13 @@ describe("GET /api/webhook/[projectId]", () => {
   const params = Promise.resolve({ projectId: "proj-123" });
 
   test("returns 401 without Authorization header", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123");
+    const req = new Request("http://localhost:7017/api/webhook/proj-123");
     const res = await GET(req, { params });
     expect(res.status).toBe(401);
   });
 
   test("returns 403 with invalid token", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       headers: { Authorization: "Bearer wrong-token" },
     });
     const res = await GET(req, { params });
@@ -295,7 +295,7 @@ describe("GET /api/webhook/[projectId]", () => {
   });
 
   test("returns 403 with project ID mismatch", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/wrong-id", {
+    const req = new Request("http://localhost:7017/api/webhook/wrong-id", {
       headers: { Authorization: "Bearer valid-token" },
     });
     const wrongParams = Promise.resolve({ projectId: "wrong-id" });
@@ -304,7 +304,7 @@ describe("GET /api/webhook/[projectId]", () => {
   });
 
   test("returns backup status with valid token", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       headers: { Authorization: "Bearer valid-token" },
     });
     const res = await GET(req, { params });
@@ -322,7 +322,7 @@ describe("GET /api/webhook/[projectId]", () => {
   });
 
   test("passes environment filter to query", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123?environment=prod", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123?environment=prod", {
       headers: { Authorization: "Bearer valid-token" },
     });
     const res = await GET(req, { params });
@@ -334,7 +334,7 @@ describe("GET /api/webhook/[projectId]", () => {
   });
 
   test("returns only essential fields in recent_backups", async () => {
-    const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+    const req = new Request("http://localhost:7017/api/webhook/proj-123", {
       headers: { Authorization: "Bearer valid-token" },
     });
     const res = await GET(req, { params });
@@ -360,7 +360,7 @@ describe("IP restriction enforcement", () => {
 
   describe("HEAD — IP check", () => {
     test("returns 200 when IP is in allowed range", async () => {
-      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-456", {
         method: "HEAD",
         headers: {
           Authorization: "Bearer ip-restricted-token",
@@ -372,7 +372,7 @@ describe("IP restriction enforcement", () => {
     });
 
     test("returns 403 when IP is outside allowed range", async () => {
-      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-456", {
         method: "HEAD",
         headers: {
           Authorization: "Bearer ip-restricted-token",
@@ -384,7 +384,7 @@ describe("IP restriction enforcement", () => {
     });
 
     test("returns 403 when no x-forwarded-for header on IP-restricted project", async () => {
-      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-456", {
         method: "HEAD",
         headers: { Authorization: "Bearer ip-restricted-token" },
       });
@@ -395,7 +395,7 @@ describe("IP restriction enforcement", () => {
 
   describe("GET — IP check", () => {
     test("returns 200 when IP is in allowed range", async () => {
-      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-456", {
         headers: {
           Authorization: "Bearer ip-restricted-token",
           "x-forwarded-for": "192.168.1.100",
@@ -406,7 +406,7 @@ describe("IP restriction enforcement", () => {
     });
 
     test("returns 403 when IP is outside allowed range", async () => {
-      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-456", {
         headers: {
           Authorization: "Bearer ip-restricted-token",
           "x-forwarded-for": "8.8.8.8",
@@ -423,7 +423,7 @@ describe("IP restriction enforcement", () => {
     test("returns 201 when IP is in allowed range", async () => {
       const formData = new FormData();
       formData.append("file", new File(["data"], "backup.json", { type: "application/json" }));
-      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-456", {
         method: "POST",
         headers: {
           Authorization: "Bearer ip-restricted-token",
@@ -438,7 +438,7 @@ describe("IP restriction enforcement", () => {
     test("returns 403 when IP is outside allowed range", async () => {
       const formData = new FormData();
       formData.append("file", new File(["data"], "backup.json", { type: "application/json" }));
-      const req = new Request("http://localhost:7026/api/webhook/proj-456", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-456", {
         method: "POST",
         headers: {
           Authorization: "Bearer ip-restricted-token",
@@ -457,7 +457,7 @@ describe("IP restriction enforcement", () => {
     const openParams = Promise.resolve({ projectId: "proj-123" });
 
     test("HEAD allows any IP when allowed_ips is null", async () => {
-      const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-123", {
         method: "HEAD",
         headers: {
           Authorization: "Bearer valid-token",
@@ -469,7 +469,7 @@ describe("IP restriction enforcement", () => {
     });
 
     test("GET allows any IP when allowed_ips is null", async () => {
-      const req = new Request("http://localhost:7026/api/webhook/proj-123", {
+      const req = new Request("http://localhost:7017/api/webhook/proj-123", {
         headers: {
           Authorization: "Bearer valid-token",
           "x-forwarded-for": "1.2.3.4",

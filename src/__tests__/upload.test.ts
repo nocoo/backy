@@ -77,7 +77,7 @@ function uploadRequest(opts: {
     formData.append("environment", opts.environment);
   }
 
-  return new Request("http://localhost:7026/api/backups/upload", {
+  return new Request("http://localhost:7017/api/backups/upload", {
     method: "POST",
     body: formData,
   });
@@ -129,7 +129,7 @@ describe("POST /api/backups/upload", () => {
   test("returns 400 when file is missing", async () => {
     const formData = new FormData();
     formData.append("projectId", "proj-123");
-    const req = new Request("http://localhost:7026/api/backups/upload", {
+    const req = new Request("http://localhost:7017/api/backups/upload", {
       method: "POST",
       body: formData,
     });

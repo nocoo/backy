@@ -17,7 +17,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXTAUTH_URL || "http://localhost:7026",
+    process.env.NEXTAUTH_URL || "http://localhost:7017",
   ),
   title: "Backy - AI Backup Service",
   description:

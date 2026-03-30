@@ -152,7 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **4-Tier Testing Architecture** — Upgraded from 3-tier to 4-tier: L1 Unit Tests (pre-commit), L2 Lint (pre-commit), L3 API E2E (pre-push, port 17026), L4 BDD E2E (pre-push, port 27026)
+- **4-Tier Testing Architecture** — Upgraded from 3-tier to 4-tier: L1 Unit Tests (pre-commit), L2 Lint (pre-commit), L3 API E2E (pre-push, port 17017), L4 BDD E2E (pre-push, port 27017)
 - **E2E Modularization** — Split 2012-line monolithic E2E file into `e2e/api/` with 21 individual suite files, shared framework, config, and helpers
 - **Unit test count** — 335 → 421 unit tests across 34 files (12 new route handler test files)
 - **Test coverage** — 93.9% functions, 96.39% lines
@@ -163,7 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New directory**: `e2e/api/` — Modular L3 API E2E structure (config, framework, helpers, runner, 21 suites)
 - **New directory**: `e2e/bdd/` — L4 Playwright BDD E2E (config, runner, 5 spec files)
 - **New dependency**: `@playwright/test` + Chromium for browser-level E2E testing
-- **New scripts**: `test:e2e:bdd` for L4 BDD E2E runner (port 27026)
+- **New scripts**: `test:e2e:bdd` for L4 BDD E2E runner (port 27017)
 
 ## [1.4.0] - 2026-03-02
 

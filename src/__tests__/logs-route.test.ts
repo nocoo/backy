@@ -27,7 +27,7 @@ const { GET, DELETE } = await import("@/app/api/logs/route");
 
 function makeRequest(path: string, init?: RequestInit) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new NextRequest(new URL(path, "http://localhost:7026"), init as any);
+  return new NextRequest(new URL(path, "http://localhost:7017"), init as any);
 }
 
 describe("/api/logs", () => {

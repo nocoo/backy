@@ -32,7 +32,7 @@ function makeFetchRouter(
 const { POST } = await import("@/app/api/cron/trigger/[projectId]/route");
 
 function makeRequest(projectId: string): NextRequest {
-  return new NextRequest(`http://localhost:7026/api/cron/trigger/${projectId}`, {
+  return new NextRequest(`http://localhost:7017/api/cron/trigger/${projectId}`, {
     method: "POST",
   });
 }

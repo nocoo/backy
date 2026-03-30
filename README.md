@@ -72,7 +72,7 @@ R2_SECRET_ACCESS_KEY=your-r2-secret-key
 R2_BUCKET_NAME=your-bucket-name
 ```
 
-> 💡 **提示**: Google OAuth 回调地址设置为 `http://localhost:7026/api/auth/callback/google`
+> 💡 **提示**: Google OAuth 回调地址设置为 `http://localhost:7017/api/auth/callback/google`
 
 ### 3️⃣ 启动开发服务器
 
@@ -80,7 +80,7 @@ R2_BUCKET_NAME=your-bucket-name
 bun dev
 ```
 
-打开浏览器访问 👉 [http://localhost:7026](http://localhost:7026)
+打开浏览器访问 👉 [http://localhost:7017](http://localhost:7017)
 
 ## 📁 项目结构
 
@@ -91,7 +91,7 @@ backy/
 ├── 📂 public/                      # 静态资源 (logo, favicon)
 ├── 📂 scripts/                     # 工具脚本
 │   ├── e2e-tests.ts                # E2E 测试用例 (34 tests)
-│   ├── run-e2e.ts                  # E2E 运行器 (port 17026)
+│   ├── run-e2e.ts                  # E2E 运行器 (port 17017)
 │   ├── check-coverage.ts           # 测试覆盖率检查
 │   └── resize-logo.py              # Logo 处理脚本
 ├── 📂 src/
@@ -254,13 +254,13 @@ curl https://your-domain.example.com/api/restore/{backupId} \
 
 | 命令 | 说明 |
 |------|------|
-| `bun dev` | 启动开发服务器 (端口 7026) |
+| `bun dev` | 启动开发服务器 (端口 7017) |
 | `bun run build` | 生产构建 |
 | `bun start` | 启动生产服务器 |
 | `bun test` | 运行单元测试 (486 tests) |
 | `bun run test:coverage` | 单元测试 + 90% 覆盖率门禁 |
-| `bun run test:e2e:api` | API E2E 测试 (146 tests, port 17026) |
-| `bun run test:e2e:bdd` | Playwright E2E 测试 (5 specs, port 27026) |
+| `bun run test:e2e:api` | API E2E 测试 (146 tests, port 17017) |
+| `bun run test:e2e:bdd` | Playwright E2E 测试 (5 specs, port 27017) |
 | `bun run typecheck` | TypeScript 类型检查 |
 | `bun run lint` | ESLint 检查 |
 | `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |

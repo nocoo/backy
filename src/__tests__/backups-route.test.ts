@@ -45,7 +45,7 @@ const { GET, DELETE } = await import("@/app/api/backups/route");
 function makeRequest(path: string, init?: RequestInit) {
   // NextRequest constructor types are stricter than standard RequestInit
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new NextRequest(new URL(path, "http://localhost:7026"), init as any);
+  return new NextRequest(new URL(path, "http://localhost:7017"), init as any);
 }
 
 describe("/api/backups", () => {

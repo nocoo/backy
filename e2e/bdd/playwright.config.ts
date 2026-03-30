@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const BDD_PORT = 27026;
+const BDD_PORT = 27017;
 
 export default defineConfig({
   testDir: "./specs",

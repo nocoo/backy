@@ -31,7 +31,7 @@ function makeRequest(token?: string): NextRequest {
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  return new NextRequest("http://localhost:7026/api/cron/trigger", {
+  return new NextRequest("http://localhost:7017/api/cron/trigger", {
     method: "POST",
     headers,
   });

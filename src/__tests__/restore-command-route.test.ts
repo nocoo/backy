@@ -28,7 +28,7 @@ function makeParams(id: string) {
 
 function callGET(id: string) {
   return GET(
-    new Request(`http://localhost:7026/api/backups/${id}/restore-command`),
+    new Request(`http://localhost:7017/api/backups/${id}/restore-command`),
     makeParams(id),
   );
 }

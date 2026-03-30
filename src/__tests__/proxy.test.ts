@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { NextRequest, NextResponse } from "next/server";
 
 // Ensure backy.hexly.ai is in ALLOWED_HOSTS for x-forwarded-host tests
-process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7026";
+process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7017";
 
 // Track what auth() callback returns based on auth state
 let mockIsLoggedIn = false;
@@ -26,7 +26,7 @@ function createRequest(pathname: string, headers?: Record<string, string>): Next
   if (headers) {
     init.headers = new Headers(headers);
   }
-  return new NextRequest(new URL(pathname, "http://localhost:7026"), init);
+  return new NextRequest(new URL(pathname, "http://localhost:7017"), init);
 }
 
 async function callProxy(req: NextRequest): Promise<Response> {
@@ -159,7 +159,7 @@ describe("proxy auth rules", () => {
       expect(res.status).toBe(307);
       const location = res.headers.get("location")!;
       expect(location).not.toContain("evil.attacker.com");
-      expect(location).toContain("localhost:7026");
+      expect(location).toContain("localhost:7017");
     });
   });
 });

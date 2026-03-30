@@ -1,6 +1,6 @@
 /**
  * BDD E2E runner — starts a dedicated dev server with E2E_SKIP_AUTH=true
- * on port 27026, runs Playwright BDD specs, and exits.
+ * on port 27017, runs Playwright BDD specs, and exits.
  *
  * Startup sequence:
  * 1. Kill any orphan process on BDD_PORT
@@ -17,7 +17,7 @@ import { join } from "path";
 import { loadTestEnv } from "../../scripts/load-env-test";
 import { seedTestProject } from "../api/config";
 
-const BDD_PORT = 27026;
+const BDD_PORT = 27017;
 const STARTUP_TIMEOUT = 60_000;
 
 async function isServerReady(url: string): Promise<boolean> {
