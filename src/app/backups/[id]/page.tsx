@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -261,9 +262,7 @@ export default function BackupDetailPage() {
   if (loading) {
     return (
       <AppShell breadcrumbs={[{ label: "Backups", href: "/backups" }, { label: "..." }]}>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+        <BackupDetailSkeleton />
       </AppShell>
     );
   }
@@ -662,4 +661,92 @@ function MetadataItem({
   }
 
   return content;
+}
+
+function BackupDetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-20 rounded-md" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5" />
+            <Skeleton className="h-6 w-40" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-28 rounded-md" />
+          <Skeleton className="h-8 w-20 rounded-md" />
+        </div>
+      </div>
+
+      {/* Main content: left-right layout (8:4) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left column (8/12) */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          {/* JSON Preview section */}
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-8 w-40 rounded-md" />
+            </div>
+            <div className="rounded-lg border bg-secondary p-6">
+              <Skeleton className="h-48 w-full rounded-md" />
+            </div>
+          </section>
+
+          {/* Restore URL section */}
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-8 w-40 rounded-md" />
+            </div>
+            <div className="rounded-lg border bg-secondary p-6 flex items-center justify-center">
+              <div className="text-center">
+                <Skeleton className="h-8 w-8 mx-auto mb-2" />
+                <Skeleton className="h-4 w-56" />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Right column (4/12) */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          <Skeleton className="h-5 w-16" />
+          {/* Metadata items */}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2"
+            >
+              <div className="flex items-center gap-1.5">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-4 w-32" />
+            </div>
+          ))}
+          {/* File info */}
+          <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2">
+            <Skeleton className="h-3 w-16" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-5 w-12 rounded-full" />
+            </div>
+            <div className="flex items-center gap-1">
+              <Skeleton className="h-3 w-8" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Metadata footer */}
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-3 w-32" />
+      </div>
+    </div>
+  );
 }
