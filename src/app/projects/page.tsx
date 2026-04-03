@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useMemo, createElement } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, FolderKanban, Loader2, Folder } from "lucide-react";
+import { Plus, FolderKanban, Folder } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { CategoryManagement } from "@/components/category-management";
@@ -132,9 +133,7 @@ export default function ProjectsPage() {
 
         {/* Content */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <ProjectsListSkeleton />
         ) : error ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
             <p className="text-sm text-destructive">{error}</p>
@@ -284,5 +283,41 @@ function ProjectCard({
         <p className="text-xs text-muted-foreground">{createdAt}</p>
       </div>
     </Link>
+  );
+}
+
+function ProjectsListSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Category group skeleton */}
+      {Array.from({ length: 2 }).map((_, groupIdx) => (
+        <div key={groupIdx} className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 px-1">
+            <Skeleton className="h-3.5 w-3.5 rounded" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-3 w-8" />
+          </div>
+          <div className="grid grid-cols-1 gap-1.5">
+            {Array.from({ length: groupIdx === 0 ? 3 : 2 }).map((_, cardIdx) => (
+              <div
+                key={cardIdx}
+                className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3.5"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <div className="min-w-0">
+                    <Skeleton className="h-4 w-32 mb-1.5" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+                <div className="shrink-0 ml-4">
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
