@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -377,9 +378,7 @@ export default function CronLogsPage() {
 
         {/* Content */}
         {loading && !data ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <CronLogsListSkeleton />
         ) : error && !data ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
             <p className="text-sm text-destructive">{error}</p>
@@ -609,4 +608,53 @@ function generatePageNumbers(
   pages.push(total);
 
   return pages;
+}
+
+function CronLogsListSkeleton() {
+  return (
+    <>
+      {/* Table header skeleton */}
+      <div className="hidden md:flex items-center gap-3 px-4 py-2 border-b border-border">
+        <Skeleton className="w-5 h-4" />
+        <Skeleton className="w-[90px] h-4" />
+        <Skeleton className="flex-1 h-4 max-w-[120px]" />
+        <Skeleton className="w-[80px] h-4" />
+        <Skeleton className="w-[70px] h-4" />
+        <Skeleton className="w-[130px] h-4" />
+      </div>
+
+      {/* Log rows skeleton */}
+      <div className="flex flex-col gap-1">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 px-4 py-3 md:flex-row md:items-center"
+          >
+            {/* Icon + main info */}
+            <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
+              <Skeleton className="h-4 w-5 shrink-0" />
+              <Skeleton className="hidden md:block h-5 w-[90px] shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="md:hidden h-5 w-16 rounded-full" />
+                </div>
+                <div className="flex items-center gap-3 mt-1 md:hidden">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-3 w-14" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+            </div>
+            {/* Response, Duration, Date (desktop) */}
+            <div className="hidden md:flex items-center gap-3">
+              <Skeleton className="w-[80px] h-3" />
+              <Skeleton className="w-[70px] h-3" />
+              <Skeleton className="w-[130px] h-3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
 }
