@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ManualUploadDialog } from "@/components/manual-upload-dialog";
 import {
   Select,
@@ -396,9 +397,7 @@ export default function BackupsPage() {
 
         {/* Content */}
         {loading && !data ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <BackupsListSkeleton />
         ) : error && !data ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
             <p className="text-sm text-destructive">{error}</p>
@@ -747,4 +746,50 @@ function generatePageNumbers(
   pages.push(total);
 
   return pages;
+}
+
+function BackupsListSkeleton() {
+  return (
+    <>
+      {/* Table header skeleton */}
+      <div className="hidden md:flex items-center gap-3 px-4 py-2 border-b border-border">
+        <Skeleton className="w-5 h-4" />
+        <Skeleton className="w-9 h-4" />
+        <Skeleton className="flex-1 h-4 max-w-[80px]" />
+        <Skeleton className="w-[140px] h-4" />
+        <Skeleton className="w-[80px] h-4" />
+        <Skeleton className="w-[110px] h-4" />
+      </div>
+
+      {/* Backup rows skeleton */}
+      <div className="flex flex-col gap-1">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 px-4 py-3 md:flex-row md:items-center"
+          >
+            <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
+              <Skeleton className="w-5 h-4 shrink-0 mt-2 md:mt-0" />
+              <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                  <Skeleton className="h-5 w-10 rounded-full" />
+                </div>
+                <Skeleton className="h-3 w-16 mt-1.5" />
+              </div>
+            </div>
+            <Skeleton className="hidden md:block w-[140px] h-3" />
+            <Skeleton className="hidden md:block w-[80px] h-3" />
+            <div className="flex items-center gap-1 border-t border-border/60 pt-3 md:w-[110px] md:border-t-0 md:pt-0">
+              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-8 w-8 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
 }
