@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.12] - 2026-04-03
+
+### Added
+- Add per-page skeleton to Backups list page (B-4)
+- Add per-page skeleton to Projects list page (B-4)
+- Add fade-up entry animation with staggered delays
+- Add aria-sort attributes to sortable table columns
+- Add skeleton component and dashboard loading skeleton
+
+### Changed
+- Ignore GHSA-5f7q-jpqc-wp7h false positive
+- Replace spinner with per-page skeleton (B-4)
+- Migrate ports 7026/17026/27026 → 7017/17017/27017
+- Ignore test webhook token in gitleaks
+- Update tests for webhook_token sanitization
+- Update CLAUDE.md with security fix retrospective entries
+
+### Fixed
+- Normalize page container spacing to gap-4 md:gap-6
+- Remove card border/shadow anti-pattern, use bg-secondary + radius tokens
+- Dashboard framework compliance with basalt B-2 spec
+- Login page layout, footer, and aria-hidden per basalt spec
+- Update brace-expansion and ignore transitive vuln
+- Remove production instance information from tracked files
+- Fix false dirty state for configured headers
+- Fix dirty state and header clearing issues
+- Prevent accidental secret overwrite & token display issues
+- Resolve 9 dev toolchain vulnerabilities via version overrides
+- Add streaming size limits to prevent decompression bomb DoS
+- Strip sensitive credentials from project API responses
+- Block additional reserved IPv4 CIDRs and IPv6 ranges in SSRF protection
+- Validate x-forwarded-host against allowlist in prompt route
+- Add --max-warnings=0 to lint script in package.json
+
+### Removed
+- Remove unused shadcn and @radix-ui/react-collapsible deps
+
 ## [1.7.11] - 2026-04-03
 
 ### Added
