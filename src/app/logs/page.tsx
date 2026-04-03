@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -555,9 +556,7 @@ export default function LogsPage() {
 
         {/* Content */}
         {loading && !data ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <LogsListSkeleton />
         ) : error && !data ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
             <p className="text-sm text-destructive">{error}</p>
@@ -775,4 +774,38 @@ function generatePageNumbers(
   pages.push(total);
 
   return pages;
+}
+
+function LogsListSkeleton() {
+  return (
+    <div className="flex flex-col gap-1">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex flex-col gap-2 rounded-lg border border-border bg-background/50 px-4 py-3 md:flex-row md:items-center md:gap-4"
+        >
+          {/* Icon + main info */}
+          <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
+            <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-5 w-12 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <div className="flex items-center gap-3 mt-1">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+          </div>
+          {/* Date + duration */}
+          <div className="hidden md:flex items-center gap-4">
+            <Skeleton className="w-[120px] h-3" />
+            <Skeleton className="w-[60px] h-3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
