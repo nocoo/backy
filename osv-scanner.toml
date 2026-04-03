@@ -4,27 +4,14 @@
 #
 # Review and re-evaluate on the ignoreUntil date.
 
-# --- eslint / @typescript-eslint transitive deps ---
+# --- Next.js false positive ---
+# GHSA-5f7q-jpqc-wp7h is fixed in Next.js 16.1.5. We run 16.1.7.
+# OSV database has not marked 16.1.7 as fixed yet — temporary ignore.
 
 [[IgnoredVulns]]
-id = "GHSA-25h7-pfq9-p65f"
-ignoreUntil = 2026-06-20
-reason = "Indirect: flatted via flat-cache (eslint)"
-
-[[IgnoredVulns]]
-id = "GHSA-rf6f-7fwh-wjgh"
-ignoreUntil = 2026-06-20
-reason = "Indirect: flatted via flat-cache (eslint)"
-
-[[IgnoredVulns]]
-id = "GHSA-23c5-xmqv-rm74"
-ignoreUntil = 2026-06-20
-reason = "Indirect: minimatch via eslint, @typescript-eslint, @ts-morph"
-
-[[IgnoredVulns]]
-id = "GHSA-7r86-cg39-jmmj"
-ignoreUntil = 2026-06-20
-reason = "Indirect: minimatch via eslint, @typescript-eslint, @ts-morph"
+id = "GHSA-5f7q-jpqc-wp7h"
+ignoreUntil = 2026-04-18
+reason = "False positive: fixed in Next.js 16.1.5, we run 16.1.7. OSV DB not yet updated."
 
 # --- minimatch transitive dep ---
 # brace-expansion@2.0.2 is pulled by minimatch@9 (eslint, @typescript-eslint).
