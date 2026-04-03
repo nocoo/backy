@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
@@ -385,9 +386,7 @@ export default function ProjectDetailPage() {
   if (loading) {
     return (
       <AppShell breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: "..." }]}>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+        <ProjectDetailSkeleton />
       </AppShell>
     );
   }
@@ -801,5 +800,122 @@ export default function ProjectDetailPage() {
         </Card>
       </div>
     </AppShell>
+  );
+}
+
+function ProjectDetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Skeleton className="h-6 w-40 mb-2" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+
+      {/* Two-column grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left column - General + Auto Backup */}
+        <div className="flex flex-col gap-6">
+          {/* General Settings Card */}
+          <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+            <Skeleton className="h-5 w-24 mb-1" />
+            <Skeleton className="h-3 w-64 mb-6" />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-9 w-full rounded-md" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-20 w-full rounded-md" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-28" />
+                <Skeleton className="h-9 w-full rounded-md" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-36" />
+                <Skeleton className="h-14 w-full rounded-md" />
+                <Skeleton className="h-3 w-80" />
+              </div>
+            </div>
+          </div>
+
+          {/* Auto Backup Card */}
+          <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+            <Skeleton className="h-3 w-72 mb-6" />
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-6 w-11 rounded-full" />
+            </div>
+          </div>
+        </div>
+
+        {/* Right column - Webhook Panel */}
+        <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+          <Skeleton className="h-5 w-32 mb-1" />
+          <Skeleton className="h-3 w-64 mb-6" />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-9 w-full rounded-md" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-9 w-full rounded-md" />
+              <Skeleton className="h-3 w-56" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-32 rounded-md" />
+              <Skeleton className="h-8 w-32 rounded-md" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Backups Card */}
+      <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+        <Skeleton className="h-5 w-32 mb-1" />
+        <Skeleton className="h-3 w-48 mb-4" />
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3"
+            >
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-32 mt-1" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-16" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Danger Zone Card */}
+      <div className="rounded-[var(--radius-card)] bg-secondary p-6 border border-destructive/30">
+        <Skeleton className="h-5 w-28 mb-1" />
+        <Skeleton className="h-3 w-80 mb-4" />
+        <Skeleton className="h-8 w-32 rounded-md" />
+      </div>
+    </div>
   );
 }
