@@ -3,13 +3,32 @@ import { mockFetch } from "./helpers";
 
 describe("GET /api/ip-info", () => {
   let originalFetch: typeof globalThis.fetch;
+  let originalEnv: { ECHO_API_URL?: string; ECHO_API_KEY?: string };
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
+    originalEnv = {
+      ECHO_API_URL: process.env.ECHO_API_URL,
+      ECHO_API_KEY: process.env.ECHO_API_KEY,
+    };
+    // Set env vars for tests
+    process.env.ECHO_API_URL = "https://echo.nocoo.cloud/api/ip";
+    process.env.ECHO_API_KEY = "test-api-key";
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    // Restore env vars
+    if (originalEnv.ECHO_API_URL !== undefined) {
+      process.env.ECHO_API_URL = originalEnv.ECHO_API_URL;
+    } else {
+      delete process.env.ECHO_API_URL;
+    }
+    if (originalEnv.ECHO_API_KEY !== undefined) {
+      process.env.ECHO_API_KEY = originalEnv.ECHO_API_KEY;
+    } else {
+      delete process.env.ECHO_API_KEY;
+    }
   });
 
   test("returns IP info on success", async () => {

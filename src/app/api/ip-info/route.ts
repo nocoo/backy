@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 
-const ECHO_API_URL = process.env.ECHO_API_URL ?? "";
-const ECHO_API_KEY = process.env.ECHO_API_KEY ?? "";
-
 /**
  * GET /api/ip-info?ip=x.x.x.x — Proxy IP geolocation lookup.
  * Requires ECHO_API_URL and ECHO_API_KEY environment variables.
  */
 export async function GET(request: Request) {
+  // Read env vars inside the function to allow test-time mocking
+  const ECHO_API_URL = process.env.ECHO_API_URL ?? "";
+  const ECHO_API_KEY = process.env.ECHO_API_KEY ?? "";
+
   if (!ECHO_API_URL) {
     return NextResponse.json(
       { error: "IP info service not configured" },
