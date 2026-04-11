@@ -1,0 +1,13 @@
+[allowlist]
+description = "Allowlist test fixture false positives"
+regexes = [
+  "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+  "test-api-token",
+  "test-account-id",
+  "test-database-id",
+]
+paths = [
+  "src/__tests__/",
+  "e2e/",
+  "docs/",
+]
