@@ -9,4 +9,5 @@ jobs:
   quality:
     uses: nocoo/ci/.github/workflows/bun-quality.yml@main
     with:
+      bun-version: "1.3.5"
       test-command: "bun test src/__tests__/"
