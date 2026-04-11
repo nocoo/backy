@@ -3,7 +3,7 @@ import { mockFetch } from "./helpers";
 
 describe("GET /api/ip-info", () => {
   let originalFetch: typeof globalThis.fetch;
-  let originalEnv: { ECHO_API_URL?: string; ECHO_API_KEY?: string };
+  let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
