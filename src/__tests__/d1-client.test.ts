@@ -3,6 +3,25 @@ import { isD1Configured, executeD1Query } from "@/lib/db/d1-client";
 import { mockFetch } from "./helpers";
 
 describe("D1 client", () => {
+  let savedEnv: Record<string, string | undefined>;
+
+  beforeEach(() => {
+    savedEnv = {
+      D1_ACCOUNT_ID: process.env.D1_ACCOUNT_ID,
+      D1_DATABASE_ID: process.env.D1_DATABASE_ID,
+      D1_API_TOKEN: process.env.D1_API_TOKEN,
+    };
+    process.env.D1_ACCOUNT_ID = "test-account-id";
+    process.env.D1_DATABASE_ID = "test-database-id";
+    process.env.D1_API_TOKEN = "test-api-token";
+  });
+
+  afterEach(() => {
+    process.env.D1_ACCOUNT_ID = savedEnv.D1_ACCOUNT_ID;
+    process.env.D1_DATABASE_ID = savedEnv.D1_DATABASE_ID;
+    process.env.D1_API_TOKEN = savedEnv.D1_API_TOKEN;
+  });
+
   test("isD1Configured returns true when env vars are set", () => {
     expect(isD1Configured()).toBe(true);
   });
