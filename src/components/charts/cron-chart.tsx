@@ -49,7 +49,7 @@ function CustomTooltip({
   const total = payload.reduce((sum, entry) => sum + (entry.value ?? 0), 0);
 
   return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2 shadow-md">
+    <div className="rounded-[var(--radius-widget)] border border-border bg-popover p-2.5 shadow-sm">
       <p className="text-sm font-medium text-foreground mb-1">{date}</p>
       {payload.map((entry, i) => (
         <p key={i} className="text-xs text-muted-foreground flex items-center gap-1.5">
