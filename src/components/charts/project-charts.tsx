@@ -61,7 +61,7 @@ function CustomTooltip({
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2 shadow-md">
+    <div className="rounded-[var(--radius-widget)] border border-border bg-popover p-2.5 shadow-sm">
       <p className="text-sm font-medium text-foreground mb-1">{label}</p>
       {payload.map((entry, i) => (
         <p key={i} className="text-xs text-muted-foreground">
