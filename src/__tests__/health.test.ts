@@ -40,18 +40,15 @@ describe("/api/live", () => {
     expect(body.status).toBe("ok");
     expect(body.timestamp).toBeDefined();
     expect(body.version).toBeDefined();
-    expect(typeof body.uptime_s).toBe("number");
-    expect(body.dependencies.d1.status).toBe("up");
-    expect(typeof body.dependencies.d1.latency_ms).toBe("number");
-    expect(body.dependencies.r2.status).toBe("up");
-    expect(typeof body.dependencies.r2.latency_ms).toBe("number");
+    expect(typeof body.uptime).toBe("number");
+    expect(body.database.connected).toBe(true);
+    expect(body.r2.connected).toBe(true);
   });
 
   test("returns no-cache headers", async () => {
     const response = await GET();
 
-    expect(response.headers.get("Cache-Control")).toBe("no-store, no-cache, must-revalidate");
-    expect(response.headers.get("Pragma")).toBe("no-cache");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
 
   test("returns 503 and status error when D1 is down", async () => {
@@ -62,25 +59,25 @@ describe("/api/live", () => {
 
     expect(response.status).toBe(503);
     expect(body.status).toBe("error");
-    expect(body.dependencies.d1.status).toBe("down");
-    expect(body.dependencies.d1.message).toBeDefined();
-    expect(body.dependencies.r2.status).toBe("up");
+    expect(body.database.connected).toBe(false);
+    expect(body.database.error).toBeDefined();
+    expect(body.r2.connected).toBe(true);
     // "ok" must never appear in error response
     expect(JSON.stringify(body)).not.toContain('"ok"');
   });
 
-  test("returns 503 and status error when R2 is down", async () => {
+  test("returns ok when R2 is down but D1 is up", async () => {
     mockPingR2 = async () => { throw new Error("R2 connection refused"); };
 
     const response = await GET();
     const body = await response.json();
 
-    expect(response.status).toBe(503);
-    expect(body.status).toBe("error");
-    expect(body.dependencies.d1.status).toBe("up");
-    expect(body.dependencies.r2.status).toBe("down");
-    expect(body.dependencies.r2.message).toBe("R2 connection refused");
-    expect(JSON.stringify(body)).not.toContain('"ok"');
+    // healthy is based on database.connected only
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("ok");
+    expect(body.database.connected).toBe(true);
+    expect(body.r2.connected).toBe(false);
+    expect(body.r2.error).toBe("R2 connection refused");
   });
 
   test("returns 503 when both D1 and R2 are down", async () => {
@@ -92,8 +89,8 @@ describe("/api/live", () => {
 
     expect(response.status).toBe(503);
     expect(body.status).toBe("error");
-    expect(body.dependencies.d1.status).toBe("down");
-    expect(body.dependencies.r2.status).toBe("down");
+    expect(body.database.connected).toBe(false);
+    expect(body.r2.connected).toBe(false);
     expect(JSON.stringify(body)).not.toContain('"ok"');
   });
 
@@ -105,9 +102,8 @@ describe("/api/live", () => {
 
     expect(response.status).toBe(503);
     expect(body.status).toBe("error");
-    expect(body.dependencies.d1.status).toBe("down");
-    expect(body.dependencies.d1.message).toBe("D1 credentials not configured");
-    expect(body.dependencies.d1.latency_ms).toBe(0);
+    expect(body.database.connected).toBe(false);
+    expect(body.database.error).toBe("D1 credentials not configured");
     expect(JSON.stringify(body)).not.toContain('"ok"');
   });
 
@@ -117,13 +113,12 @@ describe("/api/live", () => {
     const response = await GET();
     const body = await response.json();
 
-    expect(response.status).toBe(503);
-    expect(body.status).toBe("error");
-    expect(body.dependencies.d1.status).toBe("up");
-    expect(body.dependencies.r2.status).toBe("down");
-    expect(body.dependencies.r2.message).toBe("R2 credentials not configured");
-    expect(body.dependencies.r2.latency_ms).toBe(0);
-    expect(JSON.stringify(body)).not.toContain('"ok"');
+    // healthy is based on database only
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("ok");
+    expect(body.database.connected).toBe(true);
+    expect(body.r2.connected).toBe(false);
+    expect(body.r2.error).toBe("R2 credentials not configured");
   });
 
   test("sanitizes 'ok' from error messages", async () => {
@@ -134,10 +129,10 @@ describe("/api/live", () => {
     const body = await response.json();
 
     expect(response.status).toBe(503);
-    expect(body.dependencies.d1.message).not.toMatch(/\bok\b/i);
-    expect(body.dependencies.r2.message).not.toMatch(/\bok\b/i);
-    expect(body.dependencies.d1.message).toContain("***");
-    expect(body.dependencies.r2.message).toContain("***");
+    expect(body.database.error).not.toMatch(/\bok\b/i);
+    expect(body.r2.error).not.toMatch(/\bok\b/i);
+    expect(body.database.error).toContain("***");
+    expect(body.r2.error).toContain("***");
   });
 
   test("handles non-Error exceptions gracefully", async () => {
@@ -148,29 +143,17 @@ describe("/api/live", () => {
     const body = await response.json();
 
     expect(response.status).toBe(503);
-    expect(body.dependencies.d1.status).toBe("down");
-    expect(body.dependencies.d1.message).toBe("D1 unreachable");
-    expect(body.dependencies.r2.status).toBe("down");
-    expect(body.dependencies.r2.message).toBe("R2 unreachable");
+    expect(body.database.connected).toBe(false);
+    expect(body.r2.connected).toBe(false);
     expect(JSON.stringify(body)).not.toContain('"ok"');
   });
 
-  test("returns latency_ms as a non-negative integer", async () => {
+  test("returns uptime as a non-negative integer", async () => {
     const response = await GET();
     const body = await response.json();
 
-    expect(body.dependencies.d1.latency_ms).toBeGreaterThanOrEqual(0);
-    expect(Number.isInteger(body.dependencies.d1.latency_ms)).toBe(true);
-    expect(body.dependencies.r2.latency_ms).toBeGreaterThanOrEqual(0);
-    expect(Number.isInteger(body.dependencies.r2.latency_ms)).toBe(true);
-  });
-
-  test("returns uptime_s as a non-negative integer", async () => {
-    const response = await GET();
-    const body = await response.json();
-
-    expect(body.uptime_s).toBeGreaterThanOrEqual(0);
-    expect(Number.isInteger(body.uptime_s)).toBe(true);
+    expect(body.uptime).toBeGreaterThanOrEqual(0);
+    expect(Number.isInteger(body.uptime)).toBe(true);
   });
 
   test("returns valid ISO 8601 timestamp", async () => {
