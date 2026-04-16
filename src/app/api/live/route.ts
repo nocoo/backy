@@ -83,6 +83,7 @@ export async function GET() {
   const body = {
     status: allUp ? "ok" : "error",
     version: APP_VERSION,
+    component: "backy",
     timestamp,
     uptime_s: Math.floor(process.uptime()),
     dependencies: { d1, r2 },
