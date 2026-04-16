@@ -2,6 +2,11 @@ name = "backy-cron"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "backy-db"
+database_id = "" # Set via wrangler or platform config
+
 [triggers]
 crons = ["0 * * * *"]
 

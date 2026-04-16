@@ -9,12 +9,28 @@
  *   CRON_SECRET — shared secret matching Backy's CRON_SECRET env var
  */
 
+import { handleLive } from "./live";
+
 interface Env {
   BACKY_URL: string;
   CRON_SECRET: string;
+  DB: D1Database;
 }
 
 export default {
+  async fetch(
+    request: Request,
+    env: Env,
+  ): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/api/live") {
+      return handleLive(env);
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+
   async scheduled(
     _controller: ScheduledController,
     env: Env,
