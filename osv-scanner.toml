@@ -8,11 +8,6 @@
 # GHSA-5f7q-jpqc-wp7h is fixed in Next.js 16.1.5. We run 16.1.7.
 # OSV database has not marked 16.1.7 as fixed yet — temporary ignore.
 
-[[IgnoredVulns]]
-id = "GHSA-5f7q-jpqc-wp7h"
-ignoreUntil = 2026-04-18
-reason = "False positive: fixed in Next.js 16.1.5, we run 16.1.7. OSV DB not yet updated."
-
 # --- minimatch transitive dep ---
 # brace-expansion@2.0.2 is pulled by minimatch@9 (eslint, @typescript-eslint).
 # No fixed version available yet that satisfies minimatch's ^2.0.2 range.
