@@ -4,6 +4,24 @@
   "workspaces": {
     "": {
       "name": "backy",
+      "devDependencies": {
+        "husky": "^9.1.7",
+      },
+    },
+    "apps/cli": {
+      "name": "@backy/cli",
+      "version": "0.0.0",
+      "bin": {
+        "backy": "./src/index.ts",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.11",
+        "typescript": "^5.9.3",
+      },
+    },
+    "apps/web": {
+      "name": "@backy/web",
+      "version": "1.7.12",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1014.0",
         "@aws-sdk/s3-request-presigner": "^3.1014.0",
@@ -34,23 +52,11 @@
         "@types/tar-stream": "^3.1.4",
         "eslint": "^9.39.4",
         "eslint-config-next": "16.1.7",
-        "husky": "^9.1.7",
         "lint-staged": "^16.4.0",
         "tailwindcss": "^4.2.2",
         "tw-animate-css": "^1.4.0",
         "typescript": "^5.9.3",
         "typescript-eslint": "8.56.0",
-      },
-    },
-    "apps/cli": {
-      "name": "@backy/cli",
-      "version": "0.0.0",
-      "bin": {
-        "backy": "./src/index.ts",
-      },
-      "devDependencies": {
-        "@types/bun": "^1.3.11",
-        "typescript": "^5.9.3",
       },
     },
     "packages/api": {
@@ -191,6 +197,8 @@
     "@backy/api": ["@backy/api@workspace:packages/api"],
 
     "@backy/cli": ["@backy/cli@workspace:apps/cli"],
+
+    "@backy/web": ["@backy/web@workspace:apps/web"],
 
     "@emnapi/core": ["@emnapi/core@1.10.0", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw=="],
 
