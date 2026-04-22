@@ -84,63 +84,38 @@ bun dev
 
 ## 📁 项目结构
 
+Backy 采用 **Bun monorepo** 结构（`workspaces: ["apps/*", "packages/*"]`）：
+
 ```
 backy/
-├── 📂 docs/                        # 项目文档
-│   └── 01-design.md                # 设计文档
-├── 📂 public/                      # 静态资源 (logo, favicon)
-├── 📂 scripts/                     # 工具脚本
-│   ├── e2e-tests.ts                # E2E 测试用例 (34 tests)
-│   ├── run-e2e.ts                  # E2E 运行器 (port 17017)
-│   ├── check-coverage.ts           # 测试覆盖率检查
-│   └── resize-logo.py              # Logo 处理脚本
-├── 📂 src/
-│   ├── 📂 __tests__/               # 单元测试 (71 tests)
-│   │   ├── d1-client.test.ts       # D1 REST 客户端
-│   │   ├── webhook.test.ts         # Webhook 端点 (HEAD + GET + POST)
-│   │   ├── proxy.test.ts           # 认证代理中间件
-│   │   ├── ip.test.ts              # IP/CIDR 验证
-│   │   ├── id.test.ts              # nanoid 生成
-│   │   ├── health.test.ts          # 健康检查
-│   │   └── utils.test.ts           # 工具函数
-│   ├── 📂 app/                     # Next.js App Router
-│   │   ├── 📂 api/                 # API 路由
-│   │   │   ├── 📂 webhook/         # Webhook 接收 (HEAD + GET + POST)
-│   │   │   ├── 📂 projects/        # 项目 CRUD + token + prompt
-│   │   │   ├── 📂 backups/         # 备份管理 + 预览 + 下载 + 提取
-│   │   │   ├── 📂 restore/         # 恢复端点 (公开, token 认证)
-│   │   │   ├── 📂 stats/           # 仪表盘统计 + 图表数据
-│   │   │   ├── 📂 auth/            # NextAuth 处理
-│   │   │   └── 📂 live/            # 健康检查
-│   │   ├── 📂 backups/             # 备份列表 + 详情页
-│   │   ├── 📂 projects/            # 项目列表 + 详情页
-│   │   ├── 📂 login/               # 登录页面
-│   │   ├── layout.tsx              # 根布局
-│   │   └── page.tsx                # 仪表盘 (首页)
-│   ├── 📂 components/              # UI 组件
-│   │   ├── 📂 layout/              # 布局组件 (Sidebar 等)
-│   │   ├── 📂 charts/              # 仪表盘图表 (Recharts)
-│   │   ├── 📂 ui/                  # shadcn/ui 基础组件
-│   │   ├── json-tree-viewer.tsx    # JSON 树形预览
-│   │   └── loading-screen.tsx      # 加载画面
-│   ├── 📂 lib/                     # 核心逻辑
-│   │   ├── 📂 db/                  # D1 数据库层 (REST API)
-│   │   │   ├── d1-client.ts        # Cloudflare D1 HTTP 客户端
-│   │   │   ├── schema.ts           # Schema 定义 + 迁移
-│   │   │   ├── projects.ts         # 项目 CRUD
-│   │   │   └── backups.ts          # 备份 CRUD
-│   │   ├── 📂 r2/                  # R2 存储层 (S3 API)
-│   │   │   └── client.ts           # 上传 / 下载 / 签名 URL
-│   │   ├── id.ts                   # nanoid 生成器
-│   │   ├── ip.ts                   # IP/CIDR 验证
-│   │   └── utils.ts                # 通用工具 (cn, formatBytes)
-│   ├── auth.ts                     # NextAuth 配置
-│   └── proxy.ts                    # 认证代理中间件
-├── .env.example                    # 环境变量示例
-├── Dockerfile                      # Docker 容器化 (3-stage build)
-├── railway.json                    # Railway 部署配置
-└── package.json
+├── 📂 apps/
+│   ├── 📂 web/                    # @backy/web — Next.js 主应用 (现阶段全部业务代码)
+│   │   ├── 📂 src/                # App Router、组件、库、单元测试
+│   │   ├── 📂 e2e/                # L2 API + L3 Playwright 测试
+│   │   ├── 📂 scripts/            # 覆盖率/E2E/release/security 等运行器
+│   │   ├── 📂 worker/             # Cloudflare Worker (cron 触发器)
+│   │   ├── Dockerfile             # Docker 容器化 (3-stage build)
+│   │   ├── railway.json           # Railway 部署配置
+│   │   ├── .env.example           # 环境变量示例
+│   │   └── package.json           # @backy/web
+│   └── 📂 cli/                    # @backy/cli — 占位包，下一波将实现 AI-facing CLI
+├── 📂 packages/
+│   └── 📂 api/                    # @backy/api — 占位包，下一波抽离共享业务逻辑
+├── 📂 docs/                       # 项目文档
+├── 📂 .husky/                     # Git hooks (pre-commit, pre-push)
+├── package.json                   # 根包，仅 husky + workspaces，所有脚本转发到 apps/web
+├── bun.lock
+├── CLAUDE.md
+├── CHANGELOG.md
+└── LICENSE
 ```
+
+> 根 `package.json` 中 `dev` / `build` / `test` / `typecheck` / `lint` /
+> `gate:security` / `release` 等脚本都通过 `bun --cwd apps/web …` 转发；husky
+> hooks 调用根脚本，无需感知 monorepo 拆分。`@backy/api` 与 `@backy/cli`
+> 当前仅导出 `PACKAGE_NAME` 占位常量。
+
+`apps/web/src/` 内部布局参见 `CLAUDE.md` 的 *Project Structure* 章节。
 
 ## 🔌 Webhook 协议
 

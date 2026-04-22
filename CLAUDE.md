@@ -20,50 +20,76 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 
 ## Project Structure
 
+This is a **Bun monorepo** (`workspaces: ["apps/*", "packages/*"]`).
+
 ```
-src/
-  app/
-    api/                 # 26 route files, 39 HTTP method handlers
-      auth/              # NextAuth v5 handler (Google OAuth)
-      backups/           # CRUD + upload, download, preview, extract, restore-command
-      categories/        # CRUD
-      cron/              # Auto-backup trigger + logs
-      db/init/           # D1 schema initialization
-      ip-info/           # IP geolocation proxy
-      live/              # Health check (D1 + R2 ping)
-      logs/              # Webhook audit logs
-      projects/          # CRUD + token regeneration + prompt generation
-      restore/           # Public presigned download (token-auth)
-      stats/             # Dashboard totals + chart data
-      webhook/           # AI agent ingestion endpoint (HEAD/GET/POST)
-    backups/             # Backup list + detail pages
-    cron-logs/           # Cron log viewer page
-    login/               # Google OAuth login page
-    logs/                # Webhook log viewer page
-    projects/            # Project list + detail + new pages
-    page.tsx             # Dashboard (stats, charts, recent backups)
-    layout.tsx           # Root layout (AuthProvider, theme FOUC prevention)
-  auth.ts                # NextAuth v5 config (Google OAuth, email whitelist)
-  proxy.ts               # Next.js 16 proxy convention (replaces middleware.ts)
-  components/
-    charts/              # Recharts: activity, cron, project charts
-    layout/              # App shell, sidebar, breadcrumbs, theme toggle
-    ui/                  # 11 shadcn/ui primitives
-  hooks/                 # useIsMobile
-  lib/
-    backup/              # File type detection, archive extractors, R2 key generation
-    db/                  # D1 client, schema, CRUD modules (projects, backups, categories, webhook-logs, cron-logs)
-    r2/                  # S3-compatible R2 client (upload, download, presign, delete)
-    id.ts                # nanoid generators (21-char ID, 48-char webhook token)
-    hosts.ts             # Shared ALLOWED_HOSTS set + buildBaseUrl() for reverse proxy
-    sanitize.ts          # Strip sensitive fields from Project records for API responses
-    ip.ts                # IP/CIDR validation and enforcement
-    test-project.ts      # E2E test project constants (single source of truth)
-scripts/
-  check-coverage.ts      # Coverage gate (90%+ threshold)
-  load-env-test.ts       # .env.test loader with three-layer safety
-  run-e2e.ts             # L3 API E2E server lifecycle + runner
+apps/
+  web/                     # @backy/web — Next.js application (current full surface)
+  cli/                     # @backy/cli — placeholder, AI-facing CLI (next wave)
+packages/
+  api/                     # @backy/api — placeholder, shared API/business logic (next wave)
 ```
+
+The root `package.json` only carries `husky` + workspace plumbing; every script
+(`dev`, `build`, `test`, `typecheck`, `lint`, `gate:security`, `release`, …)
+forwards into `apps/web` via `bun --cwd apps/web …`. Husky hooks live at the
+repo root and call those forwarders unchanged. `typecheck` and `test` also fan
+out to `packages/api` and `apps/cli`.
+
+The web workspace itself:
+
+```
+apps/web/
+  src/
+    app/
+      api/                 # 26 route files, 39 HTTP method handlers
+        auth/              # NextAuth v5 handler (Google OAuth)
+        backups/           # CRUD + upload, download, preview, extract, restore-command
+        categories/        # CRUD
+        cron/              # Auto-backup trigger + logs
+        db/init/           # D1 schema initialization
+        ip-info/           # IP geolocation proxy
+        live/              # Health check (D1 + R2 ping)
+        logs/              # Webhook audit logs
+        projects/          # CRUD + token regeneration + prompt generation
+        restore/           # Public presigned download (token-auth)
+        stats/             # Dashboard totals + chart data
+        webhook/           # AI agent ingestion endpoint (HEAD/GET/POST)
+      backups/             # Backup list + detail pages
+      cron-logs/           # Cron log viewer page
+      login/               # Google OAuth login page
+      logs/                # Webhook log viewer page
+      projects/            # Project list + detail + new pages
+      page.tsx             # Dashboard (stats, charts, recent backups)
+      layout.tsx           # Root layout (AuthProvider, theme FOUC prevention)
+    auth.ts                # NextAuth v5 config (Google OAuth, email whitelist)
+    proxy.ts               # Next.js 16 proxy convention (replaces middleware.ts)
+    components/
+      charts/              # Recharts: activity, cron, project charts
+      layout/              # App shell, sidebar, breadcrumbs, theme toggle
+      ui/                  # 11 shadcn/ui primitives
+    hooks/                 # useIsMobile
+    lib/
+      backup/              # File type detection, archive extractors, R2 key generation
+      db/                  # D1 client, schema, CRUD modules (projects, backups, categories, webhook-logs, cron-logs)
+      r2/                  # S3-compatible R2 client (upload, download, presign, delete)
+      id.ts                # nanoid generators (21-char ID, 48-char webhook token)
+      hosts.ts             # Shared ALLOWED_HOSTS set + buildBaseUrl() for reverse proxy
+      sanitize.ts          # Strip sensitive fields from Project records for API responses
+      ip.ts                # IP/CIDR validation and enforcement
+      test-project.ts      # E2E test project constants (single source of truth)
+  scripts/
+    check-coverage.ts      # Coverage gate (90%+ threshold)
+    load-env-test.ts       # .env.test loader with three-layer safety
+    run-e2e.ts             # L3 API E2E server lifecycle + runner
+  worker/                  # Cloudflare Worker for cron triggers (separate package)
+  e2e/                     # L2 + L3 test suites (see "Test Structure" below)
+  .env, .env.test          # Cwd-local — module-load-time process.env reads must resolve here
+```
+
+> The `@backy/api` and `@backy/cli` packages currently contain only a
+> `PACKAGE_NAME` stamp and one unit test each. They reserve the import
+> namespace; the actual extraction happens in the next refactor wave.
 
 ## Quality System (3 Test Layers + 2 Gates)
 
@@ -99,6 +125,10 @@ scripts/
 
 ### Test Structure
 
+Paths below are relative to `apps/web/` (the only workspace with tests today).
+The placeholder `@backy/api` and `@backy/cli` packages each ship a single unit
+test under `packages/api/src/__tests__/` and `apps/cli/src/__tests__/`.
+
 ```
 src/__tests__/          # L1 unit tests (35 files, 486 tests)
   helpers.ts            # Shared: mockFetch, d1Success/d1Error, stubs, builders
@@ -116,14 +146,17 @@ e2e/bdd/                # L3 Playwright BDD E2E (5 specs, 17 tests)
 
 ## Common Commands
 
+All commands run from the repo root and forward into `apps/web` (or fan out
+to other workspaces where noted).
+
 ```bash
 bun dev                # Dev server (7017)
 bun run build          # Production build
-bun test               # Unit tests
-bun run test:coverage  # Unit tests + 90% coverage gate
-bun run typecheck      # TypeScript type check
-bun run lint           # ESLint
-bun run lint:staged    # ESLint on staged files only
+bun test               # Unit tests (web + packages/api + apps/cli)
+bun run test:coverage  # Web unit tests + 90% coverage gate
+bun run typecheck      # TypeScript type check across all workspaces
+bun run lint           # ESLint (web)
+bun run lint:staged    # ESLint on staged files only (web)
 bun run gate:security  # Security scan (osv-scanner + gitleaks)
 bun run test:e2e:api   # L2 API E2E (port 17017)
 bun run test:e2e:bdd   # L3 Playwright BDD E2E (port 27017)
@@ -138,7 +171,7 @@ E2E tests (L2 + L3) use **dedicated Cloudflare D1 + R2** to prevent production d
 | D1 database | `backy-db` | `backy-db-test` |
 | R2 bucket | `backy` | `backy-test` |
 
-**Mechanism:** `.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
+**Mechanism:** `apps/web/.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `apps/web/scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
 
 **Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state (name, token, all optional fields reset). Gated by `E2E_SKIP_AUTH`.
 
@@ -173,3 +206,6 @@ The script auto-detects project name and CHANGELOG format, then: bumps version �
 - **Security: sensitive fields must be stripped at API boundary**: `SELECT *` in DB queries is fine for internal use, but API routes must sanitize before responding. Use explicit field allowlisting (not field deletion) in `sanitizeProject()` to prevent future schema additions from being accidentally exposed.
 - **Security: x-forwarded-host must be validated against ALLOWED_HOSTS**: Any route that uses `x-forwarded-host` to build URLs containing credentials (tokens, secrets) MUST validate against the host allowlist first. Extracted to shared `src/lib/hosts.ts` to prevent duplication.
 - **Security: SSRF CIDR blocklist must cover all RFC-reserved ranges**: Initial blocklist only covered 6 common private ranges. Missing: `100.64.0.0/10` (CGN), `198.18.0.0/15` (benchmarking), TEST-NETs, `240.0.0.0/4` (reserved), broadcast. IPv6 needs `100::/64` (discard) and `2001:db8::/32` (documentation).
+- **Monorepo: `.env*` must move with the app, not stay at the repo root**: Bun reads `.env*` from the cwd at process start. After moving the Next.js app under `apps/web/`, leaving `.env` at the repo root caused 80 unit tests to fail because route modules read `process.env.X` at import time and got empty strings. Fix: `.env`, `.env.example`, `.env.test` live next to the workspace that consumes them.
+- **Monorepo: pre-commit lint-staged surfaces dormant rule violations on bulk renames**: Moving 100+ tracked files into `apps/web/` flagged 17 `react-hooks/{set-state-in-effect,static-components}` errors that existed in main but had never been touched by an incidental edit. lint-staged only lints *changed* paths, so violations introduced by a config upgrade (next-config 16) can sit dormant until something restages them. Disabled both rules with a `TODO` comment; track the cleanup separately so the structural commit stays focused.
+- **Monorepo: ESLint `tseslint.configs.strict` collides with `eslint-config-next/typescript`**: Both register the `@typescript-eslint` plugin. After `next-config@16.1.7` started shipping its own registration, declaring `typescript-eslint` directly throws `Cannot redefine plugin "@typescript-eslint"`. Fix: spread strict configs but strip their `plugins` key (`const { plugins, ...rest } = config; void plugins;`). Pin `typescript-eslint@8.56.0` to match the version next-config bundles.
