@@ -6,11 +6,14 @@ import tseslint from "typescript-eslint";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  // Layer tseslint strict rules on top of recommended (from nextTs)
-  ...tseslint.configs.strict.map((config) => ({
-    ...config,
-    files: ["**/*.ts", "**/*.tsx"],
-  })),
+  // Layer tseslint strict rules on top of recommended (from nextTs).
+  // nextTs already registers the @typescript-eslint plugin, so strip the
+  // plugins key from each strict config to avoid "Cannot redefine plugin".
+  ...tseslint.configs.strict.map((config) => {
+    const { plugins, ...rest } = config;
+    void plugins;
+    return { ...rest, files: ["**/*.ts", "**/*.tsx"] };
+  }),
   // Test files: allow non-null assertions (standard test pattern for array/result access)
   {
     files: ["**/__tests__/**", "**/*.test.*"],

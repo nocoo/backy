@@ -1,6 +1,5 @@
 # dependencies
-/node_modules
-worker/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
