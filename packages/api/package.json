@@ -28,7 +28,8 @@
     "./handlers/db": "./src/handlers/db.ts",
     "./handlers/ip-info": "./src/handlers/ip-info.ts",
     "./handlers/live": "./src/handlers/live.ts",
-    "./handlers/stats": "./src/handlers/stats.ts"
+    "./handlers/stats": "./src/handlers/stats.ts",
+    "./handlers/backups": "./src/handlers/backups.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",

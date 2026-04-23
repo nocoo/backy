@@ -324,7 +324,7 @@ Verified: `bun --cwd packages/api {typecheck,lint,test:coverage}` →
 
 ---
 
-## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b–2d ⬜)
+## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c–2d ⬜)
 
 ### Scope
 
@@ -449,7 +449,7 @@ To keep the diff manageable, wave 2 may be **subdivided into 4
 sub-commits** (split by domain) if the diff exceeds ~3000 lines:
 
 - 2a: handlers for projects + categories + db + ip-info + live + stats ✅
-- 2b: handlers for backups (list, get, delete, upload) ⬜
+- 2b: handlers for backups (list, get, delete, upload) ✅
 - 2c: handlers for backups/[id]/{download,preview,extract,restore-command} ⬜
 - 2d: handlers for cron + webhook + restore + logs ⬜
 
@@ -475,6 +475,12 @@ Each sub-commit independently green (G1 + L1 + L2).
 - Verification: packages/api 356 tests / 95.48% funcs / 96.24% lines · apps/web 268 tests / 92.18% funcs / 96.82% lines · L2 e2e 146/146 · typecheck/lint clean
 - Coverage script updated: `apps/web` aggregate now excludes `packages/api/...` rows (each workspace gates its own files)
 - `apps/web/e2e/api/config.ts` switched to `@backy/api/test-project` import
+
+**Wave 2b complete (2026-04-23):**
+- Extracted 5 handlers (listBackups, batchDeleteBackups, getBackup, deleteBackup, uploadBackup)
+- 3 routes rewritten as adapters (`/api/backups`, `/api/backups/[id]`, `/api/backups/upload`)
+- New tests: 28 cases in `packages/api/src/__tests__/handlers/backups.test.ts`
+- Verification: packages/api 384 tests / 95.66% funcs / 96.39% lines · apps/web 268 tests / 92.18% funcs / 95.74% lines · L2 e2e 146/146 · typecheck/lint clean
 
 ---
 
