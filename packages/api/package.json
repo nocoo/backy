@@ -30,7 +30,8 @@
     "./handlers/live": "./src/handlers/live.ts",
     "./handlers/stats": "./src/handlers/stats.ts",
     "./handlers/backups": "./src/handlers/backups.ts",
-    "./handlers/logs": "./src/handlers/logs.ts"
+    "./handlers/logs": "./src/handlers/logs.ts",
+    "./handlers/cron": "./src/handlers/cron.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",

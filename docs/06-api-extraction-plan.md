@@ -324,7 +324,7 @@ Verified: `bun --cwd packages/api {typecheck,lint,test:coverage}` →
 
 ---
 
-## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c ✅, 2d ⬜)
+## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c ✅, 2d.1 ✅, 2d.2 ✅, 2d.3 ⬜, 2d.4 ⬜)
 
 ### Scope
 
@@ -487,6 +487,13 @@ Each sub-commit independently green (G1 + L1 + L2).
 - 4 routes rewritten as adapters (`/api/backups/[id]/{download,preview,extract,restore-command}`)
 - New tests: 24 cases in `backups.test.ts` (downloads ×4, preview ×7, extract ×9, restore-command ×4); mocks extended to inject `downloadFromR2`/`createPresignedDownloadUrl`/`updateBackup`
 - Verification: packages/api 408 tests / 95.66% funcs / 96.39% lines · apps/web 268 tests / 92.18% funcs / 96.02% lines · L2 e2e 146/146 · typecheck clean
+
+**Wave 2d.2 complete (2026-04-23):**
+- Extracted `cronTriggerHandler` + `cronTriggerOneHandler` into `packages/api/src/handlers/cron.ts` (148 LOC); shared `fireProjectWebhook` + `logFireAndForget` between the two
+- 2 routes rewritten as adapters (`/api/cron/trigger`, `/api/cron/trigger/[projectId]`)
+- New tests: 20 cases in `cron.test.ts` covering auth, SSRF static + DNS blocks, fetch outcomes (success/non-2xx/throw)
+- Mock-pollution gotcha: `import * as realUrl` then re-using `realUrl.isUrlSafe` inside the `mock.module("../../lib/url", ...)` factory creates infinite recursion (the spread re-reads the now-mocked binding). Fix: capture `realIsUrlSafe`/`realResolveAndValidateUrl` as constants BEFORE `mock.module` runs, and do not spread the original module
+- Verification: packages/api 443 tests / 95.19% funcs / 96.54% lines · apps/web 268 tests / 97.18% funcs / 96.90% lines · L2 e2e 146/146 · typecheck + lint clean
 
 ---
 
