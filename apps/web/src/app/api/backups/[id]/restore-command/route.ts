@@ -1,4 +1,5 @@
 import { restoreCommandHandler } from "@backy/api/handlers/backups";
+import { buildBaseUrl } from "@backy/api/hosts";
 import { toResponse } from "@/lib/http";
 
 export async function GET(
@@ -6,5 +7,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  return toResponse(await restoreCommandHandler({ id, request }));
+  const baseUrl = buildBaseUrl(request);
+  return toResponse(await restoreCommandHandler({ id, baseUrl }));
 }

@@ -28,7 +28,6 @@ import {
   generateTimestamp,
 } from "../lib/backup/storage";
 import { extractJson, MAX_DECOMPRESSED_SIZE } from "../lib/backup/extractors";
-import { buildBaseUrl } from "../lib/hosts";
 import { json, type HandlerResponse } from "../http/response";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -401,7 +400,7 @@ export async function extractBackupHandler(input: {
 
 export async function restoreCommandHandler(input: {
   id: string;
-  request: Request;
+  baseUrl: string;
 }): Promise<HandlerResponse> {
   try {
     const backup = await getBackup(input.id);
@@ -410,8 +409,7 @@ export async function restoreCommandHandler(input: {
     const project = await getProject(backup.project_id);
     if (!project) return json(404, { error: "Project not found" });
 
-    const baseUrl = buildBaseUrl(input.request);
-    const command = `curl ${baseUrl}/api/restore/${backup.id} \\\n  -H "Authorization: Bearer ${project.webhook_token}"`;
+    const command = `curl ${input.baseUrl}/api/restore/${backup.id} \\\n  -H "Authorization: Bearer ${project.webhook_token}"`;
 
     return json(200, { command });
   } catch (error) {

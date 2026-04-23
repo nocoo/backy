@@ -559,17 +559,17 @@ describe("backups handlers", () => {
   });
 
   describe("restoreCommandHandler", () => {
-    const req = new Request("https://example.com/api/backups/b1/restore-command");
+    const baseUrl = "https://example.com";
 
     test("404 when backup missing", async () => {
-      const r = await restoreCommandHandler({ id: "x", request: req });
+      const r = await restoreCommandHandler({ id: "x", baseUrl });
       expect(r.status).toBe(404);
     });
 
     test("404 when project missing", async () => {
       mockGetBackup = async () => ({ id: "b1", project_id: "p1" });
       mockGetProject = async () => undefined;
-      const r = await restoreCommandHandler({ id: "b1", request: req });
+      const r = await restoreCommandHandler({ id: "b1", baseUrl });
       expect(r.status).toBe(404);
     });
 
@@ -580,12 +580,13 @@ describe("backups handlers", () => {
         name: "P1",
         webhook_token: "tok",
       });
-      const r = await restoreCommandHandler({ id: "b1", request: req });
+      const r = await restoreCommandHandler({ id: "b1", baseUrl });
       expect(r.status).toBe(200);
       if (r.kind === "json") {
         const body = r.body as { command: string };
         expect(body.command).toContain("Bearer tok");
         expect(body.command).toContain("/api/restore/b1");
+        expect(body.command).toContain("https://example.com");
       }
     });
 
@@ -593,7 +594,7 @@ describe("backups handlers", () => {
       mockGetBackup = async () => {
         throw new Error("db");
       };
-      const r = await restoreCommandHandler({ id: "x", request: req });
+      const r = await restoreCommandHandler({ id: "x", baseUrl });
       expect(r.status).toBe(500);
     });
   });
