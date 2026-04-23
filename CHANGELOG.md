@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-04-23
+
+### Changed
+- Ignore .next anywhere in tree (was repo-root only)
+- Mark Wave 2 + Wave 3 of API extraction plan complete
+- Wave 2d.4 — extract webhook handlers
+- Wave 2d.3 — extract restore handler
+- Wave 2d.2 — extract cron trigger handlers
+- Wave 2d.1 — extract webhook + cron log handlers
+- Wave 2c — extract backups detail handlers
+- Extract handlers — Wave 2b (backups)
+- Extract handlers — Wave 2a (projects, categories, db, ip-info, live, stats)
+- Extract server libs into @backy/api (Wave 1)
+- Add API extraction plan (06)
+- Sync CLAUDE.md and README for monorepo layout
+- Move web app into apps/web workspace
+- Scaffold monorepo workspaces with @backy/api and @backy/cli placeholders
+- Upgrade next to 16.2.3 to fix CVE
+
+### Fixed
+- Walk up to git root for monorepo layout
+- Keep webhook formData parsing inside handler try/catch
+
+### Removed
+- Drop transport coupling from restoreCommandHandler
+- Remove unused brace-expansion dependency
+
 ## [1.7.12] - 2026-04-03
 
 ### Added
