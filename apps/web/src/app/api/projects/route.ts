@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { listProjects, createProject } from "@/lib/db/projects";
-import { sanitizeProject } from "@/lib/sanitize";
+import { listProjects, createProject } from "@backy/api/db/projects";
+import { sanitizeProject } from "@backy/api/sanitize";
 import { z } from "zod";
 
 const CreateProjectSchema = z.object({

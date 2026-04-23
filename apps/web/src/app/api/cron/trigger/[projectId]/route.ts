@@ -7,9 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getProject } from "@/lib/db/projects";
-import { createCronLog } from "@/lib/db/cron-logs";
-import { isUrlSafe, resolveAndValidateUrl } from "@/lib/url";
+import { getProject } from "@backy/api/db/projects";
+import { createCronLog } from "@backy/api/db/cron-logs";
+import { isUrlSafe, resolveAndValidateUrl } from "@backy/api/url";
 
 export async function POST(
   _request: NextRequest,

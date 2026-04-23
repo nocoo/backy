@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getBackup, updateBackup } from "@/lib/db/backups";
-import { downloadFromR2, uploadToR2 } from "@/lib/r2/client";
-import { extractJson, MAX_DECOMPRESSED_SIZE } from "@/lib/backup/extractors";
-import { isExtractable } from "@/lib/backup/file-type";
-import type { FileType } from "@/lib/backup/file-type";
-import { generatePreviewKey } from "@/lib/backup/storage";
+import { getBackup, updateBackup } from "@backy/api/db/backups";
+import { downloadFromR2, uploadToR2 } from "@backy/api/r2";
+import { extractJson, MAX_DECOMPRESSED_SIZE } from "@backy/api/backup/extractors";
+import { isExtractable } from "@backy/api/backup/file-type";
+import type { FileType } from "@backy/api/backup/file-type";
+import { generatePreviewKey } from "@backy/api/backup/storage";
 
 /**
  * POST /api/backups/[id]/extract — Extract JSON from a backup archive.

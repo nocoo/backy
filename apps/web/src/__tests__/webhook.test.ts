@@ -2,7 +2,7 @@ import { describe, expect, test, mock } from "bun:test";
 import { PROJECT_STUBS, R2_STUBS } from "./helpers";
 
 // Mock D1 and R2 before importing the route
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   getProjectByToken: async (token: string) => {
     if (token === "valid-token") {
@@ -31,7 +31,7 @@ mock.module("@/lib/db/projects", () => ({
   },
 }));
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   createBackup: async (data: Record<string, unknown>) => ({
     id: "backup-123",
     project_id: data.projectId,
@@ -90,11 +90,11 @@ mock.module("@/lib/db/backups", () => ({
   countBackups: async () => 7,
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
 }));
 
-mock.module("@/lib/db/webhook-logs", () => ({
+mock.module("@backy/api/db/webhook-logs", () => ({
   createWebhookLog: async () => {},
 }));
 

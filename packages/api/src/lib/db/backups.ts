@@ -3,7 +3,7 @@
  */
 
 import { executeD1Query } from "./d1-client";
-import { generateId } from "@/lib/id";
+import { generateId } from "../id";
 
 export interface Backup {
   id: string;

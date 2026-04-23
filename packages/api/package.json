@@ -4,14 +4,49 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./db/d1-client": "./src/lib/db/d1-client.ts",
+    "./db/projects": "./src/lib/db/projects.ts",
+    "./db/backups": "./src/lib/db/backups.ts",
+    "./db/categories": "./src/lib/db/categories.ts",
+    "./db/cron-logs": "./src/lib/db/cron-logs.ts",
+    "./db/webhook-logs": "./src/lib/db/webhook-logs.ts",
+    "./db/schema": "./src/lib/db/schema.ts",
+    "./r2": "./src/lib/r2/client.ts",
+    "./backup/file-type": "./src/lib/backup/file-type.ts",
+    "./backup/storage": "./src/lib/backup/storage.ts",
+    "./backup/extractors": "./src/lib/backup/extractors.ts",
+    "./id": "./src/lib/id.ts",
+    "./hosts": "./src/lib/hosts.ts",
+    "./ip": "./src/lib/ip.ts",
+    "./sanitize": "./src/lib/sanitize.ts",
+    "./url": "./src/lib/url.ts",
+    "./test-project": "./src/lib/test-project.ts"
   },
-  "scripts": {
-    "test": "bun test src/__tests__/",
-    "typecheck": "tsc --noEmit"
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1014.0",
+    "@aws-sdk/s3-request-presigner": "^3.1014.0",
+    "jszip": "^3.10.1",
+    "nanoid": "^5.1.7",
+    "tar-stream": "^3.1.8",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",
-    "typescript": "^5.9.3"
+    "@types/tar-stream": "^3.1.4",
+    "eslint": "^9.39.4",
+    "lint-staged": "^16.4.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "8.56.0"
+  },
+  "scripts": {
+    "lint": "eslint --max-warnings=0 src",
+    "lint:staged": "lint-staged",
+    "test": "bun test src/__tests__/",
+    "test:coverage": "bun run scripts/check-coverage.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "lint-staged": {
+    "*.ts": "eslint --max-warnings=0 --no-warn-ignored"
   }
 }

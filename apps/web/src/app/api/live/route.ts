@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { executeD1Query, isD1Configured } from "@/lib/db/d1-client";
-import { pingR2, isR2Configured } from "@/lib/r2/client";
+import { executeD1Query, isD1Configured } from "@backy/api/db/d1-client";
+import { pingR2, isR2Configured } from "@backy/api/r2";
 
 const HEALTH_CHECK_TIMEOUT_MS = 5_000;
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown";

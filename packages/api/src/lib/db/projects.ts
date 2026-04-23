@@ -3,7 +3,7 @@
  */
 
 import { executeD1Query } from "./d1-client";
-import { generateId, generateWebhookToken } from "@/lib/id";
+import { generateId, generateWebhookToken } from "../id";
 
 export interface Project {
   id: string;

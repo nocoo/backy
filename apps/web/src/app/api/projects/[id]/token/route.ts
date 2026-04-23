@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { regenerateToken } from "@/lib/db/projects";
+import { regenerateToken } from "@backy/api/db/projects";
 
 /**
  * POST /api/projects/[id]/token — Regenerate webhook token.

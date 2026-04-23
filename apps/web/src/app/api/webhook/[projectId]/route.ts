@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { getProjectByToken } from "@/lib/db/projects";
-import { createBackup, listBackups, countBackups } from "@/lib/db/backups";
-import { uploadToR2 } from "@/lib/r2/client";
-import { enforceIpRestriction, getClientIp } from "@/lib/ip";
+import { getProjectByToken } from "@backy/api/db/projects";
+import { createBackup, listBackups, countBackups } from "@backy/api/db/backups";
+import { uploadToR2 } from "@backy/api/r2";
+import { enforceIpRestriction, getClientIp } from "@backy/api/ip";
 import {
   createWebhookLog,
   type WebhookErrorCode,
-} from "@/lib/db/webhook-logs";
-import { detectFileType, isPreviewable, normalizeContentType } from "@/lib/backup/file-type";
-import { generateBackupKey, generatePreviewKey, generateTimestamp } from "@/lib/backup/storage";
+} from "@backy/api/db/webhook-logs";
+import { detectFileType, isPreviewable, normalizeContentType } from "@backy/api/backup/file-type";
+import { generateBackupKey, generatePreviewKey, generateTimestamp } from "@backy/api/backup/storage";
 
 /** Max upload size: 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;

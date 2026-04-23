@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getProject } from "@/lib/db/projects";
-import { buildBaseUrl } from "@/lib/hosts";
+import { getProject } from "@backy/api/db/projects";
+import { buildBaseUrl } from "@backy/api/hosts";
 
 /**
  * GET /api/projects/[id]/prompt — Generate AI agent integration prompt.

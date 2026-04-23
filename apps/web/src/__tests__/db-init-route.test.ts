@@ -5,7 +5,7 @@ import { SCHEMA_STUBS } from "./helpers";
 
 let mockInitializeSchema: () => Promise<void> = async () => {};
 
-mock.module("@/lib/db/schema", () => ({
+mock.module("@backy/api/db/schema", () => ({
   ...SCHEMA_STUBS,
   initializeSchema: () => mockInitializeSchema(),
 }));

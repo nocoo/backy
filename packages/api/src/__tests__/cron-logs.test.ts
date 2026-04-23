@@ -3,7 +3,7 @@ import {
   createCronLog,
   listCronLogs,
   deleteCronLogs,
-} from "@/lib/db/cron-logs";
+} from "@backy/api/db/cron-logs";
 import { mockFetch, d1Success } from "./helpers";
 
 describe("cron-logs", () => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { executeD1Query } from "@/lib/db/d1-client";
+import { executeD1Query } from "@backy/api/db/d1-client";
 
 interface ProjectStat {
   project_id: string;

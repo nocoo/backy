@@ -3,7 +3,7 @@ import {
   generateTimestamp,
   generateBackupKey,
   generatePreviewKey,
-} from "@/lib/backup/storage";
+} from "@backy/api/backup/storage";
 
 // ---------------------------------------------------------------------------
 // generateTimestamp

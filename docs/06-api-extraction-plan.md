@@ -77,7 +77,7 @@ change but L2 is still run as a regression check — see wave-1 acceptance.)
 
 ---
 
-## Wave 1 — Relocate server libs to `@backy/api`  ⬜
+## Wave 1 — Relocate server libs to `@backy/api`  ✅
 
 ### Scope
 
@@ -316,7 +316,11 @@ apps/web becomes a consumer via @backy/api/<subpath>. UI-only libs
 (utils, category-icons, version) stay in apps/web.
 ```
 
-### Status: ⬜
+### Status: ✅
+
+Verified: `bun --cwd packages/api {typecheck,lint,test:coverage}` →
+278 tests, 93.74% func / 95.24% line. `bun --cwd apps/web
+{typecheck,lint,test:coverage}` → 256 tests, 90.68% func / 91.47% line.
 
 ---
 

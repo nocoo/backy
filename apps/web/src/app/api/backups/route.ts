@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listBackups, listEnvironments, deleteBackups } from "@/lib/db/backups";
-import { listProjects } from "@/lib/db/projects";
-import { deleteFromR2 } from "@/lib/r2/client";
+import { listBackups, listEnvironments, deleteBackups } from "@backy/api/db/backups";
+import { listProjects } from "@backy/api/db/projects";
+import { deleteFromR2 } from "@backy/api/r2";
 
 /**
  * GET /api/backups — List backups with filtering, search, sorting, and pagination.

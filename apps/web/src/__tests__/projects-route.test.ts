@@ -8,7 +8,7 @@ let mockListProjects: () => Promise<any> = async () => [];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateProject: (...args: any[]) => Promise<any> = async () => ({});
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   listProjects: () => mockListProjects(),
   createProject: (...args: unknown[]) => mockCreateProject(...args),

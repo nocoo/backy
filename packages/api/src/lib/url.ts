@@ -14,7 +14,7 @@
  */
 
 import { resolve4, resolve6 } from "node:dns/promises";
-import { ipToInt } from "@/lib/ip";
+import { ipToInt } from "./ip";
 
 const BLOCKED_HOSTNAMES = new Set([
   "localhost",

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getBackup } from "@/lib/db/backups";
-import { getProject } from "@/lib/db/projects";
-import { createPresignedDownloadUrl } from "@/lib/r2/client";
-import { enforceIpRestriction } from "@/lib/ip";
+import { getBackup } from "@backy/api/db/backups";
+import { getProject } from "@backy/api/db/projects";
+import { createPresignedDownloadUrl } from "@backy/api/r2";
+import { enforceIpRestriction } from "@backy/api/ip";
 
 /**
  * GET /api/restore/[id] — Generate a temporary download URL for a backup.

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getBackup } from "@/lib/db/backups";
-import { createPresignedDownloadUrl } from "@/lib/r2/client";
+import { getBackup } from "@backy/api/db/backups";
+import { createPresignedDownloadUrl } from "@backy/api/r2";
 
 /**
  * GET /api/backups/[id]/download — Generate a presigned download URL.

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getProject, updateProject, deleteProject } from "@/lib/db/projects";
-import { validateAllowedIps, normalizeAllowedIps } from "@/lib/ip";
-import { isUrlSafe } from "@/lib/url";
-import { sanitizeProject } from "@/lib/sanitize";
+import { getProject, updateProject, deleteProject } from "@backy/api/db/projects";
+import { validateAllowedIps, normalizeAllowedIps } from "@backy/api/ip";
+import { isUrlSafe } from "@backy/api/url";
+import { sanitizeProject } from "@backy/api/sanitize";
 import { z } from "zod";
 
 const UpdateProjectSchema = z.object({

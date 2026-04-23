@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { sanitizeProject } from "@/lib/sanitize";
+import { sanitizeProject } from "@backy/api/sanitize";
 import { makeProject } from "./helpers";
 
 describe("sanitizeProject", () => {

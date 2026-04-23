@@ -5,7 +5,7 @@ const TEST_HOSTS = "example.com,backy.hexly.ai,localhost:7017";
 process.env.ALLOWED_HOSTS = TEST_HOSTS;
 
 // Re-import to pick up the env var (Bun evaluates at import time)
-const { buildBaseUrl, ALLOWED_HOSTS } = await import("@/lib/hosts");
+const { buildBaseUrl, ALLOWED_HOSTS } = await import("@backy/api/hosts");
 
 describe("ALLOWED_HOSTS", () => {
   test("contains expected hosts from env", () => {

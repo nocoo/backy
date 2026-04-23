@@ -5,7 +5,7 @@
  * still use full Project objects from `getProject()` directly.
  */
 
-import type { Project } from "@/lib/db/projects";
+import type { Project } from "./db/projects";
 
 /** Fields that must never be exposed via public-facing API responses. */
 type SensitiveField = "webhook_token" | "auto_backup_header_key" | "auto_backup_header_value";

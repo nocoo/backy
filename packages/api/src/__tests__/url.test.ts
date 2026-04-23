@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { isUrlSafe, isPrivateIp, isPrivateIpv6, resolveAndValidateUrl } from "@/lib/url";
+import { isUrlSafe, isPrivateIp, isPrivateIpv6, resolveAndValidateUrl } from "@backy/api/url";
 
 describe("isUrlSafe", () => {
   let originalAllowlist: string | undefined;

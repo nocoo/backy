@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getBackup } from "@/lib/db/backups";
-import { downloadFromR2 } from "@/lib/r2/client";
+import { getBackup } from "@backy/api/db/backups";
+import { downloadFromR2 } from "@backy/api/r2";
 
 /** Max preview size: 5 MB (larger files should be downloaded instead). */
 const MAX_PREVIEW_SIZE = 5 * 1024 * 1024;

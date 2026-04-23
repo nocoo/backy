@@ -9,12 +9,12 @@ let mockGetBackup: (...args: any[]) => Promise<any> = async () => undefined;
 let mockCreatePresignedDownloadUrl: (...args: any[]) => Promise<string> = async () =>
   "https://mock.example.com/signed";
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   getBackup: (...args: unknown[]) => mockGetBackup(...args),
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   createPresignedDownloadUrl: (...args: unknown[]) => mockCreatePresignedDownloadUrl(...args),
 }));

@@ -15,7 +15,7 @@ let mockListWebhookLogs: (...args: any[]) => Promise<any> = async () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteWebhookLogs: (...args: any[]) => Promise<void> = async () => {};
 
-mock.module("@/lib/db/webhook-logs", () => ({
+mock.module("@backy/api/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
   listWebhookLogs: (...args: unknown[]) => mockListWebhookLogs(...args),
   deleteWebhookLogs: (...args: unknown[]) => mockDeleteWebhookLogs(...args),

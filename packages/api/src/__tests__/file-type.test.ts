@@ -5,7 +5,7 @@ import {
   isPreviewable,
   isExtractable,
   normalizeContentType,
-} from "@/lib/backup/file-type";
+} from "@backy/api/backup/file-type";
 
 // ---------------------------------------------------------------------------
 // detectFileType

@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-import { isD1Configured, executeD1Query } from "@/lib/db/d1-client";
+import { isD1Configured, executeD1Query } from "@backy/api/db/d1-client";
 import { mockFetch } from "./helpers";
 
 describe("D1 client", () => {

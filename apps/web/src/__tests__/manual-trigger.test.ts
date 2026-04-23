@@ -6,7 +6,7 @@ import { mockFetch, d1Success, makeProject, PROJECT_STUBS } from "./helpers";
 let mockProject: Record<string, unknown> | undefined;
 let getProjectShouldThrow = false;
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   getProject: async () => {
     if (getProjectShouldThrow) throw new Error("D1 error");

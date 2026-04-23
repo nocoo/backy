@@ -7,9 +7,9 @@ let mockProjects: Record<string, unknown>[] = [];
 let capturedCronLogs: Record<string, unknown>[] = [];
 let listAutoBackupProjectsShouldThrow = false;
 
-// Mock only @/lib/db/projects (global mock; must include stubs for ALL exports
+// Mock only @backy/api/db/projects (global mock; must include stubs for ALL exports
 // so other test files that mock.module the same module don't break).
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   listAutoBackupProjects: async () => {
     if (listAutoBackupProjectsShouldThrow) throw new Error("D1 timeout");
@@ -18,7 +18,7 @@ mock.module("@/lib/db/projects", () => ({
   createProject: async () => ({ id: "mock" }),
 }));
 
-// NOTE: Do NOT mock @/lib/db/cron-logs here — that breaks cron-logs.test.ts
+// NOTE: Do NOT mock @backy/api/db/cron-logs here — that breaks cron-logs.test.ts
 // because Bun's mock.module is global. Instead, we intercept D1 HTTP calls
 // via globalThis.fetch and capture the SQL payloads for cron_logs inserts.
 

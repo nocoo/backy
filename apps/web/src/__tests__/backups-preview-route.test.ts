@@ -12,12 +12,12 @@ let mockDownloadFromR2: (...args: any[]) => Promise<any> = async () => ({
   contentLength: 0,
 });
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   getBackup: (...args: unknown[]) => mockGetBackup(...args),
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   downloadFromR2: (...args: unknown[]) => mockDownloadFromR2(...args),
 }));

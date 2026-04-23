@@ -9,7 +9,7 @@ import {
   extractFromGz,
   extractFromTgz,
   MAX_DECOMPRESSED_SIZE,
-} from "@/lib/backup/extractors";
+} from "@backy/api/backup/extractors";
 import { createZipBuffer } from "./helpers";
 
 const gzipAsync = promisify(gzip);

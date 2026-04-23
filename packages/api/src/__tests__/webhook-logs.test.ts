@@ -3,7 +3,7 @@ import {
   createWebhookLog,
   listWebhookLogs,
   deleteWebhookLogs,
-} from "@/lib/db/webhook-logs";
+} from "@backy/api/db/webhook-logs";
 import { mockFetch, d1Success, d1Error } from "./helpers";
 
 describe("webhook-logs", () => {

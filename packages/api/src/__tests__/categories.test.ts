@@ -5,7 +5,7 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
-} from "@/lib/db/categories";
+} from "@backy/api/db/categories";
 import { mockFetch, d1Success } from "./helpers";
 
 describe("categories", () => {

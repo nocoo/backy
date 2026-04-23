@@ -8,13 +8,13 @@ let mockIsR2Configured = true;
 let mockExecuteD1Query: () => Promise<unknown[]> = async () => [{ 1: 1 }];
 let mockPingR2: () => Promise<void> = async () => {};
 
-mock.module("@/lib/db/d1-client", () => ({
+mock.module("@backy/api/db/d1-client", () => ({
   isD1Configured: () => mockIsD1Configured,
   executeD1Query: () => mockExecuteD1Query(),
   D1Response: {},
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   isR2Configured: () => mockIsR2Configured,
   pingR2: () => mockPingR2(),

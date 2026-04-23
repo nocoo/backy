@@ -9,7 +9,7 @@ process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7017";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProject: (...args: any[]) => Promise<any> = async () => undefined;
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   getProject: (...args: unknown[]) => mockGetProject(...args),
 }));

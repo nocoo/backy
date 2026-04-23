@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listCategories, createCategory } from "@/lib/db/categories";
+import { listCategories, createCategory } from "@backy/api/db/categories";
 import { z } from "zod";
 
 const CreateCategorySchema = z.object({

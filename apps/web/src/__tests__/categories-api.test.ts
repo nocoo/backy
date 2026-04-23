@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import type { Category } from "@/lib/db/categories";
+import type { Category } from "@backy/api/db/categories";
 
 // --- Mutable mock state ---
 
@@ -19,7 +19,7 @@ let mockCreateResult: Category = mockCategory;
 let mockUpdateResult: Category | undefined = mockCategory;
 let mockDeleteResult = true;
 
-mock.module("@/lib/db/categories", () => ({
+mock.module("@backy/api/db/categories", () => ({
   listCategories: async () => mockListResult,
   getCategory: async () => mockGetResult,
   createCategory: async (data: { name: string; color?: string; icon?: string; sortOrder?: number }) =>

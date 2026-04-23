@@ -19,7 +19,7 @@ let mockDownloadContentLength: number | undefined = 0;
 const uploadCalls: Array<{ key: string; contentType: string }> = [];
 const updateCalls: Array<{ id: string; data: Record<string, unknown> }> = [];
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   getBackup: async () => mockGetBackupResult,
   updateBackup: async (id: string, data: Record<string, unknown>) => {
@@ -27,7 +27,7 @@ mock.module("@/lib/db/backups", () => ({
   },
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   downloadFromR2: async () => ({
     body: mockDownloadBody,

@@ -6,7 +6,7 @@ import { PROJECT_STUBS } from "./helpers";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockRegenerateToken: (...args: any[]) => Promise<any> = async () => undefined;
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   regenerateToken: (...args: unknown[]) => mockRegenerateToken(...args),
 }));

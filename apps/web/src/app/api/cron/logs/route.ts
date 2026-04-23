@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { listCronLogs, deleteCronLogs } from "@/lib/db/cron-logs";
-import type { CronLogStatus } from "@/lib/db/cron-logs";
+import { listCronLogs, deleteCronLogs } from "@backy/api/db/cron-logs";
+import type { CronLogStatus } from "@backy/api/db/cron-logs";
 
 const VALID_STATUSES: CronLogStatus[] = ["triggered", "skipped", "success", "failed"];
 

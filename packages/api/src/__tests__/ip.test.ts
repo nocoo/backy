@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { isValidCidr, validateAllowedIps, normalizeAllowedIps, isIpAllowed, getClientIp } from "@/lib/ip";
+import { isValidCidr, validateAllowedIps, normalizeAllowedIps, isIpAllowed, getClientIp } from "@backy/api/ip";
 
 describe("isValidCidr", () => {
   test("accepts plain IPv4 address", () => {

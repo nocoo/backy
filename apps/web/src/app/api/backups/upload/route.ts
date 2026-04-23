@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import JSZip from "jszip";
-import { createBackup } from "@/lib/db/backups";
-import { getProject } from "@/lib/db/projects";
-import { uploadToR2 } from "@/lib/r2/client";
-import { detectFileType, isPreviewable, normalizeContentType } from "@/lib/backup/file-type";
-import { generateBackupKey, generatePreviewKey, generateTimestamp } from "@/lib/backup/storage";
+import { createBackup } from "@backy/api/db/backups";
+import { getProject } from "@backy/api/db/projects";
+import { uploadToR2 } from "@backy/api/r2";
+import { detectFileType, isPreviewable, normalizeContentType } from "@backy/api/backup/file-type";
+import { generateBackupKey, generatePreviewKey, generateTimestamp } from "@backy/api/backup/storage";
 
 /** Max upload size: 50 MB */
 const MAX_FILE_SIZE = 50 * 1024 * 1024;

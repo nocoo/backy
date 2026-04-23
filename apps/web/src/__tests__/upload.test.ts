@@ -26,12 +26,12 @@ let mockCreateBackupResult = {
 
 const uploadCalls: Array<{ key: string; contentType: string }> = [];
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   getProject: async () => mockGetProjectResult,
 }));
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   createBackup: async (data: Record<string, unknown>) => ({
     ...mockCreateBackupResult,
@@ -41,7 +41,7 @@ mock.module("@/lib/db/backups", () => ({
   }),
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   uploadToR2: async (key: string, _data: unknown, contentType: string) => {
     uploadCalls.push({ key, contentType });

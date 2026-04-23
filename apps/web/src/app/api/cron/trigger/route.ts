@@ -7,9 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { listAutoBackupProjects } from "@/lib/db/projects";
-import { createCronLog } from "@/lib/db/cron-logs";
-import { isUrlSafe, resolveAndValidateUrl } from "@/lib/url";
+import { listAutoBackupProjects } from "@backy/api/db/projects";
+import { createCronLog } from "@backy/api/db/cron-logs";
+import { isUrlSafe, resolveAndValidateUrl } from "@backy/api/url";
 
 const VALID_INTERVALS = [1, 12, 24];
 

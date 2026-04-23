@@ -1,8 +1,17 @@
 /**
- * @backy/api — placeholder package.
+ * @backy/api — server-side libraries shared across web/cli/worker hosts.
  *
- * Reserved for the next refactor wave: shared API/business-logic extracted
- * from `apps/web/src/app/api`. Currently exports a version stamp only so the
- * workspace can be imported without breaking type resolution.
+ * Subpath imports are the recommended way to consume this package, e.g.
+ * `import { generateId } from "@backy/api/id"`. The barrel here re-exports
+ * the most common surfaces so consumers can also do
+ * `import { generateId } from "@backy/api"` when convenient.
  */
+
 export const PACKAGE_NAME = "@backy/api";
+
+export * from "./lib/id";
+export * from "./lib/hosts";
+export * from "./lib/ip";
+export * from "./lib/sanitize";
+export * from "./lib/url";
+export * from "./lib/test-project";

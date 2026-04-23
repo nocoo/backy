@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getBackup, deleteBackup } from "@/lib/db/backups";
-import { deleteFromR2 } from "@/lib/r2/client";
+import { getBackup, deleteBackup } from "@backy/api/db/backups";
+import { deleteFromR2 } from "@backy/api/r2";
 
 /**
  * GET /api/backups/[id] — Get a single backup.

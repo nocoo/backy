@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { initializeSchema } from "@/lib/db/schema";
+import { initializeSchema } from "@backy/api/db/schema";
 
 /**
  * POST /api/db/init — Initialize D1 schema (idempotent).

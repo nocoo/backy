@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { generateId, generateWebhookToken } from "@/lib/id";
+import { generateId, generateWebhookToken } from "../lib/id";
 
 describe("generateId", () => {
   test("returns a 21-character string", () => {

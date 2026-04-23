@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCategory, updateCategory, deleteCategory } from "@/lib/db/categories";
+import { getCategory, updateCategory, deleteCategory } from "@backy/api/db/categories";
 import { z } from "zod";
 
 const UpdateCategorySchema = z.object({

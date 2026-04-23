@@ -8,12 +8,12 @@ let mockGetBackup: (...args: any[]) => Promise<any> = async () => undefined;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProject: (...args: any[]) => Promise<any> = async () => undefined;
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   getBackup: (...args: unknown[]) => mockGetBackup(...args),
 }));
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   getProject: (...args: unknown[]) => mockGetProject(...args),
 }));

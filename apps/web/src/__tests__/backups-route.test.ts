@@ -21,19 +21,19 @@ let mockListProjects: () => Promise<any> = async () => [];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteFromR2: (...args: any[]) => Promise<void> = async () => {};
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   listBackups: (...args: unknown[]) => mockListBackups(...args),
   listEnvironments: () => mockListEnvironments(),
   deleteBackups: (...args: unknown[]) => mockDeleteBackups(...args),
 }));
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   listProjects: () => mockListProjects(),
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   deleteFromR2: (...args: unknown[]) => mockDeleteFromR2(...args),
 }));

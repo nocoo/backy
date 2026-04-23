@@ -10,13 +10,13 @@ let mockDeleteBackup: (...args: any[]) => Promise<any> = async () => undefined;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteFromR2: (...args: any[]) => Promise<void> = async () => {};
 
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   getBackup: (...args: unknown[]) => mockGetBackup(...args),
   deleteBackup: (...args: unknown[]) => mockDeleteBackup(...args),
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   deleteFromR2: (...args: unknown[]) => mockDeleteFromR2(...args),
 }));

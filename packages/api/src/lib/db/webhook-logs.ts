@@ -6,7 +6,7 @@
  */
 
 import { executeD1Query } from "./d1-client";
-import { generateId } from "@/lib/id";
+import { generateId } from "../id";
 
 /** Structured error codes for webhook failures. */
 export type WebhookErrorCode =

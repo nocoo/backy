@@ -19,9 +19,9 @@
  * from polluting the current test run.
  */
 import { NextResponse } from "next/server";
-import { executeD1Query } from "@/lib/db/d1-client";
-import { deleteFromR2 } from "@/lib/r2/client";
-import { TEST_PROJECT } from "@/lib/test-project";
+import { executeD1Query } from "@backy/api/db/d1-client";
+import { deleteFromR2 } from "@backy/api/r2";
+import { TEST_PROJECT } from "@backy/api/test-project";
 
 export async function POST() {
   if (process.env.E2E_SKIP_AUTH !== "true") {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listWebhookLogs, deleteWebhookLogs } from "@/lib/db/webhook-logs";
+import { listWebhookLogs, deleteWebhookLogs } from "@backy/api/db/webhook-logs";
 
 /**
  * GET /api/logs — List webhook audit logs with filtering and pagination.

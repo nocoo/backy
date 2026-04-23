@@ -2,7 +2,7 @@ import { describe, expect, test, mock } from "bun:test";
 import { BACKUP_STUBS, PROJECT_STUBS, R2_STUBS } from "./helpers";
 
 // Mock DB and R2 before importing the route
-mock.module("@/lib/db/backups", () => ({
+mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
   getBackup: async (id: string) => {
     if (id === "backup-open") {
@@ -25,7 +25,7 @@ mock.module("@/lib/db/backups", () => ({
   },
 }));
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   getProject: async (id: string) => {
     if (id === "proj-open") {
@@ -48,7 +48,7 @@ mock.module("@/lib/db/projects", () => ({
   },
 }));
 
-mock.module("@/lib/r2/client", () => ({
+mock.module("@backy/api/r2", () => ({
   ...R2_STUBS,
   createPresignedDownloadUrl: async () => "https://r2.example.com/signed-url",
 }));

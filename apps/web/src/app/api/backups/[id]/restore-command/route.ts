@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getBackup } from "@/lib/db/backups";
-import { getProject } from "@/lib/db/projects";
-import { buildBaseUrl } from "@/lib/hosts";
+import { getBackup } from "@backy/api/db/backups";
+import { getProject } from "@backy/api/db/projects";
+import { buildBaseUrl } from "@backy/api/hosts";
 
 /**
  * GET /api/backups/[id]/restore-command — Generate a restore curl command.

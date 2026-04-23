@@ -6,7 +6,7 @@
  */
 
 import { executeD1Query } from "./d1-client";
-import { generateId } from "@/lib/id";
+import { generateId } from "../id";
 
 /** Possible cron log statuses. */
 export type CronLogStatus = "triggered" | "skipped" | "success" | "failed";

@@ -10,7 +10,7 @@ let mockUpdateProject: (...args: any[]) => Promise<any> = async () => ({});
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteProject: (...args: any[]) => Promise<any> = async () => false;
 
-mock.module("@/lib/db/projects", () => ({
+mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
   getProject: (...args: unknown[]) => mockGetProject(...args),
   updateProject: (...args: unknown[]) => mockUpdateProject(...args),
