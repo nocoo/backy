@@ -228,7 +228,9 @@ export interface WebhookPostInput {
   authorization: string | null;
   clientIp: string | null;
   userAgent: string | null;
-  formData: FormData;
+  // Lazy getter so multipart-parse failures land inside the handler's
+  // try/catch and produce a logged 500 instead of escaping to the framework.
+  formData: () => Promise<FormData>;
 }
 
 export async function webhookPostHandler(
@@ -271,7 +273,8 @@ export async function webhookPostHandler(
       return json(403, { error: "Forbidden" });
     }
 
-    const file = input.formData.get("file");
+    const formData = await input.formData();
+    const file = formData.get("file");
     if (!file || !(file instanceof File)) {
       fireLog({
         projectId: project.id, method: "POST", path, statusCode: 400,
@@ -304,8 +307,8 @@ export async function webhookPostHandler(
 
     const rawType = file.type || "application/octet-stream";
     const contentType = normalizeContentType(rawType);
-    const environment = input.formData.get("environment") as string | null;
-    const tag = input.formData.get("tag") as string | null;
+    const environment = formData.get("environment") as string | null;
+    const tag = formData.get("tag") as string | null;
 
     if (
       environment &&

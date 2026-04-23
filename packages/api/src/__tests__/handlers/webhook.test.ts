@@ -335,7 +335,7 @@ describe("webhookPostHandler", () => {
     file?: File | null;
     environment?: string;
     tag?: string;
-  }) {
+  }): () => Promise<FormData> {
     const f = new FormData();
     if (parts.file !== null && parts.file !== undefined) {
       f.append("file", parts.file);
@@ -344,7 +344,7 @@ describe("webhookPostHandler", () => {
     }
     if (parts.environment) f.append("environment", parts.environment);
     if (parts.tag) f.append("tag", parts.tag);
-    return f;
+    return async () => f;
   }
 
   test("401 when no Authorization", async () => {
@@ -552,5 +552,23 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(500);
+  });
+
+  test("500 when formData() throws (multipart parse failure)", async () => {
+    mockGetProjectByToken = async () => baseProject;
+    const r = await webhookPostHandler({
+      projectId: "p1",
+      authorization: "Bearer tok-valid",
+      clientIp: null,
+      userAgent: null,
+      formData: async () => {
+        throw new Error("malformed multipart body");
+      },
+    });
+    expect(r.status).toBe(500);
+    if (r.kind === "json") {
+      const body = r.body as Record<string, unknown>;
+      expect(body.error).toBe("Internal server error");
+    }
   });
 });

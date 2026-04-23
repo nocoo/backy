@@ -43,8 +43,11 @@ export async function POST(
   { params }: { params: Promise<{ projectId: string }> },
 ) {
   const { projectId } = await params;
-  const formData = await request.formData();
   return toResponse(
-    await webhookPostHandler({ projectId, ...ctx(request), formData }),
+    await webhookPostHandler({
+      projectId,
+      ...ctx(request),
+      formData: () => request.formData(),
+    }),
   );
 }
