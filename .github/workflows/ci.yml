@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ─────────────────────────────────────────────────────
+  # L1 + G1 + G2 — Core quality gate from base-ci
+  #
+  # Backy is a bun monorepo (apps/web, packages/api, apps/cli).
+  # Root scripts forward into each workspace, so the standard
+  # `bun run typecheck` / `bun test` / `bun run gate:security`
+  # commands cover all packages without per-workspace jobs.
+  #
+  # L2 (API E2E) and L3 (Playwright) are intentionally NOT wired
+  # here yet — they require a dedicated set of Cloudflare D1/R2
+  # test resources plus auth secrets to be configured on the repo
+  # before they can run. Add them as separate jobs once secrets
+  # are in place.
+  # ─────────────────────────────────────────────────────
+  quality:
+    uses: nocoo/base-ci/.github/workflows/bun-quality.yml@v2026.1
+    with:
+      bun-version: "1.3.11"
+      typecheck-command: "bun run typecheck"
+      test-command: "bun run test:coverage"
+      osv-config: "apps/web/osv-scanner.toml"
+      enable-l2: "false"
+      enable-l3: "false"
+      enable-worker: "false"
+    secrets: inherit
