@@ -21,6 +21,10 @@
     },
     "apps/web": {
       "name": "@backy/web",
+      "version": "0.0.0",
+    },
+    "apps/web_legacy": {
+      "name": "@backy/web-legacy",
       "version": "1.8.0",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1014.0",
@@ -59,6 +63,10 @@
         "typescript": "^5.9.3",
         "typescript-eslint": "8.56.0",
       },
+    },
+    "apps/worker": {
+      "name": "@backy/worker",
+      "version": "0.0.0",
     },
     "packages/api": {
       "name": "@backy/api",
@@ -213,6 +221,10 @@
     "@backy/cli": ["@backy/cli@workspace:apps/cli"],
 
     "@backy/web": ["@backy/web@workspace:apps/web"],
+
+    "@backy/web-legacy": ["@backy/web-legacy@workspace:apps/web_legacy"],
+
+    "@backy/worker": ["@backy/worker@workspace:apps/worker"],
 
     "@emnapi/core": ["@emnapi/core@1.10.0", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw=="],
 

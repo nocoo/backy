@@ -1,0 +1,9 @@
+{
+  "name": "@backy/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'apps/worker build — placeholder until Wave C' && exit 0"
+  }
+}
