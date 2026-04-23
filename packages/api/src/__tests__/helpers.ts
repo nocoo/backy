@@ -147,6 +147,19 @@ export const WEBHOOK_LOG_STUBS: Stub = {
   deleteWebhookLogs: async () => {},
 };
 
+/** Default stubs for `@backy/api/db/cron-logs`. */
+export const CRON_LOG_STUBS: Stub = {
+  createCronLog: async () => {},
+  listCronLogs: async () => ({
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 50,
+    totalPages: 0,
+  }),
+  deleteCronLogs: async () => {},
+};
+
 /** Default stubs for `@backy/api/db/schema`. */
 export const SCHEMA_STUBS: Stub = {
   initializeSchema: async () => {},
