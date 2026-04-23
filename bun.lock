@@ -21,7 +21,7 @@
     },
     "apps/web": {
       "name": "@backy/web",
-      "version": "1.7.12",
+      "version": "1.8.0",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1014.0",
         "@aws-sdk/s3-request-presigner": "^3.1014.0",
@@ -73,6 +73,7 @@
       },
       "devDependencies": {
         "@types/bun": "^1.3.11",
+        "@types/node": "^25.6.0",
         "@types/tar-stream": "^3.1.4",
         "eslint": "^9.39.4",
         "lint-staged": "^16.4.0",
