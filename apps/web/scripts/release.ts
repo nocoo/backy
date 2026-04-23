@@ -23,15 +23,30 @@
 
 import { spawn } from 'child_process';
 import { resolve as pathResolve } from 'path';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import * as readline from 'readline';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROJECT_ROOT = pathResolve(import.meta.dirname ?? '.', '..');
+const APP_ROOT = pathResolve(import.meta.dirname ?? '.', '..');
+// Walk up from APP_ROOT until we find the directory containing .git (the
+// monorepo root). package.json + CHANGELOG.md live there as the single
+// source of truth; the per-app package.json is bumped in lockstep below.
+function findGitRoot(start: string): string {
+  let dir = start;
+  for (let i = 0; i < 8; i++) {
+    if (existsSync(pathResolve(dir, '.git'))) return dir;
+    const parent = pathResolve(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return start;
+}
+const PROJECT_ROOT = findGitRoot(APP_ROOT);
 const PACKAGE_JSON = pathResolve(PROJECT_ROOT, 'package.json');
+const APP_PACKAGE_JSON = pathResolve(APP_ROOT, 'package.json');
 const CHANGELOG_MD = pathResolve(PROJECT_ROOT, 'CHANGELOG.md');
 
 // Auto-detect project name from package.json
@@ -347,13 +362,17 @@ function readCurrentVersion(): string {
 }
 
 function updatePackageJson(newVersion: string): void {
-  const raw = readFileSync(PACKAGE_JSON, 'utf-8');
-  const updated = raw.replace(VERSION_FIELD_RE, `$1${newVersion}$2`);
-  if (updated === raw) {
-    console.error('❌ Failed to update version in package.json');
-    process.exit(1);
+  for (const path of [PACKAGE_JSON, APP_PACKAGE_JSON]) {
+    if (path === PACKAGE_JSON || existsSync(path)) {
+      const raw = readFileSync(path, 'utf-8');
+      const updated = raw.replace(VERSION_FIELD_RE, `$1${newVersion}$2`);
+      if (updated === raw) {
+        console.error(`❌ Failed to update version in ${path}`);
+        process.exit(1);
+      }
+      writeFileSync(path, updated);
+    }
   }
-  writeFileSync(PACKAGE_JSON, updated);
 }
 
 // ---------------------------------------------------------------------------
@@ -520,7 +539,7 @@ async function main(): Promise<void> {
   } else {
     await runOrDie(
       'git',
-      ['add', 'package.json', 'bun.lock', 'CHANGELOG.md'],
+      ['add', 'package.json', 'apps/web/package.json', 'bun.lock', 'CHANGELOG.md'],
       'Failed to stage files',
     );
     const commitResult = await run('git', [
