@@ -6,22 +6,34 @@ import {
   deleteBackup,
   deleteBackups,
   createBackup,
+  updateBackup,
 } from "../lib/db/backups";
 import { listProjects, getProject } from "../lib/db/projects";
-import { deleteFromR2, uploadToR2 } from "../lib/r2/client";
+import {
+  deleteFromR2,
+  uploadToR2,
+  downloadFromR2,
+  createPresignedDownloadUrl,
+} from "../lib/r2/client";
 import {
   detectFileType,
   isPreviewable,
   normalizeContentType,
+  isExtractable,
+  type FileType,
 } from "../lib/backup/file-type";
 import {
   generateBackupKey,
   generatePreviewKey,
   generateTimestamp,
 } from "../lib/backup/storage";
+import { extractJson, MAX_DECOMPRESSED_SIZE } from "../lib/backup/extractors";
+import { buildBaseUrl } from "../lib/hosts";
 import { json, type HandlerResponse } from "../http/response";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_PREVIEW_SIZE = 5 * 1024 * 1024;
+const PRESIGN_EXPIRES_IN = 900;
 
 export interface ListBackupsInput {
   projectId?: string;
@@ -239,5 +251,171 @@ export async function uploadBackupHandler(
   } catch (error) {
     console.error("Manual upload error:", error);
     return json(500, { error: "Internal server error" });
+  }
+}
+
+export async function downloadBackupHandler(input: {
+  id: string;
+}): Promise<HandlerResponse> {
+  try {
+    const backup = await getBackup(input.id);
+    if (!backup) return json(404, { error: "Backup not found" });
+    const url = await createPresignedDownloadUrl(backup.file_key);
+    return json(200, {
+      url,
+      file_key: backup.file_key,
+      file_size: backup.file_size,
+      expires_in: PRESIGN_EXPIRES_IN,
+    });
+  } catch (error) {
+    console.error("Failed to generate download URL:", error);
+    return json(500, { error: "Failed to generate download URL" });
+  }
+}
+
+export async function previewBackupHandler(input: {
+  id: string;
+}): Promise<HandlerResponse> {
+  try {
+    const backup = await getBackup(input.id);
+    if (!backup) return json(404, { error: "Backup not found" });
+
+    if (!backup.json_key) {
+      return json(404, {
+        error:
+          "No JSON available for preview. Extract JSON first via POST /api/backups/[id]/extract",
+        extractable: !backup.is_single_json,
+      });
+    }
+
+    const r2Response = await downloadFromR2(backup.json_key);
+    if (!r2Response.body) {
+      return json(500, {
+        error: "Failed to download preview file from storage",
+      });
+    }
+
+    const bodyBytes = await (
+      r2Response.body as { transformToByteArray: () => Promise<Uint8Array> }
+    ).transformToByteArray();
+
+    if (bodyBytes.byteLength > MAX_PREVIEW_SIZE) {
+      return json(413, {
+        error:
+          "JSON file too large for inline preview. Use the download endpoint instead.",
+      });
+    }
+
+    const text = new TextDecoder().decode(bodyBytes);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return json(500, { error: "Stored preview file is not valid JSON" });
+    }
+
+    return json(200, {
+      backup_id: backup.id,
+      project_id: backup.project_id,
+      project_name: backup.project_name,
+      json_key: backup.json_key,
+      content: parsed,
+    });
+  } catch (error) {
+    console.error("Failed to load preview:", error);
+    return json(500, { error: "Failed to load preview" });
+  }
+}
+
+export async function extractBackupHandler(input: {
+  id: string;
+}): Promise<HandlerResponse> {
+  try {
+    const backup = await getBackup(input.id);
+    if (!backup) return json(404, { error: "Backup not found" });
+
+    if (backup.json_key) {
+      return json(200, {
+        message: "JSON already available",
+        json_key: backup.json_key,
+      });
+    }
+
+    if (backup.is_single_json) {
+      return json(400, {
+        error: "Backup is already a JSON file, no extraction needed",
+      });
+    }
+
+    const fileType = (backup.file_type || "unknown") as FileType;
+    if (!isExtractable(fileType)) {
+      return json(400, {
+        error: "Preview is not available for this file format",
+      });
+    }
+
+    const r2Response = await downloadFromR2(backup.file_key);
+    if (!r2Response.body) {
+      return json(500, {
+        error: "Failed to download backup file from storage",
+      });
+    }
+
+    if (
+      r2Response.contentLength &&
+      r2Response.contentLength > MAX_DECOMPRESSED_SIZE
+    ) {
+      return json(400, {
+        error: `Archive too large for extraction (${(r2Response.contentLength / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit)`,
+      });
+    }
+
+    const archiveBuffer = await (
+      r2Response.body as { transformToByteArray: () => Promise<Uint8Array> }
+    ).transformToByteArray();
+
+    const outcome = await extractJson(new Uint8Array(archiveBuffer), fileType);
+    if (!outcome.success) {
+      return json(400, { error: outcome.reason });
+    }
+
+    const jsonKey = generatePreviewKey(backup.project_id);
+    await uploadToR2(jsonKey, outcome.jsonContent, "application/json");
+
+    await updateBackup(input.id, {
+      jsonKey,
+      jsonExtracted: true,
+    });
+
+    return json(200, {
+      message: "JSON extracted successfully",
+      json_key: jsonKey,
+      source_file: outcome.sourceFile,
+      json_files_found: outcome.jsonFilesFound,
+    });
+  } catch (error) {
+    console.error("Failed to extract JSON:", error);
+    return json(500, { error: "Failed to extract JSON from backup" });
+  }
+}
+
+export async function restoreCommandHandler(input: {
+  id: string;
+  request: Request;
+}): Promise<HandlerResponse> {
+  try {
+    const backup = await getBackup(input.id);
+    if (!backup) return json(404, { error: "Backup not found" });
+
+    const project = await getProject(backup.project_id);
+    if (!project) return json(404, { error: "Project not found" });
+
+    const baseUrl = buildBaseUrl(input.request);
+    const command = `curl ${baseUrl}/api/restore/${backup.id} \\\n  -H "Authorization: Bearer ${project.webhook_token}"`;
+
+    return json(200, { command });
+  } catch (error) {
+    console.error("Failed to generate restore command:", error);
+    return json(500, { error: "Failed to generate restore command" });
   }
 }

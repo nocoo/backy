@@ -26,6 +26,16 @@ let mockCreateBackup: (...args: any[]) => Promise<any> = async () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUploadToR2: (...args: any[]) => Promise<void> = async () => {};
 let mockDeleteFromR2: (k: string) => Promise<void> = async () => {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockDownloadFromR2: (k: string) => Promise<any> = async () => ({
+  body: null,
+  contentType: undefined,
+  contentLength: undefined,
+});
+let mockCreatePresignedDownloadUrl: (k: string) => Promise<string> = async () =>
+  "https://example.com/presigned";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockUpdateBackup: (...args: any[]) => Promise<any> = async () => ({});
 
 mock.module("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
@@ -35,6 +45,7 @@ mock.module("../../lib/db/backups", () => ({
   deleteBackup: (id: string) => mockDeleteBackup(id),
   deleteBackups: (ids: string[]) => mockDeleteBackups(ids),
   createBackup: (...a: unknown[]) => mockCreateBackup(...a),
+  updateBackup: (...a: unknown[]) => mockUpdateBackup(...a),
 }));
 
 mock.module("../../lib/db/projects", () => ({
@@ -48,8 +59,8 @@ mock.module("../../lib/r2/client", () => ({
   deleteFromR2: (k: string) => mockDeleteFromR2(k),
   pingR2: async () => {},
   isR2Configured: () => true,
-  downloadFromR2: async () => new Uint8Array(),
-  createPresignedDownloadUrl: async () => "https://example.com",
+  downloadFromR2: (k: string) => mockDownloadFromR2(k),
+  createPresignedDownloadUrl: (k: string) => mockCreatePresignedDownloadUrl(k),
 }));
 
 const {
@@ -58,6 +69,10 @@ const {
   getBackupHandler,
   deleteBackupHandler,
   uploadBackupHandler,
+  downloadBackupHandler,
+  previewBackupHandler,
+  extractBackupHandler,
+  restoreCommandHandler,
 } = await import("../../handlers/backups");
 
 describe("backups handlers", () => {
@@ -76,6 +91,14 @@ describe("backups handlers", () => {
     });
     mockUploadToR2 = async () => {};
     mockDeleteFromR2 = async () => {};
+    mockDownloadFromR2 = async () => ({
+      body: null,
+      contentType: undefined,
+      contentLength: undefined,
+    });
+    mockCreatePresignedDownloadUrl = async () =>
+      "https://example.com/presigned";
+    mockUpdateBackup = async () => ({});
   });
 
   describe("listBackupsHandler", () => {
@@ -307,6 +330,270 @@ describe("backups handlers", () => {
       const r = await uploadBackupHandler({
         formData: fd({ projectId: "p1", file }),
       });
+      expect(r.status).toBe(500);
+    });
+  });
+
+  describe("downloadBackupHandler", () => {
+    test("200 with presigned url", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        file_key: "k",
+        file_size: 100,
+      });
+      mockCreatePresignedDownloadUrl = async () => "https://signed.example/x";
+      const r = await downloadBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+    });
+
+    test("404 when missing", async () => {
+      const r = await downloadBackupHandler({ id: "x" });
+      expect(r.status).toBe(404);
+    });
+
+    test("500 on db error", async () => {
+      mockGetBackup = async () => {
+        throw new Error("db");
+      };
+      const r = await downloadBackupHandler({ id: "x" });
+      expect(r.status).toBe(500);
+    });
+
+    test("500 on presign error", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        file_key: "k",
+        file_size: 1,
+      });
+      mockCreatePresignedDownloadUrl = async () => {
+        throw new Error("r2");
+      };
+      const r = await downloadBackupHandler({ id: "b1" });
+      expect(r.status).toBe(500);
+    });
+  });
+
+  describe("previewBackupHandler", () => {
+    function bodyOf(bytes: Uint8Array) {
+      return { transformToByteArray: async () => bytes };
+    }
+
+    test("404 when missing", async () => {
+      const r = await previewBackupHandler({ id: "x" });
+      expect(r.status).toBe(404);
+    });
+
+    test("404 when no json_key", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        json_key: null,
+        is_single_json: 0,
+      });
+      const r = await previewBackupHandler({ id: "b1" });
+      expect(r.status).toBe(404);
+    });
+
+    test("500 when r2 body missing", async () => {
+      mockGetBackup = async () => ({ id: "b1", json_key: "j" });
+      mockDownloadFromR2 = async () => ({ body: null });
+      const r = await previewBackupHandler({ id: "b1" });
+      expect(r.status).toBe(500);
+    });
+
+    test("413 when too large", async () => {
+      mockGetBackup = async () => ({ id: "b1", json_key: "j" });
+      mockDownloadFromR2 = async () => ({
+        body: bodyOf(new Uint8Array(6 * 1024 * 1024)),
+      });
+      const r = await previewBackupHandler({ id: "b1" });
+      expect(r.status).toBe(413);
+    });
+
+    test("500 when stored content not valid JSON", async () => {
+      mockGetBackup = async () => ({ id: "b1", json_key: "j" });
+      mockDownloadFromR2 = async () => ({
+        body: bodyOf(new TextEncoder().encode("not-json")),
+      });
+      const r = await previewBackupHandler({ id: "b1" });
+      expect(r.status).toBe(500);
+    });
+
+    test("200 returns parsed content", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        project_id: "p1",
+        project_name: "P1",
+        json_key: "j",
+      });
+      mockDownloadFromR2 = async () => ({
+        body: bodyOf(new TextEncoder().encode('{"a":1}')),
+      });
+      const r = await previewBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+    });
+
+    test("500 on download error", async () => {
+      mockGetBackup = async () => ({ id: "b1", json_key: "j" });
+      mockDownloadFromR2 = async () => {
+        throw new Error("r2");
+      };
+      const r = await previewBackupHandler({ id: "b1" });
+      expect(r.status).toBe(500);
+    });
+  });
+
+  describe("extractBackupHandler", () => {
+    function bodyOf(bytes: Uint8Array) {
+      return { transformToByteArray: async () => bytes };
+    }
+
+    test("404 when missing", async () => {
+      const r = await extractBackupHandler({ id: "x" });
+      expect(r.status).toBe(404);
+    });
+
+    test("200 when json_key already set", async () => {
+      mockGetBackup = async () => ({ id: "b1", json_key: "existing" });
+      const r = await extractBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+    });
+
+    test("400 when already single JSON", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        json_key: null,
+        is_single_json: 1,
+      });
+      const r = await extractBackupHandler({ id: "b1" });
+      expect(r.status).toBe(400);
+    });
+
+    test("400 when file_type not extractable", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        json_key: null,
+        is_single_json: 0,
+        file_type: "unknown",
+      });
+      const r = await extractBackupHandler({ id: "b1" });
+      expect(r.status).toBe(400);
+    });
+
+    test("500 when r2 body missing", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        json_key: null,
+        is_single_json: 0,
+        file_type: "zip",
+        file_key: "k",
+        project_id: "p1",
+      });
+      mockDownloadFromR2 = async () => ({ body: null });
+      const r = await extractBackupHandler({ id: "b1" });
+      expect(r.status).toBe(500);
+    });
+
+    test("400 when contentLength exceeds limit", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        json_key: null,
+        is_single_json: 0,
+        file_type: "zip",
+        file_key: "k",
+        project_id: "p1",
+      });
+      mockDownloadFromR2 = async () => ({
+        body: bodyOf(new Uint8Array()),
+        contentLength: 60 * 1024 * 1024,
+      });
+      const r = await extractBackupHandler({ id: "b1" });
+      expect(r.status).toBe(400);
+    });
+
+    test("400 when extraction fails", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        json_key: null,
+        is_single_json: 0,
+        file_type: "zip",
+        file_key: "k",
+        project_id: "p1",
+      });
+      // empty zip body — extractor will report no JSON found
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      zip.file("readme.txt", "hi");
+      const buf = await zip.generateAsync({ type: "uint8array" });
+      mockDownloadFromR2 = async () => ({
+        body: bodyOf(buf),
+      });
+      const r = await extractBackupHandler({ id: "b1" });
+      expect(r.status).toBe(400);
+    });
+
+    test("200 on successful extraction", async () => {
+      mockGetBackup = async () => ({
+        id: "b1",
+        json_key: null,
+        is_single_json: 0,
+        file_type: "zip",
+        file_key: "k",
+        project_id: "p1",
+      });
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      zip.file("data.json", '{"a":1}');
+      const buf = await zip.generateAsync({ type: "uint8array" });
+      mockDownloadFromR2 = async () => ({ body: bodyOf(buf) });
+      const r = await extractBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+    });
+
+    test("500 on db error", async () => {
+      mockGetBackup = async () => {
+        throw new Error("db");
+      };
+      const r = await extractBackupHandler({ id: "x" });
+      expect(r.status).toBe(500);
+    });
+  });
+
+  describe("restoreCommandHandler", () => {
+    const req = new Request("https://example.com/api/backups/b1/restore-command");
+
+    test("404 when backup missing", async () => {
+      const r = await restoreCommandHandler({ id: "x", request: req });
+      expect(r.status).toBe(404);
+    });
+
+    test("404 when project missing", async () => {
+      mockGetBackup = async () => ({ id: "b1", project_id: "p1" });
+      mockGetProject = async () => undefined;
+      const r = await restoreCommandHandler({ id: "b1", request: req });
+      expect(r.status).toBe(404);
+    });
+
+    test("200 returns curl command", async () => {
+      mockGetBackup = async () => ({ id: "b1", project_id: "p1" });
+      mockGetProject = async () => ({
+        id: "p1",
+        name: "P1",
+        webhook_token: "tok",
+      });
+      const r = await restoreCommandHandler({ id: "b1", request: req });
+      expect(r.status).toBe(200);
+      if (r.kind === "json") {
+        const body = r.body as { command: string };
+        expect(body.command).toContain("Bearer tok");
+        expect(body.command).toContain("/api/restore/b1");
+      }
+    });
+
+    test("500 on db error", async () => {
+      mockGetBackup = async () => {
+        throw new Error("db");
+      };
+      const r = await restoreCommandHandler({ id: "x", request: req });
       expect(r.status).toBe(500);
     });
   });

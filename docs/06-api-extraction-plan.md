@@ -324,7 +324,7 @@ Verified: `bun --cwd packages/api {typecheck,lint,test:coverage}` →
 
 ---
 
-## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c–2d ⬜)
+## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c ✅, 2d ⬜)
 
 ### Scope
 
@@ -481,6 +481,12 @@ Each sub-commit independently green (G1 + L1 + L2).
 - 3 routes rewritten as adapters (`/api/backups`, `/api/backups/[id]`, `/api/backups/upload`)
 - New tests: 28 cases in `packages/api/src/__tests__/handlers/backups.test.ts`
 - Verification: packages/api 384 tests / 95.66% funcs / 96.39% lines · apps/web 268 tests / 92.18% funcs / 95.74% lines · L2 e2e 146/146 · typecheck/lint clean
+
+**Wave 2c complete (2026-04-23):**
+- Extracted 4 handlers (downloadBackup, previewBackup, extractBackup, restoreCommand) appended to `packages/api/src/handlers/backups.ts`
+- 4 routes rewritten as adapters (`/api/backups/[id]/{download,preview,extract,restore-command}`)
+- New tests: 24 cases in `backups.test.ts` (downloads ×4, preview ×7, extract ×9, restore-command ×4); mocks extended to inject `downloadFromR2`/`createPresignedDownloadUrl`/`updateBackup`
+- Verification: packages/api 408 tests / 95.66% funcs / 96.39% lines · apps/web 268 tests / 92.18% funcs / 96.02% lines · L2 e2e 146/146 · typecheck clean
 
 ---
 
