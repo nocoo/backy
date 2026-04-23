@@ -21,3 +21,12 @@ reason = "False positive: fixed in Next.js 16.1.5, we run 16.1.7. OSV DB not yet
 id = "GHSA-f886-m6hf-6m8v"
 ignoreUntil = 2026-06-26
 reason = "Indirect: brace-expansion@2.0.2 via minimatch@9 — no fixed version satisfies minimatch ^2.0.2"
+
+# --- fast-xml-parser transitive dep ---
+# fast-xml-parser@5.5.8 is pinned by @aws-sdk/xml-builder@3.972.18.
+# Cannot upgrade until AWS SDK bumps the pin to 5.7.0+.
+
+[[IgnoredVulns]]
+id = "GHSA-gh4j-gqv2-49f6"
+ignoreUntil = 2026-07-22
+reason = "Indirect: fast-xml-parser@5.5.8 pinned by @aws-sdk/xml-builder — waiting on AWS SDK upstream bump"

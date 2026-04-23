@@ -38,7 +38,7 @@ async function runOsvScanner(): Promise<ScanResult> {
   }
 
   try {
-    const result = await $`osv-scanner scan --lockfile=bun.lock 2>&1`.quiet().nothrow();
+    const result = await $`osv-scanner scan --config=osv-scanner.toml --lockfile=../../bun.lock 2>&1`.quiet().nothrow();
     const output = result.text();
 
     // osv-scanner exits 0 = no vulns, 1 = vulns found, other = error
