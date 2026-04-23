@@ -324,7 +324,7 @@ Verified: `bun --cwd packages/api {typecheck,lint,test:coverage}` →
 
 ---
 
-## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c ✅, 2d.1 ✅, 2d.2 ✅, 2d.3 ⬜, 2d.4 ⬜)
+## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c ✅, 2d.1 ✅, 2d.2 ✅, 2d.3 ✅, 2d.4 ⬜)
 
 ### Scope
 
@@ -494,6 +494,12 @@ Each sub-commit independently green (G1 + L1 + L2).
 - New tests: 20 cases in `cron.test.ts` covering auth, SSRF static + DNS blocks, fetch outcomes (success/non-2xx/throw)
 - Mock-pollution gotcha: `import * as realUrl` then re-using `realUrl.isUrlSafe` inside the `mock.module("../../lib/url", ...)` factory creates infinite recursion (the spread re-reads the now-mocked binding). Fix: capture `realIsUrlSafe`/`realResolveAndValidateUrl` as constants BEFORE `mock.module` runs, and do not spread the original module
 - Verification: packages/api 443 tests / 95.19% funcs / 96.54% lines · apps/web 268 tests / 97.18% funcs / 96.90% lines · L2 e2e 146/146 · typecheck + lint clean
+
+**Wave 2d.3 complete (2026-04-23):**
+- Extracted `restoreHandler` into `packages/api/src/handlers/restore.ts` (54 LOC); IP enforcement folded into the handler with `clientIp` passed in (no `Request` dependency)
+- 1 route rewritten as adapter (`/api/restore/[id]`); adapter calls `getClientIp(request)` and forwards `authorization` + `clientIp` as primitives
+- New tests: 10 cases in `restore.test.ts` covering missing/invalid auth, missing backup/project, token mismatch, IP CIDR allow + deny + null-with-restriction, success, db error
+- Verification: packages/api 453 tests / 95.36% funcs / 96.67% lines · apps/web 268 tests / 97.18% funcs / 97.32% lines · L2 e2e 146/146 · typecheck + lint clean
 
 ---
 
