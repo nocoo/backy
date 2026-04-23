@@ -502,6 +502,7 @@ async function main(): Promise<void> {
   console.log('🔍 Phase 3: Checking for stale version strings...\n');
 
   const rgResult = await run('rg', [
+    '-F',
     currentVersion,
     '--glob',
     '*.ts',
