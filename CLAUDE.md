@@ -24,7 +24,9 @@ This is a **Bun monorepo** (`workspaces: ["apps/*", "packages/*"]`).
 
 ```
 apps/
-  web/                     # @backy/web — Next.js application (current full surface)
+  web_legacy/              # @backy/web-legacy — Next.js 16 + NextAuth (FROZEN, see docs/07)
+  web/                     # @backy/web — placeholder, Vite SPA target (Wave D)
+  worker/                  # @backy/worker — placeholder, Hono on CF Workers (Wave C)
   cli/                     # @backy/cli — placeholder, AI-facing CLI (next wave)
 packages/
   api/                     # @backy/api — placeholder, shared API/business logic (next wave)
@@ -32,14 +34,17 @@ packages/
 
 The root `package.json` only carries `husky` + workspace plumbing; every script
 (`dev`, `build`, `test`, `typecheck`, `lint`, `gate:security`, `release`, …)
-forwards into `apps/web` via `bun --cwd apps/web …`. Husky hooks live at the
+forwards into `apps/web_legacy` via `bun --cwd apps/web_legacy …` while the
+migration in `docs/07-vite-web-migration-plan.md` is in flight. `legacy:*`
+prefixed aliases call the same workspace explicitly. Husky hooks live at the
 repo root and call those forwarders unchanged. `typecheck` and `test` also fan
-out to `packages/api` and `apps/cli`.
+out to `packages/api` and `apps/cli`. The new `apps/web` and `apps/worker`
+directories are empty scaffolds today and only ship a placeholder `build` script.
 
-The web workspace itself:
+The legacy web workspace itself:
 
 ```
-apps/web/
+apps/web_legacy/
   src/
     app/
       api/                 # 26 route files, 39 HTTP method handlers
@@ -125,9 +130,10 @@ apps/web/
 
 ### Test Structure
 
-Paths below are relative to `apps/web/` (the only workspace with tests today).
-The placeholder `@backy/api` and `@backy/cli` packages each ship a single unit
-test under `packages/api/src/__tests__/` and `apps/cli/src/__tests__/`.
+Paths below are relative to `apps/web_legacy/` (the only workspace with tests
+today). The placeholder `@backy/api` and `@backy/cli` packages each ship a
+single unit test under `packages/api/src/__tests__/` and
+`apps/cli/src/__tests__/`.
 
 ```
 src/__tests__/          # L1 unit tests (35 files, 486 tests)
@@ -146,8 +152,8 @@ e2e/bdd/                # L3 Playwright BDD E2E (5 specs, 17 tests)
 
 ## Common Commands
 
-All commands run from the repo root and forward into `apps/web` (or fan out
-to other workspaces where noted).
+All commands run from the repo root and forward into `apps/web_legacy` (or
+fan out to other workspaces where noted).
 
 ```bash
 bun dev                # Dev server (7017)
@@ -171,7 +177,7 @@ E2E tests (L2 + L3) use **dedicated Cloudflare D1 + R2** to prevent production d
 | D1 database | `backy-db` | `backy-db-test` |
 | R2 bucket | `backy` | `backy-test` |
 
-**Mechanism:** `apps/web/.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `apps/web/scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
+**Mechanism:** `apps/web_legacy/.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `apps/web_legacy/scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
 
 **Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state (name, token, all optional fields reset). Gated by `E2E_SKIP_AUTH`.
 

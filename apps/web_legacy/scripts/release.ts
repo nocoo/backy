@@ -22,7 +22,7 @@
  */
 
 import { spawn } from 'child_process';
-import { resolve as pathResolve } from 'path';
+import { resolve as pathResolve, relative as pathRelative } from 'path';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import * as readline from 'readline';
 
@@ -540,7 +540,13 @@ async function main(): Promise<void> {
   } else {
     await runOrDie(
       'git',
-      ['add', 'package.json', 'apps/web/package.json', 'bun.lock', 'CHANGELOG.md'],
+      [
+        'add',
+        'package.json',
+        pathRelative(PROJECT_ROOT, APP_PACKAGE_JSON),
+        'bun.lock',
+        'CHANGELOG.md',
+      ],
       'Failed to stage files',
     );
     const commitResult = await run('git', [

@@ -89,7 +89,7 @@ Backy 采用 **Bun monorepo** 结构（`workspaces: ["apps/*", "packages/*"]`）
 ```
 backy/
 ├── 📂 apps/
-│   ├── 📂 web/                    # @backy/web — Next.js 主应用 (现阶段全部业务代码)
+│   ├── 📂 web_legacy/             # @backy/web-legacy — Next.js 16 主应用 (FROZEN, 迁移期暂存)
 │   │   ├── 📂 src/                # App Router、组件、库、单元测试
 │   │   ├── 📂 e2e/                # L2 API + L3 Playwright 测试
 │   │   ├── 📂 scripts/            # 覆盖率/E2E/release/security 等运行器
@@ -97,13 +97,15 @@ backy/
 │   │   ├── Dockerfile             # Docker 容器化 (3-stage build)
 │   │   ├── railway.json           # Railway 部署配置
 │   │   ├── .env.example           # 环境变量示例
-│   │   └── package.json           # @backy/web
+│   │   └── package.json           # @backy/web-legacy
+│   ├── 📂 web/                    # @backy/web — 占位包，Wave D 接管 (Vite SPA)
+│   ├── 📂 worker/                 # @backy/worker — 占位包，Wave C 接管 (Hono on CF Workers)
 │   └── 📂 cli/                    # @backy/cli — 占位包，下一波将实现 AI-facing CLI
 ├── 📂 packages/
 │   └── 📂 api/                    # @backy/api — 占位包，下一波抽离共享业务逻辑
-├── 📂 docs/                       # 项目文档
+├── 📂 docs/                       # 项目文档 (07-vite-web-migration-plan.md 跟踪当前迁移)
 ├── 📂 .husky/                     # Git hooks (pre-commit, pre-push)
-├── package.json                   # 根包，仅 husky + workspaces，所有脚本转发到 apps/web
+├── package.json                   # 根包，仅 husky + workspaces，所有脚本转发到 apps/web_legacy
 ├── bun.lock
 ├── CLAUDE.md
 ├── CHANGELOG.md
@@ -111,11 +113,13 @@ backy/
 ```
 
 > 根 `package.json` 中 `dev` / `build` / `test` / `typecheck` / `lint` /
-> `gate:security` / `release` 等脚本都通过 `bun --cwd apps/web …` 转发；husky
-> hooks 调用根脚本，无需感知 monorepo 拆分。`@backy/api` 与 `@backy/cli`
-> 当前仅导出 `PACKAGE_NAME` 占位常量。
+> `gate:security` / `release` 等脚本都通过 `bun --cwd apps/web_legacy …` 转发，
+> 同时提供 `legacy:*` 前缀别名供显式调用；husky hooks 调用根脚本，无需感知
+> monorepo 拆分。新 `apps/web` / `apps/worker` 是 Wave A 落地的占位骨架，
+> 业务代码尚未迁入。`@backy/api` 与 `@backy/cli` 当前仅导出 `PACKAGE_NAME`
+> 占位常量。
 
-`apps/web/src/` 内部布局参见 `CLAUDE.md` 的 *Project Structure* 章节。
+`apps/web_legacy/src/` 内部布局参见 `CLAUDE.md` 的 *Project Structure* 章节。
 
 ## 🔌 Webhook 协议
 
