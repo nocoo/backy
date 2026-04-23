@@ -324,7 +324,7 @@ Verified: `bun --cwd packages/api {typecheck,lint,test:coverage}` →
 
 ---
 
-## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b ✅, 2c ✅, 2d.1 ✅, 2d.2 ✅, 2d.3 ✅, 2d.4 ⬜)
+## Wave 2 — Extract handlers to `@backy/api/handlers`  ✅ (2a ✅, 2b ✅, 2c ✅, 2d.1 ✅, 2d.2 ✅, 2d.3 ✅, 2d.4 ✅)
 
 ### Scope
 
@@ -500,6 +500,13 @@ Each sub-commit independently green (G1 + L1 + L2).
 - 1 route rewritten as adapter (`/api/restore/[id]`); adapter calls `getClientIp(request)` and forwards `authorization` + `clientIp` as primitives
 - New tests: 10 cases in `restore.test.ts` covering missing/invalid auth, missing backup/project, token mismatch, IP CIDR allow + deny + null-with-restriction, success, db error
 - Verification: packages/api 453 tests / 95.36% funcs / 96.67% lines · apps/web 268 tests / 97.18% funcs / 97.32% lines · L2 e2e 146/146 · typecheck + lint clean
+
+**Wave 2d.4 complete (2026-04-23):**
+- Extracted `webhookHeadHandler` + `webhookGetHandler` + `webhookPostHandler` into `packages/api/src/handlers/webhook.ts` (~390 LOC); shared `fireLog`/`checkIp`/`bearer` helpers; handlers receive `clientIp` + `userAgent` + `formData` as primitives (no `Request` dependency)
+- 1 route rewritten as a thin adapter for HEAD/GET/POST (`/api/webhook/[projectId]`); adapter extracts headers + `getClientIp(request)` + `formData` and forwards via `toResponse`
+- New tests: 27 cases in `packages/api/src/__tests__/handlers/webhook.test.ts` covering HEAD (401/403 ×3 / 200 / 500), GET (401/403 ×2 / 200 with sanitized recent_backups / env forwarding / 500), POST (auth, IP block, file missing/empty/too-large, env_invalid, JSON+preview success, ZIP no-preview path, senderIp fallback, R2/DB throw, getProject throw)
+- Existing `apps/web/src/__tests__/webhook.test.ts` (29 tests) still passes through the new adapter — `mock.module("@backy/api/db/...")` resolves via subpath exports to the same modules the extracted handler imports relative
+- Verification: packages/api 480 tests / 95.52% funcs / 96.78% lines (webhook.ts 100%/100%) · apps/web 268 tests / 97.18% funcs / 97.92% lines · L2 e2e 146/146 · typecheck + lint clean
 
 ---
 
