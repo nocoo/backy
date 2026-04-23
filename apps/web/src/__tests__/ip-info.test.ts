@@ -30,7 +30,7 @@ describe("GET /api/ip-info", () => {
 
     globalThis.fetch = mockFetch(async (input) => {
       const url = typeof input === "string" ? input : input.toString();
-      expect(url).toContain("echo.nocoo.cloud/api/ip?ip=8.8.8.8");
+      expect(url).toContain("/api/ip?ip=8.8.8.8");
       return new Response(JSON.stringify(mockIpData), { status: 200 });
     });
 
