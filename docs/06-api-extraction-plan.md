@@ -510,7 +510,7 @@ Each sub-commit independently green (G1 + L1 + L2).
 
 ---
 
-## Wave 3 — HTTP adapter shim in `apps/web`  ⬜
+## Wave 3 — HTTP adapter shim in `apps/web`  ✅
 
 ### Scope
 
@@ -576,7 +576,13 @@ export const POST = withErrors(
 - L1 + L2 + G1 + G2 all green
 - L3 Playwright suite (5 specs) optional spot-check
 
-### Status: ⬜
+### Status: ✅
+
+**Wave 3 complete (2026-04-23):**
+- `apps/web/src/lib/http.ts` already exists from Wave 2a (added when the first batch of routes was rewritten); covers all four `HandlerResponse.kind` cases (empty/bytes/text/json) and feeds Next.js
+- `grep -rn "NextResponse\|next/server" apps/web/src/app/api` returns nothing — every API route is now a thin adapter
+- Route LOC: most routes are 17–27 lines; multi-method files (`webhook[projectId]/route.ts` 50, `projects/[id]/route.ts` 40, `categories/[id]/route.ts` 40, `backups/route.ts` 37) exceed the 10-line target because each method needs its own param parsing + ctx wiring, but each individual handler call is ≤3 lines as intended
+- `withErrors` wrapper from the doc draft was not adopted — handlers already own their try/catch + audit logging, so an extra outer wrapper would duplicate work; the in-handler error path emits proper JSON 500s
 
 ---
 
