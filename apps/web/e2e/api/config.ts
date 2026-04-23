@@ -3,9 +3,7 @@
  */
 
 // === Test project constants — re-exported from single source of truth ===
-// Uses relative path because e2e/ is excluded from tsconfig.json,
-// making the @/ alias unreliable for path resolution in this context.
-import { TEST_PROJECT } from "../../src/lib/test-project";
+import { TEST_PROJECT } from "@backy/api/test-project";
 export { TEST_PROJECT };
 
 export const PROJECT_ID = TEST_PROJECT.id;

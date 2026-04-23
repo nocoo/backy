@@ -9,6 +9,7 @@
 
 export const PACKAGE_NAME = "@backy/api";
 
+export * from "./http/response";
 export * from "./lib/id";
 export * from "./lib/hosts";
 export * from "./lib/ip";

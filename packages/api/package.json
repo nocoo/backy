@@ -21,7 +21,14 @@
     "./ip": "./src/lib/ip.ts",
     "./sanitize": "./src/lib/sanitize.ts",
     "./url": "./src/lib/url.ts",
-    "./test-project": "./src/lib/test-project.ts"
+    "./test-project": "./src/lib/test-project.ts",
+    "./http": "./src/http/response.ts",
+    "./handlers/projects": "./src/handlers/projects.ts",
+    "./handlers/categories": "./src/handlers/categories.ts",
+    "./handlers/db": "./src/handlers/db.ts",
+    "./handlers/ip-info": "./src/handlers/ip-info.ts",
+    "./handlers/live": "./src/handlers/live.ts",
+    "./handlers/stats": "./src/handlers/stats.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",

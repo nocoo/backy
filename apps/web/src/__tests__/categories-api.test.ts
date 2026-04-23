@@ -136,6 +136,16 @@ describe("POST /api/categories", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
+
+  test("returns 500 when body is not valid JSON", async () => {
+    const req = new Request("http://localhost/api/categories", {
+      method: "POST",
+      body: "not-json",
+      headers: { "Content-Type": "application/json" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+  });
 });
 
 describe("GET /api/categories/[id]", () => {
@@ -230,6 +240,17 @@ describe("PUT /api/categories/[id]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.icon).toBe("star");
+  });
+
+  test("returns 500 when body is not valid JSON", async () => {
+    const req = new Request("http://localhost:7017/api/categories/cat-1", {
+      method: "PUT",
+      body: "not-json",
+      headers: { "Content-Type": "application/json" },
+    });
+    const params = Promise.resolve({ id: "cat-1" });
+    const res = await PUT(req, { params });
+    expect(res.status).toBe(500);
   });
 });
 

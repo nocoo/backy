@@ -1,48 +1,16 @@
-import { NextResponse } from "next/server";
+import { ipInfoHandler } from "@backy/api/handlers/ip-info";
+import { toResponse } from "@/lib/http";
 
-const ECHO_API_URL = process.env.ECHO_API_URL ?? "";
-const ECHO_API_KEY = process.env.ECHO_API_KEY ?? "";
-
-/**
- * GET /api/ip-info?ip=x.x.x.x — Proxy IP geolocation lookup.
- * Requires ECHO_API_URL and ECHO_API_KEY environment variables.
- */
 export async function GET(request: Request) {
-  if (!ECHO_API_URL) {
-    return NextResponse.json(
-      { error: "IP info service not configured" },
-      { status: 503 },
-    );
-  }
-
-  try {
-    const { searchParams } = new URL(request.url);
-    const ip = searchParams.get("ip");
-
-    if (!ip) {
-      return NextResponse.json({ error: "Missing ip parameter" }, { status: 400 });
-    }
-
-    const res = await fetch(`${ECHO_API_URL}?ip=${encodeURIComponent(ip)}`, {
-      headers: { "x-api-key": ECHO_API_KEY },
-      next: { revalidate: 86400 }, // Cache for 24h — IP geo rarely changes
-    });
-
-    if (!res.ok) {
-      console.error(`Echo API error: ${res.status} ${res.statusText}`);
-      return NextResponse.json(
-        { error: "IP info service unavailable" },
-        { status: 502 },
-      );
-    }
-
-    const data: unknown = await res.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Failed to fetch IP info:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch IP info" },
-      { status: 500 },
-    );
-  }
+  const { searchParams } = new URL(request.url);
+  const ip = searchParams.get("ip");
+  return toResponse(
+    await ipInfoHandler({ ip }, (url, init) =>
+      fetch(url, {
+        ...init,
+        // Cache for 24h — IP geo rarely changes
+        next: { revalidate: 86400 },
+      }),
+    ),
+  );
 }

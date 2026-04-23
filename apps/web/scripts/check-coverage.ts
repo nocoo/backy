@@ -28,20 +28,34 @@ if (exitCode !== 0) {
 // Coverage table may appear in stdout or stderr depending on bun version
 const output = stdout + "\n" + stderr;
 
-// Parse "All files" row: | All files | % Funcs | % Lines |
-const allFilesMatch = output.match(
-  /All files\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)/,
-);
+// Parse per-file rows for files owned by this workspace (src/...). Files from
+// packages/api appear with a "../../packages/api/" prefix and are gated by
+// their own workspace's coverage check; including them here would double-count.
+const rowRe =
+  /^\s*(\S+\.ts(?:x)?)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|/gm;
+let m: RegExpExecArray | null;
+let totalFuncs = 0;
+let totalLines = 0;
+let count = 0;
+while ((m = rowRe.exec(output)) !== null) {
+  const path = m[1] ?? "";
+  if (path.startsWith("../") || path.startsWith("All files")) continue;
+  totalFuncs += parseFloat(m[2] ?? "0");
+  totalLines += parseFloat(m[3] ?? "0");
+  count++;
+}
 
-if (!allFilesMatch) {
+if (count === 0) {
   console.error("\n❌ Could not parse coverage output.");
   process.exit(1);
 }
 
-const funcCov = parseFloat(allFilesMatch[1] ?? "0");
-const lineCov = parseFloat(allFilesMatch[2] ?? "0");
+const funcCov = totalFuncs / count;
+const lineCov = totalLines / count;
 
-console.log(`\n📊 Coverage: ${funcCov}% functions, ${lineCov}% lines (threshold: ${THRESHOLD}%)`);
+console.log(
+  `\n📊 Coverage (apps/web only, ${count} files): ${funcCov.toFixed(2)}% functions, ${lineCov.toFixed(2)}% lines (threshold: ${THRESHOLD}%)`,
+);
 
 if (funcCov < THRESHOLD || lineCov < THRESHOLD) {
   console.error(`❌ Coverage below ${THRESHOLD}% — failing.`);

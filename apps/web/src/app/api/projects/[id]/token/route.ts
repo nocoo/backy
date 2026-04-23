@@ -1,27 +1,10 @@
-import { NextResponse } from "next/server";
-import { regenerateToken } from "@backy/api/db/projects";
+import { regenerateTokenHandler } from "@backy/api/handlers/projects";
+import { toResponse } from "@/lib/http";
 
-/**
- * POST /api/projects/[id]/token — Regenerate webhook token.
- */
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params;
-    const token = await regenerateToken(id);
-
-    if (!token) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ webhook_token: token });
-  } catch (error) {
-    console.error("Failed to regenerate token:", error);
-    return NextResponse.json(
-      { error: "Failed to regenerate token" },
-      { status: 500 },
-    );
-  }
+  const { id } = await params;
+  return toResponse(await regenerateTokenHandler({ id }));
 }

@@ -341,4 +341,18 @@ describe("/api/projects/[id]", () => {
       expect(res.status).toBe(500);
     });
   });
+
+  describe("PUT invalid JSON", () => {
+    test("returns 500", async () => {
+      const res = await PUT(
+        new Request("http://localhost/api/projects/proj-test", {
+          method: "PUT",
+          body: "not-json",
+          headers: { "Content-Type": "application/json" },
+        }),
+        makeParams("proj-test"),
+      );
+      expect(res.status).toBe(500);
+    });
+  });
 });

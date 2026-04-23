@@ -324,7 +324,7 @@ Verified: `bun --cwd packages/api {typecheck,lint,test:coverage}` →
 
 ---
 
-## Wave 2 — Extract handlers to `@backy/api/handlers`  ⬜
+## Wave 2 — Extract handlers to `@backy/api/handlers`  🟡 (2a ✅, 2b–2d ⬜)
 
 ### Scope
 
@@ -448,10 +448,10 @@ For each handler extracted, the existing `*-route.test.ts` is split:
 To keep the diff manageable, wave 2 may be **subdivided into 4
 sub-commits** (split by domain) if the diff exceeds ~3000 lines:
 
-- 2a: handlers for projects + categories + db + ip-info + live + stats
-- 2b: handlers for backups (list, get, delete, upload)
-- 2c: handlers for backups/[id]/{download,preview,extract,restore-command}
-- 2d: handlers for cron + webhook + restore + logs
+- 2a: handlers for projects + categories + db + ip-info + live + stats ✅
+- 2b: handlers for backups (list, get, delete, upload) ⬜
+- 2c: handlers for backups/[id]/{download,preview,extract,restore-command} ⬜
+- 2d: handlers for cron + webhook + restore + logs ⬜
 
 Each sub-commit independently green (G1 + L1 + L2).
 
@@ -464,7 +464,17 @@ Each sub-commit independently green (G1 + L1 + L2).
 - L2 (`bun run test:e2e:api`) 146/146 pass
 - G1 + G2 clean
 
-### Status: ⬜
+### Status: 🟡
+
+**Wave 2a complete (2026-04-23):**
+- Extracted 12 handlers (projects×7, categories×5, db×2, ip-info, live, stats×2)
+- Added `packages/api/src/http/response.ts` (`HandlerResponse` discriminated union + constructors)
+- Added `apps/web/src/lib/http.ts` adapter (`toResponse`)
+- Routes rewritten as 4–10 line adapters (12 route files)
+- New tests: 6 handler test files in `packages/api/src/__tests__/handlers/`, 1 http response test, 1 adapter test
+- Verification: packages/api 356 tests / 95.48% funcs / 96.24% lines · apps/web 268 tests / 92.18% funcs / 96.82% lines · L2 e2e 146/146 · typecheck/lint clean
+- Coverage script updated: `apps/web` aggregate now excludes `packages/api/...` rows (each workspace gates its own files)
+- `apps/web/e2e/api/config.ts` switched to `@backy/api/test-project` import
 
 ---
 

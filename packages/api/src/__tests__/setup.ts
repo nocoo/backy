@@ -9,3 +9,5 @@ process.env.R2_ACCOUNT_ID ||= "test-account";
 process.env.R2_ACCESS_KEY_ID ||= "test-key";
 process.env.R2_SECRET_ACCESS_KEY ||= "test-secret";
 process.env.R2_BUCKET_NAME ||= "test-bucket";
+process.env.ECHO_API_URL ||= "https://echo.example.com";
+process.env.ECHO_API_KEY ||= "test-echo-key";

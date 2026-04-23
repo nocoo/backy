@@ -177,5 +177,16 @@ describe("/api/projects", () => {
 
       expect(res.status).toBe(500);
     });
+
+    test("returns 500 when body is not valid JSON", async () => {
+      const res = await POST(
+        new Request("http://localhost/api/projects", {
+          method: "POST",
+          body: "not-json",
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+      expect(res.status).toBe(500);
+    });
   });
 });
