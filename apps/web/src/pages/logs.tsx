@@ -335,7 +335,7 @@ export function LogsPage() {
         params.set("excludeClientIps", EXCLUDED_CLIENT_IPS.join(","));
       }
 
-      const res = await apiFetch(`/api/logs?${params.toString()}`);
+      const res = await apiFetch(`/api/logs/webhook?${params.toString()}`);
       const result = (await res.json()) as PaginatedLogs;
       setData(result);
     } catch (err) {
@@ -400,7 +400,7 @@ export function LogsPage() {
       if (successFilter === "success") body.success = true;
       else if (successFilter === "failure") body.success = false;
 
-      await apiFetch("/api/logs", {
+      await apiFetch("/api/logs/webhook", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

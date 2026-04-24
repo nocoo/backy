@@ -206,7 +206,7 @@ export function CronLogsPage() {
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (projectFilter !== "all") params.set("projectId", projectFilter);
 
-      const res = await apiFetch(`/api/cron/logs?${params.toString()}`);
+      const res = await apiFetch(`/api/logs/cron?${params.toString()}`);
       const result = (await res.json()) as PaginatedCronLogs;
       setData(result);
     } catch (err) {
@@ -257,7 +257,7 @@ export function CronLogsPage() {
       if (projectFilter !== "all") params.set("projectId", projectFilter);
       if (statusFilter !== "all") params.set("status", statusFilter);
 
-      await apiFetch(`/api/cron/logs?${params.toString()}`, {
+      await apiFetch(`/api/logs/cron?${params.toString()}`, {
         method: "DELETE",
       });
       toast.success("Cron logs cleared");

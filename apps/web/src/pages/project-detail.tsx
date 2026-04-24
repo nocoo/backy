@@ -258,7 +258,7 @@ export function ProjectDetailPage() {
         (project.auto_backup_webhook ?? null);
 
       if (nameChanged) payload.name = name.trim();
-      if (descChanged) payload.description = description.trim() || undefined;
+      if (descChanged) payload.description = description.trim() || null;
       if (ipsChanged) payload.allowed_ips = allowedIps.trim() || null;
       if (catChanged) payload.category_id = categoryId;
       if (abEnabledChanged) payload.auto_backup_enabled = autoBackupEnabled;

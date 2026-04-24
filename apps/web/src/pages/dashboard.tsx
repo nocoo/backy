@@ -57,7 +57,7 @@ interface BackupsListResponse {
 }
 
 export function DashboardPage() {
-  const stats = useSWR<Stats>("/api/stats", swrFetcher);
+  const stats = useSWR<Stats>("/api/stats/totals", swrFetcher);
   const backups = useSWR<BackupsListResponse>(
     "/api/backups?pageSize=5",
     swrFetcher,
