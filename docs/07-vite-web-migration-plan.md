@@ -346,7 +346,7 @@ export interface RuntimeContext {
 - 带 `E2E_SKIP_AUTH=true` 跑 L2 e2e（指向 worker）146/146；
 - `grep -r "next/server\|NextResponse" apps/worker/src` → 空。
 
-### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.11 完成）
+### Wave D — `apps/web`（Vite SPA）  ✅ 完成（D.1–D.12）
 
 1. 套用 surety 的脚手架：`vite.config.ts` + `@tailwindcss/vite` + `react@19` + `react-router@7` + `swr`。 ✅ (D.1)
 2. 路由表对齐 Next.js App Router 现有页面：
@@ -372,6 +372,7 @@ export interface RuntimeContext {
    D.9 进度：`pages/{logs,cron-logs}.tsx` + `lib/pagination.ts`（共享 `generatePageNumbers` + `formatLogDate`）✅。webhook logs：project/method/success filters，"exclude-test" 模式硬编码 `EXCLUDED_PROJECT_NAMES = ["backy-test"]` + `EXCLUDED_CLIENT_IPS = ["::1"]`（取代 legacy 的 `process.env.EXCLUDED_LOG_PROJECT_NAMES`，SPA 端无 env），expandable rows 含 IP 地理信息（`apiFetch("/api/ip-info?ip=…")`），DELETE `/api/logs` 带 filter body。cron logs：status/project filters，DELETE `/api/cron/logs?projectId=…&status=…` 走 query params。`App.tsx` 挂 `/logs` 与 `/cron-logs` 真实组件。`__tests__/logs.test.ts` 覆盖 2 个 surface + `generatePageNumbers` 边界 + `formatLogDate` 形状。
    D.10 进度：root `package.json` scripts 已 fan-out `apps/web`（`lint`/`lint:staged`/`typecheck`/`test`/`test:coverage` 均把 `apps/web` 串入流水线，新增 `web:*` 别名）；保留 `legacy:*` 与 `dev`/`build`/`start`/`gate:security`/`release` 仍指向 web_legacy（Wave E 切换）。`apps/worker/static/` 加 `.gitignore`（仅保留自身），`vite build` 产物不进版本库；worker `[assets]` 配置已就位（`directory = "./static"`、`run_worker_first = ["/api/*"]`、`not_found_handling = "single-page-application"`）。`bun run typecheck` / `bun run test` / `bun --cwd apps/web run build` 全绿。
    D.11 进度：`apps/web/scripts/check-coverage.ts` 改为只 gate `src/lib/**`（页面 + presentational 组件留给 Wave E 的 L3 BDD/Playwright），并修正错误的 "apps/worker only" 标签。新增 `__tests__/auth-render.test.ts` 用 happy-dom + `renderToStaticMarkup` 渲染 `RequireAuth` 的 loading 分支并探针 `useMe` 形状（`isLoading: true`、`email: null`），通过 `globalThis.fetch` stub 走真实 `apiFetch`/`swrFetcher` 路径而非 `mock.module`（后者会全局污染 `api.test.ts`）。最终 8 个 lib 文件覆盖率 93.75% functions / 92.65% lines（阈值 90%）。`test:coverage` 已纳入根 chain，66 用例全绿。
+   D.12 进度：Wave D 收尾——`apps/web` 已完整覆盖 Next.js 旧版功能（Dashboard/Projects×3/Backups×2/Logs×2 共 8 个页面 + JSON tree viewer + manual upload + category management + 3 套 charts），统一 `apiFetch`/`apiJson` 数据层，react-router 7 路由，CF Access SSO 通过 `useMe`/`RequireAuth` 接管登录态。根 fan-out 完成，coverage gate ≥90%。剩余 `dev`/`build`/`start`/`gate:security`/`release` 切换到新栈在 Wave E（worker `[assets]` 已就位，只缺把 root scripts 指过去 + CI/Husky 切换）。
 5. 主题：保留现有 FOUC 预防方案（root layout 注入小段脚本，迁到 `index.html`）。
 6. 构建：`vite build --outDir ../worker/static`，worker `[assets]` 直接托管。
 7. **Auth 替换专项**（不是删一个文件就完事）：
