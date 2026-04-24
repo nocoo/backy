@@ -328,7 +328,7 @@ export interface RuntimeContext {
 - 旧 FormData handler 仅 `web_legacy` 还在用；新 worker 路由不引用它；
 - `bun run grep -F "multipart/form-data" apps/web/ apps/worker/ packages/api/src/handlers/projects-prompt.ts` 无遗留（legacy 目录除外）。
 
-### Wave C — `apps/worker`（Hono + CF Access）  ⬜
+### Wave C — `apps/worker`（Hono + CF Access）  ✅
 
 1. 装配 Hono：`secureHeaders` + `accessAuth`（移植 surety 实现，AUD/team 改 backy）。
 2. 路由文件按 `@backy/api` handler 一一对应：
