@@ -401,24 +401,40 @@ export interface RuntimeContext {
 - L3 Playwright 5 个 spec 全绿（runner 改起 vite + wrangler 双进程）；
 - 无 console error / 404；FOUC 不闪。
 
-### Wave E — 部署 + 收尾  ⬜
+### Wave E — 部署 + 收尾  🟡（E.1 ✅，E.2/E.3 待 operator）
+
+E.1 落地（2026-04-25）—— "随时可删 web_legacy" 状态：
+
+- E.1a `chore: relocate root-level tooling out of web_legacy (E.1a)` —
+  `scripts/{gate-security,release}.ts` + `osv-scanner.toml` 从
+  `apps/web_legacy/` 上移到仓库根；happy-dom 17→20.9 修 3 个 CVE；
+  gitleaks 允许 CF Access AUD 公开标识符。
+- E.1b `chore: cut over root scripts from web_legacy to apps/web + apps/worker (E.1b)` —
+  根 `dev`/`build`/`lint`/`typecheck`/`test`/`test:coverage`/
+  `gate:security`/`release` 全部脱离 `apps/web_legacy`；新增 `worker:*`
+  别名；`apps/web` build 后补写 `static/.gitignore` 防 vite emptyOutDir。
+- E.1c `chore: pre-push runs only G2 after legacy L2 detach (E.1c)` —
+  pre-push 不再调 legacy `test:e2e:api`，仅 `gate:security`。
+- E.1d `ci: refresh comment block and point osv-config at root (E.1d)` —
+  CI `osv-config` 指向 `osv-scanner.toml`；注释栏反映新栈。
+- E.1e `docs: sync CLAUDE.md + README.md to new Vite/Worker stack (E.1e)` —
+  Tech Stack / Project Structure / 常用命令 / 端口表 / 质量体系全量重写。
+
+剩余（operator 手动）：
 
 1. `wrangler deploy --env=test` 验 staging（test D1/R2、test 域名）。
 2. `wrangler deploy` 上线生产；DNS 切到 worker route，下掉 Railway 服务。
-3. 删除：
-   - 现 `apps/web/worker/`（旧 cron worker）
-   - Railway / Docker 相关：`Dockerfile`、`railway.json`、`apps/web_legacy/Dockerfile`
-   - CLAUDE.md 里的 "Railway + Docker, 7017" 表行
-4. CI 切换：`.github/workflows/ci.yml` 改跑新 `apps/web` + `apps/worker` 的 typecheck/lint/test；
-   `web_legacy` 路径只在显式 workflow_dispatch 时跑，半年后整目录删。
-5. 文档同步：`README.md`、`CLAUDE.md`（端口表、Tech Stack 表、Project Structure）、
-   `docs/01-design.md` 全量更新。
+3. 验完上线后再删：
+   - `apps/web_legacy/Dockerfile` + `apps/web_legacy/railway.json`（暂留作回滚物料）
+   - 整个 `apps/web_legacy/` 目录（含 `legacy:*` 根脚本别名）
+   - 根目录 `Dockerfile` / 根 `railway.json` —— 当前不存在，无操作
 
 **验收**：
 - 生产域名走 Access，未登录访问跳 nocoo team 登录页；
 - 登录后所有功能与现状一致；
 - webhook / restore 端点不经 Access，外部 AI agent 调用不受影响；
-- `gate:security` 清单更新（去 next/next-auth/aws-sdk，加 hono/jose/wrangler）。
+- `gate:security` 清单已更新（next/next-auth/aws-sdk 仅在 web_legacy 残留，
+  随目录删除一并消失；hono/jose/wrangler 已纳入主链路）。
 
 ---
 
