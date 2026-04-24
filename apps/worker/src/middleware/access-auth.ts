@@ -66,14 +66,16 @@ function isPublicPath(method: string, path: string): boolean {
 export async function accessAuth(c: Context<AppEnv>, next: Next) {
   if (isPublicPath(c.req.method, c.req.path)) return next();
 
-  if (c.env.E2E_SKIP_AUTH === "true" || isLocalhost(c)) {
+  const env = c.env ?? ({} as AppEnv["Bindings"]);
+
+  if (env.E2E_SKIP_AUTH === "true" || isLocalhost(c)) {
     c.set("accessAuthenticated", true);
     c.set("accessEmail", "dev@local");
     return next();
   }
 
-  const teamDomain = c.env.CF_ACCESS_TEAM_DOMAIN;
-  const aud = c.env.CF_ACCESS_AUD;
+  const teamDomain = env.CF_ACCESS_TEAM_DOMAIN;
+  const aud = env.CF_ACCESS_AUD;
   if (!(teamDomain && aud)) {
     return c.json({ error: "Cloudflare Access not configured" }, 500);
   }
