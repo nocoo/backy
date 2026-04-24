@@ -12,8 +12,10 @@ title = "backy gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "E2E test fixtures (backy-test webhook token)"
+description = "E2E test fixtures (backy-test webhook token) + non-secret CF Access AUD"
 paths = [
   '''packages/api/src/lib/test-project\.ts''',
   '''docs/05-test-resource-isolation\.md''',
+  '''apps/worker/wrangler\.toml''',
+  '''docs/07-vite-web-migration-plan\.md''',
 ]

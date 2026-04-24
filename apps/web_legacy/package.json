@@ -13,9 +13,7 @@
     "test:coverage": "bun run scripts/check-coverage.ts",
     "test:e2e": "bun run scripts/run-e2e.ts",
     "test:e2e:api": "bun run scripts/run-e2e.ts",
-    "test:e2e:bdd": "bun run e2e/bdd/runner.ts",
-    "gate:security": "bun run scripts/gate-security.ts",
-    "release": "bun run scripts/release.ts"
+    "test:e2e:bdd": "bun run e2e/bdd/runner.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",

@@ -362,7 +362,10 @@ function readCurrentVersion(): string {
 }
 
 function updatePackageJson(newVersion: string): void {
+  const seen = new Set<string>();
   for (const path of [PACKAGE_JSON, APP_PACKAGE_JSON]) {
+    if (seen.has(path)) continue;
+    seen.add(path);
     if (path === PACKAGE_JSON || existsSync(path)) {
       const raw = readFileSync(path, 'utf-8');
       const updated = raw.replace(VERSION_FIELD_RE, `$1${newVersion}$2`);
