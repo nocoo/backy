@@ -4,6 +4,30 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo 'apps/worker build — placeholder until Wave C' && exit 0"
+    "dev": "wrangler dev --port 7018",
+    "build": "echo 'apps/worker has no build step (wrangler bundles at deploy)' && exit 0",
+    "deploy": "wrangler deploy",
+    "lint": "eslint --max-warnings=0 src",
+    "lint:staged": "lint-staged",
+    "test": "bun test src/__tests__/",
+    "test:coverage": "bun run scripts/check-coverage.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@backy/api": "workspace:*",
+    "hono": "^4.12.14",
+    "jose": "^6.0.11"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "@types/bun": "^1.3.11",
+    "eslint": "^9.39.4",
+    "lint-staged": "^16.4.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "8.56.0",
+    "wrangler": "^4.21.2"
+  },
+  "lint-staged": {
+    "*.ts": "eslint --max-warnings=0 --no-warn-ignored"
   }
 }

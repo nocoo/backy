@@ -1,0 +1,52 @@
+name = "backy"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Production routes are filled in at deploy time (see Wave E).
+# routes = [{ pattern = "your-domain.example.com", custom_domain = true }]
+
+[vars]
+ENVIRONMENT = "production"
+CF_ACCESS_TEAM_DOMAIN = "nocoo.cloudflareaccess.com"
+CF_ACCESS_AUD = "a920d3430b1e5a636590cd5d4f04dc657f89f9939c76a6870140015c0381d9b3"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "backy-db"
+database_id = "<prod>"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "backy"
+
+[assets]
+directory = "./static"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+not_found_handling = "single-page-application"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[env.test]
+name = "backy-test"
+
+[env.test.vars]
+ENVIRONMENT = "test"
+E2E_SKIP_AUTH = "true"
+
+[env.test.assets]
+directory = "./static"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+not_found_handling = "single-page-application"
+
+[[env.test.d1_databases]]
+binding = "DB"
+database_name = "backy-db-test"
+database_id = "<test>"
+
+[[env.test.r2_buckets]]
+binding = "R2"
+bucket_name = "backy-test"
