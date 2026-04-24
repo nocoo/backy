@@ -43,6 +43,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: null,
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(401);
@@ -52,6 +53,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Basic xyz",
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(401);
@@ -61,6 +63,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer t",
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(404);
@@ -76,6 +79,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer t",
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(403);
@@ -96,6 +100,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer wrong",
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(403);
@@ -116,6 +121,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer t",
+      queryToken: null,
       clientIp: "1.2.3.4",
     }, ctx);
     expect(r.status).toBe(403);
@@ -136,6 +142,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer t",
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(403);
@@ -161,6 +168,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer t",
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(200);
@@ -190,6 +198,7 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer t",
+      queryToken: null,
       clientIp: "10.1.2.3",
     }, ctx);
     expect(r.status).toBe(200);
@@ -202,8 +211,72 @@ describe("restore handler", () => {
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer t",
+      queryToken: null,
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(500);
+  });
+
+  test("200 with query-param token (no Authorization header)", async () => {
+    mockGetBackup = async () => ({
+      id: "b1",
+      project_id: "p1",
+      file_key: "k1",
+      file_size: 1234,
+    });
+    mockGetProject = async () => ({
+      id: "p1",
+      webhook_token: "t",
+      allowed_ips: null,
+    });
+    const r = await restoreHandler({
+      id: "b1",
+      authorization: null,
+      queryToken: "t",
+      clientIp: null,
+    }, ctx);
+    expect(r.status).toBe(200);
+  });
+
+  test("403 when query-param token mismatches", async () => {
+    mockGetBackup = async () => ({
+      id: "b1",
+      project_id: "p1",
+      file_key: "k1",
+      file_size: 1234,
+    });
+    mockGetProject = async () => ({
+      id: "p1",
+      webhook_token: "right",
+      allowed_ips: null,
+    });
+    const r = await restoreHandler({
+      id: "b1",
+      authorization: null,
+      queryToken: "wrong",
+      clientIp: null,
+    }, ctx);
+    expect(r.status).toBe(403);
+  });
+
+  test("Bearer wins over query-param when both provided", async () => {
+    mockGetBackup = async () => ({
+      id: "b1",
+      project_id: "p1",
+      file_key: "k1",
+      file_size: 1234,
+    });
+    mockGetProject = async () => ({
+      id: "p1",
+      webhook_token: "bearer-token",
+      allowed_ips: null,
+    });
+    const r = await restoreHandler({
+      id: "b1",
+      authorization: "Bearer bearer-token",
+      queryToken: "wrong-query",
+      clientIp: null,
+    }, ctx);
+    expect(r.status).toBe(200);
   });
 });

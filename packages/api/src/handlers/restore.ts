@@ -9,6 +9,7 @@ const PRESIGN_EXPIRES_IN = 900;
 export interface RestoreInput {
   id: string;
   authorization: string | null;
+  queryToken: string | null;
   clientIp: string | null;
 }
 
@@ -18,11 +19,12 @@ export async function restoreHandler(
 ): Promise<HandlerResponse> {
   try {
     const auth = input.authorization;
-    const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+    const bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+    const token = bearer ?? input.queryToken;
     if (!token) {
       return json(401, {
         error:
-          "Missing authentication. Provide Authorization: Bearer header.",
+          "Missing authentication. Provide Authorization: Bearer header or ?token= query param.",
       });
     }
 

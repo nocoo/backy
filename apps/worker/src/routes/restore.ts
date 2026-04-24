@@ -11,6 +11,7 @@ app.get("/:id", async (c) =>
       {
         id: c.req.param("id"),
         authorization: c.req.header("authorization") ?? null,
+        queryToken: c.req.query("token") ?? null,
         clientIp: clientIpOf(c.req.raw),
       },
       c.get("ctx"),
