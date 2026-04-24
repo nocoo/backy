@@ -5,9 +5,13 @@ import { SCHEMA_STUBS } from "./helpers";
 
 let mockInitializeSchema: () => Promise<void> = async () => {};
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("@backy/api/db/schema", () => ({
   ...SCHEMA_STUBS,
-  initializeSchema: () => mockInitializeSchema(),
+  initializeSchema: skipDb(() => mockInitializeSchema()),
 }));
 
 const { POST } = await import("@/app/api/db/init/route");

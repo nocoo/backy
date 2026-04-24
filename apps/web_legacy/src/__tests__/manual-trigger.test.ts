@@ -6,13 +6,17 @@ import { mockFetch, d1Success, makeProject, PROJECT_STUBS } from "./helpers";
 let mockProject: Record<string, unknown> | undefined;
 let getProjectShouldThrow = false;
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProject: async () => {
+  getProject: skipDb(async () => {
     if (getProjectShouldThrow) throw new Error("D1 error");
     return mockProject;
-  },
-  createProject: async () => ({ id: "mock" }),
+  }),
+  createProject: skipDb(async () => ({ id: "mock" })),
 }));
 
 function makeFetchRouter(

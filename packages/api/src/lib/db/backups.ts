@@ -2,7 +2,7 @@
  * Backup database operations.
  */
 
-import { executeD1Query } from "./d1-client";
+import type { D1Adapter } from "../../runtime";
 import { generateId } from "../id";
 
 export interface Backup {
@@ -47,10 +47,22 @@ export interface PaginatedBackups {
   totalPages: number;
 }
 
+async function q<T>(
+  db: D1Adapter,
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const { results } = await db.query<T>(sql, params);
+  return results;
+}
+
 /**
  * List backups with filtering, search, sorting, and pagination.
  */
-export async function listBackups(options: ListBackupsOptions = {}): Promise<PaginatedBackups> {
+export async function listBackups(
+  db: D1Adapter,
+  options: ListBackupsOptions = {},
+): Promise<PaginatedBackups> {
   const {
     projectId,
     search,
@@ -80,7 +92,6 @@ export async function listBackups(options: ListBackupsOptions = {}): Promise<Pag
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  // Sort column mapping (prevent SQL injection by allowlisting)
   const sortColumnMap: Record<string, string> = {
     created_at: "b.created_at",
     file_size: "b.file_size",
@@ -89,16 +100,16 @@ export async function listBackups(options: ListBackupsOptions = {}): Promise<Pag
   const sortColumn = sortColumnMap[sortBy] ?? "b.created_at";
   const order = sortOrder === "asc" ? "ASC" : "DESC";
 
-  // Count total
-  const countRows = await executeD1Query<{ count: number }>(
+  const countRows = await q<{ count: number }>(
+    db,
     `SELECT COUNT(*) as count FROM backups b JOIN projects p ON b.project_id = p.id ${whereClause}`,
     params,
   );
   const total = countRows[0]?.count ?? 0;
 
-  // Fetch page
   const offset = (page - 1) * pageSize;
-  const items = await executeD1Query<BackupWithProject>(
+  const items = await q<BackupWithProject>(
+    db,
     `SELECT b.*, p.name as project_name
      FROM backups b
      JOIN projects p ON b.project_id = p.id
@@ -120,8 +131,9 @@ export async function listBackups(options: ListBackupsOptions = {}): Promise<Pag
 /**
  * List all distinct environments across all backups.
  */
-export async function listEnvironments(): Promise<string[]> {
-  const rows = await executeD1Query<{ environment: string }>(
+export async function listEnvironments(db: D1Adapter): Promise<string[]> {
+  const rows = await q<{ environment: string }>(
+    db,
     "SELECT DISTINCT environment FROM backups WHERE environment IS NOT NULL ORDER BY environment",
   );
   return rows.map((r) => r.environment);
@@ -130,21 +142,22 @@ export async function listEnvironments(): Promise<string[]> {
 /**
  * Delete multiple backups by IDs. Returns file keys for R2 cleanup.
  */
-export async function deleteBackups(ids: string[]): Promise<Array<{ fileKey: string; jsonKey: string | null }>> {
+export async function deleteBackups(
+  db: D1Adapter,
+  ids: string[],
+): Promise<Array<{ fileKey: string; jsonKey: string | null }>> {
   if (ids.length === 0) return [];
 
   const placeholders = ids.map(() => "?").join(", ");
-  const rows = await executeD1Query<Backup>(
+  const rows = await q<Backup>(
+    db,
     `SELECT id, file_key, json_key FROM backups WHERE id IN (${placeholders})`,
     ids,
   );
 
   if (rows.length === 0) return [];
 
-  await executeD1Query(
-    `DELETE FROM backups WHERE id IN (${placeholders})`,
-    ids,
-  );
+  await q(db, `DELETE FROM backups WHERE id IN (${placeholders})`, ids);
 
   return rows.map((r) => ({ fileKey: r.file_key, jsonKey: r.json_key }));
 }
@@ -152,8 +165,12 @@ export async function deleteBackups(ids: string[]): Promise<Array<{ fileKey: str
 /**
  * Get a single backup by ID.
  */
-export async function getBackup(id: string): Promise<BackupWithProject | undefined> {
-  const rows = await executeD1Query<BackupWithProject>(
+export async function getBackup(
+  db: D1Adapter,
+  id: string,
+): Promise<BackupWithProject | undefined> {
+  const rows = await q<BackupWithProject>(
+    db,
     `SELECT b.*, p.name as project_name
      FROM backups b
      JOIN projects p ON b.project_id = p.id
@@ -166,23 +183,27 @@ export async function getBackup(id: string): Promise<BackupWithProject | undefin
 /**
  * Create a new backup record.
  */
-export async function createBackup(data: {
-  projectId: string;
-  environment?: string | undefined;
-  senderIp: string;
-  tag?: string | undefined;
-  fileKey: string;
-  jsonKey?: string | undefined;
-  fileSize: number;
-  isSingleJson: boolean;
-  jsonExtracted: boolean;
-  fileType?: string | undefined;
-}): Promise<Backup> {
+export async function createBackup(
+  db: D1Adapter,
+  data: {
+    projectId: string;
+    environment?: string | undefined;
+    senderIp: string;
+    tag?: string | undefined;
+    fileKey: string;
+    jsonKey?: string | undefined;
+    fileSize: number;
+    isSingleJson: boolean;
+    jsonExtracted: boolean;
+    fileType?: string | undefined;
+  },
+): Promise<Backup> {
   const id = generateId();
   const now = new Date().toISOString();
   const fileType = data.fileType ?? (data.isSingleJson ? "json" : "zip");
 
-  await executeD1Query(
+  await q(
+    db,
     `INSERT INTO backups (id, project_id, environment, sender_ip, tag, file_key, json_key, file_size, is_single_json, json_extracted, file_type, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -223,6 +244,7 @@ export async function createBackup(data: {
  * Update a backup record (for setting json_key after extraction, etc.).
  */
 export async function updateBackup(
+  db: D1Adapter,
   id: string,
   data: {
     jsonKey?: string | undefined;
@@ -241,53 +263,59 @@ export async function updateBackup(
     params.push(data.jsonExtracted ? 1 : 0);
   }
 
-  if (sets.length === 0) return getBackup(id) as Promise<Backup | undefined>;
+  if (sets.length === 0) {
+    const rows = await q<Backup>(db, "SELECT * FROM backups WHERE id = ?", [id]);
+    return rows[0];
+  }
 
   const now = new Date().toISOString();
   sets.push("updated_at = ?");
   params.push(now);
   params.push(id);
 
-  await executeD1Query(
-    `UPDATE backups SET ${sets.join(", ")} WHERE id = ?`,
-    params,
-  );
+  await q(db, `UPDATE backups SET ${sets.join(", ")} WHERE id = ?`, params);
 
-  const rows = await executeD1Query<Backup>(
-    "SELECT * FROM backups WHERE id = ?",
-    [id],
-  );
+  const rows = await q<Backup>(db, "SELECT * FROM backups WHERE id = ?", [id]);
   return rows[0];
 }
 
 /**
  * Delete a backup by ID. Returns the file keys that need to be cleaned up from R2.
  */
-export async function deleteBackup(id: string): Promise<{ fileKey: string; jsonKey: string | null } | undefined> {
-  const rows = await executeD1Query<Backup>(
+export async function deleteBackup(
+  db: D1Adapter,
+  id: string,
+): Promise<{ fileKey: string; jsonKey: string | null } | undefined> {
+  const rows = await q<Backup>(
+    db,
     "SELECT file_key, json_key FROM backups WHERE id = ?",
     [id],
   );
   const backup = rows[0];
   if (!backup) return undefined;
 
-  await executeD1Query("DELETE FROM backups WHERE id = ?", [id]);
+  await q(db, "DELETE FROM backups WHERE id = ?", [id]);
   return { fileKey: backup.file_key, jsonKey: backup.json_key };
 }
 
 /**
  * Count backups for a project.
  */
-export async function countBackups(projectId?: string): Promise<number> {
+export async function countBackups(
+  db: D1Adapter,
+  projectId?: string,
+): Promise<number> {
   if (projectId) {
-    const rows = await executeD1Query<{ count: number }>(
+    const rows = await q<{ count: number }>(
+      db,
       "SELECT COUNT(*) as count FROM backups WHERE project_id = ?",
       [projectId],
     );
     return rows[0]?.count ?? 0;
   }
 
-  const rows = await executeD1Query<{ count: number }>(
+  const rows = await q<{ count: number }>(
+    db,
     "SELECT COUNT(*) as count FROM backups",
   );
   return rows[0]?.count ?? 0;

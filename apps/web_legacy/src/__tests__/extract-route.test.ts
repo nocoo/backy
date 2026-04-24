@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { createZipBuffer, BACKUP_STUBS, R2_STUBS } from "./helpers";
+import { createZipBuffer, BACKUP_STUBS } from "./helpers";
 
 // --- Mutable mock state ---
 
@@ -19,24 +19,50 @@ let mockDownloadContentLength: number | undefined = 0;
 const uploadCalls: Array<{ key: string; contentType: string }> = [];
 const updateCalls: Array<{ id: string; data: Record<string, unknown> }> = [];
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
-  getBackup: async () => mockGetBackupResult,
-  updateBackup: async (id: string, data: Record<string, unknown>) => {
+  getBackup: skipDb(async () => mockGetBackupResult),
+  updateBackup: skipDb(async (id: string, data: Record<string, unknown>) => {
     updateCalls.push({ id, data });
-  },
+  }),
 }));
 
-mock.module("@backy/api/r2", () => ({
-  ...R2_STUBS,
-  downloadFromR2: async () => ({
-    body: mockDownloadBody,
-    contentType: "application/octet-stream",
-    contentLength: mockDownloadContentLength,
+mock.module("@backy/api/r2/s3-adapter", () => ({
+  createS3R2Adapter: () => ({
+    put: async (
+      key: string,
+      _data: unknown,
+      opts?: { contentType?: string },
+    ) => {
+      uploadCalls.push({
+        key,
+        contentType: opts?.contentType ?? "application/octet-stream",
+      });
+    },
+    get: async () =>
+      mockDownloadBody
+        ? {
+            body: mockDownloadBody,
+            bytes: async () => {
+              const body = mockDownloadBody;
+              if (!body) {
+                throw new Error("mockDownloadBody unexpectedly null");
+              }
+              return body.transformToByteArray();
+            },
+            contentType: "application/octet-stream",
+            contentLength: mockDownloadContentLength,
+          }
+        : null,
+    delete: async () => {},
+    presignDownload: async () => "https://mock.example.com/signed",
+    ping: async () => {},
   }),
-  uploadToR2: async (key: string, _data: unknown, contentType: string) => {
-    uploadCalls.push({ key, contentType });
-  },
+  isS3R2Configured: () => true,
 }));
 
 // NOTE: No mock.module for extractors or storage — use the real modules
@@ -118,7 +144,7 @@ describe("POST /api/backups/[id]/extract", () => {
     const res = await callPOST("backup-1");
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toContain("download");
+    expect(body.error).toContain("Failed to download");
   });
 
   test("extracts JSON from ZIP successfully", async () => {

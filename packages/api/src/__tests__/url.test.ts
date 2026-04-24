@@ -1,20 +1,22 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { isUrlSafe, isPrivateIp, isPrivateIpv6, resolveAndValidateUrl } from "@backy/api/url";
+import {
+  isUrlSafe as rawIsUrlSafe,
+  isPrivateIp,
+  isPrivateIpv6,
+  resolveAndValidateUrl as rawResolveAndValidateUrl,
+} from "@backy/api/url";
+
+let env: { SSRF_ALLOWLIST?: string } = {};
+const isUrlSafe = (url: string) => rawIsUrlSafe(url, env);
+const resolveAndValidateUrl = (url: string) => rawResolveAndValidateUrl(url, env);
 
 describe("isUrlSafe", () => {
-  let originalAllowlist: string | undefined;
-
   beforeEach(() => {
-    originalAllowlist = process.env.SSRF_ALLOWLIST;
-    delete process.env.SSRF_ALLOWLIST;
+    env = {};
   });
 
   afterEach(() => {
-    if (originalAllowlist === undefined) {
-      delete process.env.SSRF_ALLOWLIST;
-    } else {
-      process.env.SSRF_ALLOWLIST = originalAllowlist;
-    }
+    env = {};
   });
 
   // --- Allowed URLs ---
@@ -222,17 +224,17 @@ describe("isUrlSafe", () => {
   // --- SSRF_ALLOWLIST bypass ---
 
   test("allowlist bypasses all checks for matching origin", () => {
-    process.env.SSRF_ALLOWLIST = "http://localhost:17017";
+    env.SSRF_ALLOWLIST = "http://localhost:17017";
     expect(isUrlSafe("http://localhost:17017/api/db/init")).toBe(true);
   });
 
   test("allowlist does not bypass non-matching URLs", () => {
-    process.env.SSRF_ALLOWLIST = "http://localhost:17017";
+    env.SSRF_ALLOWLIST = "http://localhost:17017";
     expect(isUrlSafe("http://localhost:9999/evil")).toBe(false);
   });
 
   test("allowlist supports multiple entries", () => {
-    process.env.SSRF_ALLOWLIST = "http://localhost:17017,https://test.internal";
+    env.SSRF_ALLOWLIST = "http://localhost:17017,https://test.internal";
     expect(isUrlSafe("https://test.internal/hook")).toBe(true);
     expect(isUrlSafe("http://localhost:17017/api")).toBe(true);
   });
@@ -240,14 +242,14 @@ describe("isUrlSafe", () => {
   test("allowlist rejects crafted hostname that shares prefix string", () => {
     // With ONLY the allowlist and a normally-blocked URL scheme (http://),
     // verify that a crafted hostname doesn't slip through the allowlist
-    process.env.SSRF_ALLOWLIST = "http://api.example.com";
+    env.SSRF_ALLOWLIST = "http://api.example.com";
     // This would pass a naive startsWith("http://api.example.com") check
     // but has a different hostname — should NOT be allowlisted
     expect(isUrlSafe("http://api.example.com.evil.tld/hook")).toBe(false);
   });
 
   test("allowlist matches by origin, not path prefix", () => {
-    process.env.SSRF_ALLOWLIST = "https://api.example.com/v1";
+    env.SSRF_ALLOWLIST = "https://api.example.com/v1";
     // Same origin, different path — should still match (origin-level allowlist)
     expect(isUrlSafe("https://api.example.com/v2/other")).toBe(true);
   });
@@ -388,26 +390,25 @@ describe("isPrivateIpv6", () => {
 });
 
 describe("resolveAndValidateUrl", () => {
-  let originalAllowlist: string | undefined;
-
   beforeEach(() => {
-    originalAllowlist = process.env.SSRF_ALLOWLIST;
-    delete process.env.SSRF_ALLOWLIST;
+    env = {};
   });
 
   afterEach(() => {
-    if (originalAllowlist === undefined) {
-      delete process.env.SSRF_ALLOWLIST;
-    } else {
-      process.env.SSRF_ALLOWLIST = originalAllowlist;
-    }
+    env = {};
   });
 
   test("allows URL with public DNS resolution (example.com)", async () => {
-    // example.com is a well-known domain that resolves to public IPs
-    const result = await resolveAndValidateUrl("https://example.com/hook");
+    const result = await rawResolveAndValidateUrl(
+      "https://example.com/hook",
+      env,
+      {
+        resolve4: async () => ["93.184.216.34"],
+        resolve6: async () => ["2606:2800:220:1:248:1893:25c8:1946"],
+      },
+    );
     expect(result.safe).toBe(true);
-  }, 15_000);
+  });
 
   test("blocks IP address in private range directly", async () => {
     const result = await resolveAndValidateUrl("https://127.0.0.1/hook");
@@ -433,7 +434,7 @@ describe("resolveAndValidateUrl", () => {
   }, 15_000);
 
   test("allowlist bypasses DNS check", async () => {
-    process.env.SSRF_ALLOWLIST = "http://localhost:17017";
+    env.SSRF_ALLOWLIST = "http://localhost:17017";
     const result = await resolveAndValidateUrl("http://localhost:17017/api/test");
     expect(result.safe).toBe(true);
   });

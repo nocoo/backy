@@ -5,8 +5,9 @@ import {
 } from "@backy/api/handlers/webhook";
 import { getClientIp } from "@backy/api/ip";
 import { toResponse } from "@/lib/http";
+import { getCtx } from "@/lib/runtime";
 
-function ctx(request: Request) {
+function reqCtx(request: Request) {
   return {
     authorization: request.headers.get("authorization"),
     clientIp: getClientIp(request),
@@ -19,7 +20,9 @@ export async function HEAD(
   { params }: { params: Promise<{ projectId: string }> },
 ) {
   const { projectId } = await params;
-  return toResponse(await webhookHeadHandler({ projectId, ...ctx(request) }));
+  return toResponse(
+    await webhookHeadHandler({ projectId, ...reqCtx(request) }, getCtx()),
+  );
 }
 
 export async function GET(
@@ -30,11 +33,14 @@ export async function GET(
   const url = new URL(request.url);
   const environment = url.searchParams.get("environment") ?? undefined;
   return toResponse(
-    await webhookGetHandler({
-      projectId,
-      ...ctx(request),
-      ...(environment !== undefined && { environment }),
-    }),
+    await webhookGetHandler(
+      {
+        projectId,
+        ...reqCtx(request),
+        ...(environment !== undefined && { environment }),
+      },
+      getCtx(),
+    ),
   );
 }
 
@@ -44,10 +50,13 @@ export async function POST(
 ) {
   const { projectId } = await params;
   return toResponse(
-    await webhookPostHandler({
-      projectId,
-      ...ctx(request),
-      formData: () => request.formData(),
-    }),
+    await webhookPostHandler(
+      {
+        projectId,
+        ...reqCtx(request),
+        formData: () => request.formData(),
+      },
+      getCtx(),
+    ),
   );
 }

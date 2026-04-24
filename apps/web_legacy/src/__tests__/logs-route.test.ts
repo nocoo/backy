@@ -17,8 +17,10 @@ let mockDeleteWebhookLogs: (...args: any[]) => Promise<void> = async () => {};
 
 mock.module("@backy/api/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
-  listWebhookLogs: (...args: unknown[]) => mockListWebhookLogs(...args),
-  deleteWebhookLogs: (...args: unknown[]) => mockDeleteWebhookLogs(...args),
+  listWebhookLogs: (_db: unknown, ...args: unknown[]) =>
+    mockListWebhookLogs(...args),
+  deleteWebhookLogs: (_db: unknown, ...args: unknown[]) =>
+    mockDeleteWebhookLogs(...args),
 }));
 
 const { GET, DELETE } = await import("@/app/api/logs/route");

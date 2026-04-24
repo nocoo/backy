@@ -3,9 +3,10 @@ import {
   createCategoryHandler,
 } from "@backy/api/handlers/categories";
 import { toResponse } from "@/lib/http";
+import { getCtx } from "@/lib/runtime";
 
 export async function GET() {
-  return toResponse(await listCategoriesHandler());
+  return toResponse(await listCategoriesHandler(getCtx()));
 }
 
 export async function POST(request: Request) {
@@ -19,5 +20,5 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-  return toResponse(await createCategoryHandler({ body }));
+  return toResponse(await createCategoryHandler({ body }, getCtx()));
 }

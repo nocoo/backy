@@ -1,9 +1,7 @@
-import { executeD1Query, isD1Configured } from "../lib/db/d1-client";
-import { pingR2, isR2Configured } from "../lib/r2/client";
 import { json, type HandlerResponse } from "../http/response";
+import type { RuntimeContext } from "../runtime";
 
 const HEALTH_CHECK_TIMEOUT_MS = 5_000;
-const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown";
 
 interface DependencyStatus {
   status: "up" | "down";
@@ -23,18 +21,11 @@ async function checkWithTimeout<T>(
   ]);
 }
 
-async function checkD1(): Promise<DependencyStatus> {
-  if (!isD1Configured()) {
-    return {
-      status: "down",
-      latency_ms: 0,
-      message: "D1 credentials not configured",
-    };
-  }
+async function checkD1(ctx: RuntimeContext): Promise<DependencyStatus> {
   const start = performance.now();
   try {
     await checkWithTimeout(
-      () => executeD1Query("SELECT 1"),
+      () => ctx.db.query("SELECT 1"),
       HEALTH_CHECK_TIMEOUT_MS,
     );
     return { status: "up", latency_ms: Math.round(performance.now() - start) };
@@ -47,17 +38,10 @@ async function checkD1(): Promise<DependencyStatus> {
   }
 }
 
-async function checkR2(): Promise<DependencyStatus> {
-  if (!isR2Configured()) {
-    return {
-      status: "down",
-      latency_ms: 0,
-      message: "R2 credentials not configured",
-    };
-  }
+async function checkR2(ctx: RuntimeContext): Promise<DependencyStatus> {
   const start = performance.now();
   try {
-    await checkWithTimeout(() => pingR2(), HEALTH_CHECK_TIMEOUT_MS);
+    await checkWithTimeout(() => ctx.r2.ping(), HEALTH_CHECK_TIMEOUT_MS);
     return { status: "up", latency_ms: Math.round(performance.now() - start) };
   } catch (err) {
     return {
@@ -68,25 +52,27 @@ async function checkR2(): Promise<DependencyStatus> {
   }
 }
 
-/** Sanitize error messages to never contain "ok" (prevents false-positive keyword monitors). */
 function sanitizeMessage(msg: string): string {
   return msg.replace(/\bok\b/gi, "***");
 }
 
-export async function liveCheckHandler(): Promise<HandlerResponse> {
+export async function liveCheckHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   const timestamp = new Date().toISOString();
-  const [d1, r2] = await Promise.all([checkD1(), checkR2()]);
+  const [d1, r2] = await Promise.all([checkD1(ctx), checkR2(ctx)]);
 
   const allUp = d1.status === "up" && r2.status === "up";
 
   if (d1.message) d1.message = sanitizeMessage(d1.message);
   if (r2.message) r2.message = sanitizeMessage(r2.message);
 
+  const uptime = ctx.info.uptimeSeconds();
   const body = {
     status: allUp ? "ok" : "error",
-    version: APP_VERSION,
+    version: ctx.env.NEXT_PUBLIC_APP_VERSION ?? "unknown",
     timestamp,
-    uptime_s: Math.floor(process.uptime()),
+    uptime_s: uptime ?? 0,
     dependencies: { d1, r2 },
   };
 

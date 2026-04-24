@@ -1,31 +1,30 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
-  createWebhookLog,
-  listWebhookLogs,
-  deleteWebhookLogs,
+  createWebhookLog as createWebhookLogRaw,
+  deleteWebhookLogs as deleteWebhookLogsRaw,
+  listWebhookLogs as listWebhookLogsRaw,
 } from "@backy/api/db/webhook-logs";
-import { mockFetch, d1Success, d1Error } from "./helpers";
+import { makeMockD1 } from "./helpers";
 
 describe("webhook-logs", () => {
-  let originalFetch: typeof globalThis.fetch;
+  let db: ReturnType<typeof makeMockD1>;
+
+  const createWebhookLog = (
+    input: Parameters<typeof createWebhookLogRaw>[1],
+  ) => createWebhookLogRaw(db, input);
+  const listWebhookLogs = (
+    options?: Parameters<typeof listWebhookLogsRaw>[1],
+  ) => listWebhookLogsRaw(db, options);
+  const deleteWebhookLogs = (
+    options?: Parameters<typeof deleteWebhookLogsRaw>[1],
+  ) => deleteWebhookLogsRaw(db, options);
 
   beforeEach(() => {
-    originalFetch = globalThis.fetch;
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
+    db = makeMockD1();
   });
 
   describe("createWebhookLog", () => {
     test("inserts a log entry with all fields", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await createWebhookLog({
         projectId: "proj-123",
         method: "POST",
@@ -39,31 +38,24 @@ describe("webhook-logs", () => {
         metadata: { backup_id: "bk-1", file_size: 1024 },
       });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("INSERT INTO webhook_logs");
-      // Verify params order: id, project_id, method, path, status_code, client_ip,
-      // user_agent, error_code, error_message, duration_ms, metadata, created_at
-      const params = body.params;
-      expect(params[1]).toBe("proj-123");       // project_id
-      expect(params[2]).toBe("POST");            // method
-      expect(params[3]).toBe("/api/webhook/proj-123"); // path
-      expect(params[4]).toBe(201);               // status_code
-      expect(params[5]).toBe("1.2.3.4");         // client_ip
-      expect(params[6]).toBe("TestAgent/1.0");   // user_agent
-      expect(params[7]).toBeNull();              // error_code
-      expect(params[8]).toBeNull();              // error_message
-      expect(params[9]).toBe(42);                // duration_ms
-      expect(JSON.parse(params[10])).toEqual({ backup_id: "bk-1", file_size: 1024 });
+      const insert = db.calls[0];
+      expect(insert?.sql).toContain("INSERT INTO webhook_logs");
+      expect(insert?.params[1]).toBe("proj-123");
+      expect(insert?.params[2]).toBe("POST");
+      expect(insert?.params[3]).toBe("/api/webhook/proj-123");
+      expect(insert?.params[4]).toBe(201);
+      expect(insert?.params[5]).toBe("1.2.3.4");
+      expect(insert?.params[6]).toBe("TestAgent/1.0");
+      expect(insert?.params[7]).toBeNull();
+      expect(insert?.params[8]).toBeNull();
+      expect(insert?.params[9]).toBe(42);
+      expect(JSON.parse(insert?.params[10] as string)).toEqual({
+        backup_id: "bk-1",
+        file_size: 1024,
+      });
     });
 
     test("inserts a log entry with null project_id and error", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await createWebhookLog({
         projectId: null,
         method: "HEAD",
@@ -77,22 +69,21 @@ describe("webhook-logs", () => {
         metadata: null,
       });
 
-      const body = JSON.parse(capturedBody);
-      const params = body.params;
-      expect(params[1]).toBeNull();              // project_id
-      expect(params[5]).toBeNull();              // client_ip
-      expect(params[6]).toBeNull();              // user_agent
-      expect(params[7]).toBe("auth_missing");    // error_code
-      expect(params[8]).toBe("Missing Authorization header");
-      expect(params[10]).toBeNull();             // metadata
+      const insert = db.calls[0];
+      expect(insert?.params[1]).toBeNull();
+      expect(insert?.params[5]).toBeNull();
+      expect(insert?.params[6]).toBeNull();
+      expect(insert?.params[7]).toBe("auth_missing");
+      expect(insert?.params[8]).toBe("Missing Authorization header");
+      expect(insert?.params[10]).toBeNull();
     });
 
     test("does not throw on D1 failure (fire-and-forget)", async () => {
       const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+      db = makeMockD1(async () => {
+        throw new Error("database locked");
+      });
 
-      globalThis.fetch = mockFetch(async () => d1Error("database locked"));
-
-      // Should NOT throw
       await createWebhookLog({
         projectId: null,
         method: "POST",
@@ -112,8 +103,7 @@ describe("webhook-logs", () => {
 
     test("does not throw on network failure", async () => {
       const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
-
-      globalThis.fetch = mockFetch(async () => {
+      db = makeMockD1(async () => {
         throw new Error("Network unreachable");
       });
 
@@ -156,14 +146,10 @@ describe("webhook-logs", () => {
       ];
 
       let callCount = 0;
-      globalThis.fetch = mockFetch(async () => {
+      db = makeMockD1(async () => {
         callCount++;
-        if (callCount === 1) {
-          // COUNT query
-          return d1Success([{ count: 1 }]);
-        }
-        // SELECT query
-        return d1Success(mockLogs);
+        if (callCount === 1) return { results: [{ count: 1 }] };
+        return { results: mockLogs };
       });
 
       const result = await listWebhookLogs();
@@ -177,84 +163,54 @@ describe("webhook-logs", () => {
     });
 
     test("filters by projectId", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ projectId: "proj-123" });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.project_id = ?");
-      expect(countBody.params).toContain("proj-123");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("l.project_id = ?");
+      expect(countQuery?.params).toContain("proj-123");
     });
 
     test("filters by method", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ method: "post" });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.method = ?");
-      expect(countBody.params).toContain("POST");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("l.method = ?");
+      expect(countQuery?.params).toContain("POST");
     });
 
     test("filters by success=true (status < 400)", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ success: true });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.status_code < 400");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("l.status_code < 400");
     });
 
     test("filters by success=false (status >= 400)", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ success: false });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.status_code >= 400");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("l.status_code >= 400");
     });
 
     test("filters by statusCode", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ statusCode: 403 });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.status_code = ?");
-      expect(countBody.params).toContain(403);
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("l.status_code = ?");
+      expect(countQuery?.params).toContain(403);
     });
 
     test("paginates correctly", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 120 }] : []);
+      let callCount = 0;
+      db = makeMockD1(async () => {
+        callCount++;
+        if (callCount === 1) return { results: [{ count: 120 }] };
+        return { results: [] };
       });
 
       const result = await listWebhookLogs({ page: 3, pageSize: 20 });
@@ -264,231 +220,144 @@ describe("webhook-logs", () => {
       expect(result.pageSize).toBe(20);
       expect(result.totalPages).toBe(6);
 
-      // Check OFFSET is (page-1)*pageSize = 40
-      const selectBody = JSON.parse(capturedBodies[1]!);
-      expect(selectBody.params).toContain(20);  // LIMIT
-      expect(selectBody.params).toContain(40);  // OFFSET
+      const selectQuery = db.calls[1];
+      expect(selectQuery?.params).toContain(20);
+      expect(selectQuery?.params).toContain(40);
     });
   });
 
   describe("listWebhookLogs — excludeProjectIds", () => {
     test("adds exclude condition when excludeProjectIds has one entry", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ excludeProjectIds: ["proj-guntest"] });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.project_id NOT IN (?)");
-      expect(countBody.params).toContain("proj-guntest");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("NOT IN (?)");
+      expect(countQuery?.params).toContain("proj-guntest");
     });
 
     test("adds exclude condition with multiple IDs", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ excludeProjectIds: ["proj-a", "proj-b"] });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.project_id NOT IN (?, ?)");
-      expect(countBody.params).toContain("proj-a");
-      expect(countBody.params).toContain("proj-b");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("NOT IN (?, ?)");
+      expect(countQuery?.params).toContain("proj-a");
+      expect(countQuery?.params).toContain("proj-b");
     });
 
     test("does not add exclude condition when excludeProjectIds is undefined", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({});
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).not.toContain("NOT IN");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).not.toContain("NOT IN");
     });
 
     test("does not add exclude condition when excludeProjectIds is empty", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ excludeProjectIds: [] });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).not.toContain("NOT IN");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).not.toContain("NOT IN");
     });
   });
 
   describe("listWebhookLogs — excludeClientIps", () => {
     test("adds exclude condition when excludeClientIps has one entry", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ excludeClientIps: ["::1"] });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.client_ip NOT IN (?)");
-      expect(countBody.params).toContain("::1");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("NOT IN (?)");
+      expect(countQuery?.params).toContain("::1");
     });
 
     test("adds exclude condition with multiple IPs", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ excludeClientIps: ["::1", "127.0.0.1"] });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.client_ip NOT IN (?, ?)");
-      expect(countBody.params).toContain("::1");
-      expect(countBody.params).toContain("127.0.0.1");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("NOT IN (?, ?)");
+      expect(countQuery?.params).toContain("::1");
+      expect(countQuery?.params).toContain("127.0.0.1");
     });
 
     test("does not add exclude condition when excludeClientIps is empty", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({ excludeClientIps: [] });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).not.toContain("client_ip NOT IN");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).not.toContain("client_ip NOT IN");
     });
 
     test("combines excludeProjectIds and excludeClientIps", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listWebhookLogs({
         excludeProjectIds: ["proj-test"],
         excludeClientIps: ["::1"],
       });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("l.project_id NOT IN (?)");
-      expect(countBody.sql).toContain("l.client_ip NOT IN (?)");
-      expect(countBody.params).toContain("proj-test");
-      expect(countBody.params).toContain("::1");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("project_id");
+      expect(countQuery?.sql).toContain("client_ip");
+      expect(countQuery?.params).toContain("proj-test");
+      expect(countQuery?.params).toContain("::1");
     });
   });
 
   describe("deleteWebhookLogs", () => {
     test("deletes all logs when no filters provided", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteWebhookLogs();
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toBe("DELETE FROM webhook_logs ");
-      expect(body.params).toEqual([]);
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toBe("DELETE FROM webhook_logs ");
+      expect(deleteQuery?.params).toEqual([]);
     });
 
     test("deletes logs filtered by projectId", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteWebhookLogs({ projectId: "proj-123" });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("WHERE project_id = ?");
-      expect(body.params).toContain("proj-123");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("WHERE project_id = ?");
+      expect(deleteQuery?.params).toContain("proj-123");
     });
 
     test("deletes logs filtered by method", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteWebhookLogs({ method: "post" });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("method = ?");
-      expect(body.params).toContain("POST");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("method = ?");
+      expect(deleteQuery?.params).toContain("POST");
     });
 
     test("deletes logs filtered by success=true", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteWebhookLogs({ success: true });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("status_code < 400");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("status_code < 400");
     });
 
     test("deletes logs filtered by success=false", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteWebhookLogs({ success: false });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("status_code >= 400");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("status_code >= 400");
     });
 
     test("combines multiple filters", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
+      await deleteWebhookLogs({
+        projectId: "proj-123",
+        method: "HEAD",
+        success: false,
       });
 
-      await deleteWebhookLogs({ projectId: "proj-123", method: "HEAD", success: false });
-
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("project_id = ?");
-      expect(body.sql).toContain("method = ?");
-      expect(body.sql).toContain("status_code >= 400");
-      expect(body.params).toContain("proj-123");
-      expect(body.params).toContain("HEAD");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("project_id = ?");
+      expect(deleteQuery?.sql).toContain("method = ?");
+      expect(deleteQuery?.sql).toContain("status_code >= 400");
+      expect(deleteQuery?.params).toContain("proj-123");
+      expect(deleteQuery?.params).toContain("HEAD");
     });
   });
 });

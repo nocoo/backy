@@ -1,31 +1,30 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import {
-  createCronLog,
-  listCronLogs,
-  deleteCronLogs,
+  createCronLog as createCronLogRaw,
+  deleteCronLogs as deleteCronLogsRaw,
+  listCronLogs as listCronLogsRaw,
 } from "@backy/api/db/cron-logs";
-import { mockFetch, d1Success } from "./helpers";
+import { makeMockD1 } from "./helpers";
 
 describe("cron-logs", () => {
-  let originalFetch: typeof globalThis.fetch;
+  let db: ReturnType<typeof makeMockD1>;
+
+  const createCronLog = (
+    input: Parameters<typeof createCronLogRaw>[1],
+  ) => createCronLogRaw(db, input);
+  const listCronLogs = (
+    options?: Parameters<typeof listCronLogsRaw>[1],
+  ) => listCronLogsRaw(db, options);
+  const deleteCronLogs = (
+    options?: Parameters<typeof deleteCronLogsRaw>[1],
+  ) => deleteCronLogsRaw(db, options);
 
   beforeEach(() => {
-    originalFetch = globalThis.fetch;
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
+    db = makeMockD1();
   });
 
   describe("createCronLog", () => {
     test("inserts a log entry with all fields", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await createCronLog({
         projectId: "proj-123",
         status: "success",
@@ -34,46 +33,30 @@ describe("cron-logs", () => {
         durationMs: 150,
       });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("INSERT INTO cron_logs");
-      const params = body.params;
-      expect(params[1]).toBe("proj-123"); // project_id
-      expect(params[2]).toBe("success"); // status
-      expect(params[3]).toBe(200); // response_code
-      expect(params[4]).toBeNull(); // error
-      expect(params[5]).toBe(150); // duration_ms
+      const insert = db.calls[0];
+      expect(insert?.sql).toContain("INSERT INTO cron_logs");
+      expect(insert?.params[1]).toBe("proj-123");
+      expect(insert?.params[2]).toBe("success");
+      expect(insert?.params[3]).toBe(200);
+      expect(insert?.params[4]).toBeNull();
+      expect(insert?.params[5]).toBe(150);
     });
 
     test("inserts a log entry with minimal fields", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await createCronLog({
         projectId: "proj-456",
         status: "skipped",
       });
 
-      const body = JSON.parse(capturedBody);
-      const params = body.params;
-      expect(params[1]).toBe("proj-456"); // project_id
-      expect(params[2]).toBe("skipped"); // status
-      expect(params[3]).toBeNull(); // response_code
-      expect(params[4]).toBeNull(); // error
-      expect(params[5]).toBeNull(); // duration_ms
+      const insert = db.calls[0];
+      expect(insert?.params[1]).toBe("proj-456");
+      expect(insert?.params[2]).toBe("skipped");
+      expect(insert?.params[3]).toBeNull();
+      expect(insert?.params[4]).toBeNull();
+      expect(insert?.params[5]).toBeNull();
     });
 
     test("inserts a failed log entry with error message", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await createCronLog({
         projectId: "proj-789",
         status: "failed",
@@ -82,12 +65,11 @@ describe("cron-logs", () => {
         durationMs: 3000,
       });
 
-      const body = JSON.parse(capturedBody);
-      const params = body.params;
-      expect(params[2]).toBe("failed");
-      expect(params[3]).toBe(500);
-      expect(params[4]).toBe("Internal Server Error");
-      expect(params[5]).toBe(3000);
+      const insert = db.calls[0];
+      expect(insert?.params[2]).toBe("failed");
+      expect(insert?.params[3]).toBe(500);
+      expect(insert?.params[4]).toBe("Internal Server Error");
+      expect(insert?.params[5]).toBe(3000);
     });
   });
 
@@ -107,10 +89,10 @@ describe("cron-logs", () => {
       ];
 
       let callCount = 0;
-      globalThis.fetch = mockFetch(async () => {
+      db = makeMockD1(async () => {
         callCount++;
-        if (callCount === 1) return d1Success([{ count: 1 }]);
-        return d1Success(mockLogs);
+        if (callCount === 1) return { results: [{ count: 1 }] };
+        return { results: mockLogs };
       });
 
       const result = await listCronLogs();
@@ -124,58 +106,40 @@ describe("cron-logs", () => {
     });
 
     test("filters by projectId", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listCronLogs({ projectId: "proj-123" });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("c.project_id = ?");
-      expect(countBody.params).toContain("proj-123");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("c.project_id = ?");
+      expect(countQuery?.params).toContain("proj-123");
     });
 
     test("filters by status", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listCronLogs({ status: "failed" });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("c.status = ?");
-      expect(countBody.params).toContain("failed");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("c.status = ?");
+      expect(countQuery?.params).toContain("failed");
     });
 
     test("combines projectId and status filters", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listCronLogs({ projectId: "proj-abc", status: "success" });
 
-      const countBody = JSON.parse(capturedBodies[0]!);
-      expect(countBody.sql).toContain("c.project_id = ?");
-      expect(countBody.sql).toContain("c.status = ?");
-      expect(countBody.params).toContain("proj-abc");
-      expect(countBody.params).toContain("success");
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("c.project_id = ?");
+      expect(countQuery?.sql).toContain("c.status = ?");
+      expect(countQuery?.params).toContain("proj-abc");
+      expect(countQuery?.params).toContain("success");
     });
 
     test("paginates correctly", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 100 }] : []);
+      let callCount = 0;
+      db = makeMockD1(async () => {
+        callCount++;
+        if (callCount === 1) return { results: [{ count: 100 }] };
+        return { results: [] };
       });
 
       const result = await listCronLogs({ page: 3, pageSize: 20 });
@@ -185,102 +149,62 @@ describe("cron-logs", () => {
       expect(result.pageSize).toBe(20);
       expect(result.totalPages).toBe(5);
 
-      const selectBody = JSON.parse(capturedBodies[1]!);
-      expect(selectBody.params).toContain(20); // LIMIT
-      expect(selectBody.params).toContain(40); // OFFSET = (3-1)*20
+      const selectQuery = db.calls[1];
+      expect(selectQuery?.params).toContain(20);
+      expect(selectQuery?.params).toContain(40);
     });
 
     test("joins project name in query", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listCronLogs();
 
-      const selectBody = JSON.parse(capturedBodies[1]!);
-      expect(selectBody.sql).toContain("LEFT JOIN projects p ON c.project_id = p.id");
-      expect(selectBody.sql).toContain("p.name as project_name");
+      const selectQuery = db.calls[1];
+      expect(selectQuery?.sql).toContain("LEFT JOIN projects p ON c.project_id = p.id");
+      expect(selectQuery?.sql).toContain("p.name as project_name");
     });
 
     test("orders by triggered_at DESC", async () => {
-      const capturedBodies: string[] = [];
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBodies.push(init?.body as string);
-        return d1Success(capturedBodies.length === 1 ? [{ count: 0 }] : []);
-      });
-
+      db = makeMockD1(async () => ({ results: [] }));
       await listCronLogs();
 
-      const selectBody = JSON.parse(capturedBodies[1]!);
-      expect(selectBody.sql).toContain("ORDER BY c.triggered_at DESC");
+      const selectQuery = db.calls[1];
+      expect(selectQuery?.sql).toContain("ORDER BY c.triggered_at DESC");
     });
   });
 
   describe("deleteCronLogs", () => {
     test("deletes all logs when no filters provided", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteCronLogs();
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("DELETE FROM cron_logs");
-      expect(body.params).toEqual([]);
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("DELETE FROM cron_logs");
+      expect(deleteQuery?.params).toEqual([]);
     });
 
     test("deletes logs filtered by projectId", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteCronLogs({ projectId: "proj-123" });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("WHERE project_id = ?");
-      expect(body.params).toContain("proj-123");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("WHERE project_id = ?");
+      expect(deleteQuery?.params).toContain("proj-123");
     });
 
     test("deletes logs filtered by status", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteCronLogs({ status: "failed" });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("WHERE status = ?");
-      expect(body.params).toContain("failed");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("WHERE status = ?");
+      expect(deleteQuery?.params).toContain("failed");
     });
 
     test("combines multiple filters", async () => {
-      let capturedBody = "";
-
-      globalThis.fetch = mockFetch(async (_input, init) => {
-        capturedBody = init?.body as string;
-        return d1Success();
-      });
-
       await deleteCronLogs({ projectId: "proj-123", status: "skipped" });
 
-      const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("project_id = ?");
-      expect(body.sql).toContain("status = ?");
-      expect(body.params).toContain("proj-123");
-      expect(body.params).toContain("skipped");
+      const deleteQuery = db.calls[0];
+      expect(deleteQuery?.sql).toContain("project_id = ?");
+      expect(deleteQuery?.sql).toContain("status = ?");
+      expect(deleteQuery?.params).toContain("proj-123");
+      expect(deleteQuery?.params).toContain("skipped");
     });
   });
 });

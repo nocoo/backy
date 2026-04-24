@@ -12,9 +12,11 @@ let mockDeleteProject: (...args: any[]) => Promise<any> = async () => false;
 
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProject: (...args: unknown[]) => mockGetProject(...args),
-  updateProject: (...args: unknown[]) => mockUpdateProject(...args),
-  deleteProject: (...args: unknown[]) => mockDeleteProject(...args),
+  getProject: (_db: unknown, ...args: unknown[]) => mockGetProject(...args),
+  updateProject: (_db: unknown, ...args: unknown[]) =>
+    mockUpdateProject(...args),
+  deleteProject: (_db: unknown, ...args: unknown[]) =>
+    mockDeleteProject(...args),
 }));
 
 const { GET, PUT, DELETE } = await import("@/app/api/projects/[id]/route");

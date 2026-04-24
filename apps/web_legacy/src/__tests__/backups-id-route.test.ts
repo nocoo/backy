@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { BACKUP_STUBS, R2_STUBS, makeBackup } from "./helpers";
+import { BACKUP_STUBS, makeBackup } from "./helpers";
 
 // --- Mutable mock state ---
 
@@ -12,13 +12,19 @@ let mockDeleteFromR2: (...args: any[]) => Promise<void> = async () => {};
 
 mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
-  getBackup: (...args: unknown[]) => mockGetBackup(...args),
-  deleteBackup: (...args: unknown[]) => mockDeleteBackup(...args),
+  getBackup: (_db: unknown, ...args: unknown[]) => mockGetBackup(...args),
+  deleteBackup: (_db: unknown, ...args: unknown[]) => mockDeleteBackup(...args),
 }));
 
-mock.module("@backy/api/r2", () => ({
-  ...R2_STUBS,
-  deleteFromR2: (...args: unknown[]) => mockDeleteFromR2(...args),
+mock.module("@backy/api/r2/s3-adapter", () => ({
+  createS3R2Adapter: () => ({
+    put: async () => {},
+    get: async () => null,
+    delete: (...args: unknown[]) => mockDeleteFromR2(...args),
+    presignDownload: async () => "https://mock.example.com/signed",
+    ping: async () => {},
+  }),
+  isS3R2Configured: () => true,
 }));
 
 const { GET, DELETE } = await import("@/app/api/backups/[id]/route");

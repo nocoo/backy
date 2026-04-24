@@ -5,7 +5,7 @@
  * triggered, skipped, success, or failed.
  */
 
-import { executeD1Query } from "./d1-client";
+import type { D1Adapter } from "../../runtime";
 import { generateId } from "../id";
 
 /** Possible cron log statuses. */
@@ -36,14 +36,27 @@ export interface CreateCronLogInput {
   durationMs?: number | null;
 }
 
+async function q<T>(
+  db: D1Adapter,
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const { results } = await db.query<T>(sql, params);
+  return results;
+}
+
 /**
  * Write a cron log entry to D1.
  */
-export async function createCronLog(input: CreateCronLogInput): Promise<void> {
+export async function createCronLog(
+  db: D1Adapter,
+  input: CreateCronLogInput,
+): Promise<void> {
   const id = generateId();
   const now = new Date().toISOString();
 
-  await executeD1Query(
+  await q(
+    db,
     `INSERT INTO cron_logs
        (id, project_id, status, response_code, error, duration_ms, triggered_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -80,6 +93,7 @@ export interface PaginatedCronLogs {
  * List cron logs with filtering and pagination.
  */
 export async function listCronLogs(
+  db: D1Adapter,
   options: ListCronLogsOptions = {},
 ): Promise<PaginatedCronLogs> {
   const { projectId, status, page = 1, pageSize = 50 } = options;
@@ -99,16 +113,16 @@ export async function listCronLogs(
   const whereClause =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  // Count total
-  const countRows = await executeD1Query<{ count: number }>(
+  const countRows = await q<{ count: number }>(
+    db,
     `SELECT COUNT(*) as count FROM cron_logs c ${whereClause}`,
     params,
   );
   const total = countRows[0]?.count ?? 0;
 
-  // Fetch page (newest first)
   const offset = (page - 1) * pageSize;
-  const items = await executeD1Query<CronLogWithProject>(
+  const items = await q<CronLogWithProject>(
+    db,
     `SELECT c.*, p.name as project_name
      FROM cron_logs c
      LEFT JOIN projects p ON c.project_id = p.id
@@ -138,6 +152,7 @@ export interface DeleteCronLogsOptions {
  * If no filters are provided, deletes ALL cron logs.
  */
 export async function deleteCronLogs(
+  db: D1Adapter,
   options: DeleteCronLogsOptions = {},
 ): Promise<void> {
   const { projectId, status } = options;
@@ -157,5 +172,5 @@ export async function deleteCronLogs(
   const whereClause =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  await executeD1Query(`DELETE FROM cron_logs ${whereClause}`, params);
+  await q(db, `DELETE FROM cron_logs ${whereClause}`, params);
 }

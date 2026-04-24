@@ -1,10 +1,14 @@
 import { describe, expect, test, mock } from "bun:test";
-import { PROJECT_STUBS, R2_STUBS } from "./helpers";
+import { PROJECT_STUBS } from "./helpers";
+
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
 
 // Mock D1 and R2 before importing the route
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProjectByToken: async (token: string) => {
+  getProjectByToken: skipDb(async (token: string) => {
     if (token === "valid-token") {
       return {
         id: "proj-123",
@@ -28,11 +32,11 @@ mock.module("@backy/api/db/projects", () => ({
       };
     }
     return undefined;
-  },
+  }),
 }));
 
 mock.module("@backy/api/db/backups", () => ({
-  createBackup: async (data: Record<string, unknown>) => ({
+  createBackup: skipDb(async (data: Record<string, unknown>) => ({
     id: "backup-123",
     project_id: data.projectId,
     environment: data.environment ?? null,
@@ -46,8 +50,8 @@ mock.module("@backy/api/db/backups", () => ({
     file_type: data.fileType ?? (data.isSingleJson ? "json" : "zip"),
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
-  }),
-  listBackups: async (options: Record<string, unknown>) => ({
+  })),
+  listBackups: skipDb(async (options: Record<string, unknown>) => ({
     items: [
       {
         id: "b1",
@@ -86,16 +90,23 @@ mock.module("@backy/api/db/backups", () => ({
     page: 1,
     pageSize: 5,
     totalPages: 1,
-  }),
-  countBackups: async () => 7,
+  })),
+  countBackups: skipDb(async () => 7),
 }));
 
-mock.module("@backy/api/r2", () => ({
-  ...R2_STUBS,
+mock.module("@backy/api/r2/s3-adapter", () => ({
+  createS3R2Adapter: () => ({
+    put: async () => {},
+    get: async () => null,
+    delete: async () => {},
+    presignDownload: async () => "https://mock.example.com/signed",
+    ping: async () => {},
+  }),
+  isS3R2Configured: () => true,
 }));
 
 mock.module("@backy/api/db/webhook-logs", () => ({
-  createWebhookLog: async () => {},
+  createWebhookLog: skipDb(async () => {}),
 }));
 
 const { POST, HEAD, GET } = await import("@/app/api/webhook/[projectId]/route");

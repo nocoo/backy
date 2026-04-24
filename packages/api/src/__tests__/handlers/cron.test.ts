@@ -3,11 +3,15 @@ import {
   expect,
   test,
   beforeEach,
-  beforeAll,
   afterAll,
   mock,
 } from "bun:test";
-import { PROJECT_STUBS, CRON_LOG_STUBS, mockFetch } from "../helpers";
+import {
+  PROJECT_STUBS,
+  CRON_LOG_STUBS,
+  makeMockCtx,
+  mockFetch,
+} from "../helpers";
 
 // Capture real implementations BEFORE mock.module replaces them, otherwise
 // re-reading via `realIsUrlSafe` would dispatch back through the mock
@@ -26,42 +30,52 @@ let mockCreateCronLog: (...a: any[]) => Promise<void> = async () => {};
 // Default to real implementations so other test files (e.g. projects.test.ts)
 // that exercise the real url helpers continue to pass under mock.module's
 // global pollution. Tests here override per-case in beforeEach.
-let mockIsUrlSafe: (url: string) => boolean = realIsUrlSafe;
+let mockIsUrlSafe: (
+  url: string,
+  env: { SSRF_ALLOWLIST?: string },
+) => boolean = realIsUrlSafe;
 let mockResolveAndValidateUrl: (
   url: string,
+  env: { SSRF_ALLOWLIST?: string },
 ) => Promise<{ safe: boolean; reason?: string }> = realResolveAndValidateUrl;
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("../../lib/url", () => ({
-  isUrlSafe: (url: string) => mockIsUrlSafe(url),
-  resolveAndValidateUrl: (url: string) => mockResolveAndValidateUrl(url),
+  isUrlSafe: (url: string, env: { SSRF_ALLOWLIST?: string }) =>
+    mockIsUrlSafe(url, env),
+  resolveAndValidateUrl: (
+    url: string,
+    env: { SSRF_ALLOWLIST?: string },
+  ) => mockResolveAndValidateUrl(url, env),
 }));
 
 mock.module("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
-  listAutoBackupProjects: () => mockListAutoBackupProjects(),
-  getProject: (id: string) => mockGetProject(id),
+  listAutoBackupProjects: skipDb(() => mockListAutoBackupProjects()),
+  getProject: skipDb((id: string) => mockGetProject(id)),
 }));
 
 mock.module("../../lib/db/cron-logs", () => ({
   ...CRON_LOG_STUBS,
-  createCronLog: (...a: unknown[]) => mockCreateCronLog(...a),
+  createCronLog: skipDb((...a: unknown[]) => mockCreateCronLog(...a)),
 }));
 
-const { cronTriggerHandler, cronTriggerOneHandler } = await import(
-  "../../handlers/cron"
-);
+const cronHandlers = await import("../../handlers/cron");
 
 const realFetch = globalThis.fetch;
-const realCronSecret = process.env.CRON_SECRET;
-
-beforeAll(() => {
-  process.env.CRON_SECRET = "test-secret";
-});
+const ctx = makeMockCtx({ env: { CRON_SECRET: "test-secret" } });
+const cronTriggerHandler = (
+  input: Parameters<typeof cronHandlers.cronTriggerHandler>[0],
+) => cronHandlers.cronTriggerHandler(input, ctx);
+const cronTriggerOneHandler = (
+  input: Parameters<typeof cronHandlers.cronTriggerOneHandler>[0],
+) => cronHandlers.cronTriggerOneHandler(input, ctx);
 
 afterAll(() => {
   globalThis.fetch = realFetch;
-  if (realCronSecret === undefined) delete process.env.CRON_SECRET;
-  else process.env.CRON_SECRET = realCronSecret;
   // Reset mock.module overrides back to real implementations so other test
   // files (e.g. projects.test.ts) that exercise unsafe URLs get correct
   // behavior — mock.module is global and persists across files.
@@ -77,12 +91,12 @@ describe("cron handlers", () => {
     mockIsUrlSafe = realIsUrlSafe;
     mockResolveAndValidateUrl = realResolveAndValidateUrl;
     globalThis.fetch = realFetch;
-    process.env.CRON_SECRET = "test-secret";
+    ctx.env.CRON_SECRET = "test-secret";
   });
 
   describe("cronTriggerHandler", () => {
     test("500 when CRON_SECRET missing", async () => {
-      delete process.env.CRON_SECRET;
+      delete ctx.env.CRON_SECRET;
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
       });

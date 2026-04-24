@@ -6,10 +6,17 @@ import {
   updateCategory,
   deleteCategory,
 } from "@backy/api/db/categories";
+import { createRestD1Adapter } from "@backy/api/db/d1-rest-adapter";
 import { mockFetch, d1Success } from "./helpers";
 
 describe("categories", () => {
   let originalFetch: typeof globalThis.fetch;
+  const makeDb = () =>
+    createRestD1Adapter({
+      D1_ACCOUNT_ID: "acc-test",
+      D1_DATABASE_ID: "db-test",
+      D1_API_TOKEN: "token-test",
+    });
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
@@ -32,7 +39,7 @@ describe("categories", () => {
         return d1Success(mockData);
       });
 
-      const result = await listCategories();
+      const result = await listCategories(makeDb());
       expect(result).toHaveLength(2);
       expect(result[0]!.id).toBe("cat-1");
       expect(result[1]!.id).toBe("cat-2");
@@ -44,7 +51,7 @@ describe("categories", () => {
     test("returns empty array when no categories exist", async () => {
       globalThis.fetch = mockFetch(async () => d1Success([]));
 
-      const result = await listCategories();
+      const result = await listCategories(makeDb());
       expect(result).toHaveLength(0);
       expect(result).toEqual([]);
     });
@@ -68,7 +75,7 @@ describe("categories", () => {
         return d1Success([mockCat]);
       });
 
-      const result = await getCategory("cat-42");
+      const result = await getCategory(makeDb(), "cat-42");
       expect(result).toBeDefined();
       expect(result!.id).toBe("cat-42");
       expect(result!.name).toBe("Infra");
@@ -83,7 +90,7 @@ describe("categories", () => {
     test("returns undefined when category not found", async () => {
       globalThis.fetch = mockFetch(async () => d1Success([]));
 
-      const result = await getCategory("nonexistent");
+      const result = await getCategory(makeDb(), "nonexistent");
       expect(result).toBeUndefined();
     });
   });
@@ -96,7 +103,7 @@ describe("categories", () => {
         return d1Success();
       });
 
-      const result = await createCategory({
+      const result = await createCategory(makeDb(), {
         name: "DevOps",
         color: "#f59e0b",
         icon: "wrench",
@@ -128,7 +135,7 @@ describe("categories", () => {
         return d1Success();
       });
 
-      const result = await createCategory({ name: "Default Color" });
+      const result = await createCategory(makeDb(), { name: "Default Color" });
       expect(result.color).toBe("#6b7280");
 
       const body = JSON.parse(capturedBody);
@@ -142,7 +149,7 @@ describe("categories", () => {
         return d1Success();
       });
 
-      const result = await createCategory({ name: "Default Icon" });
+      const result = await createCategory(makeDb(), { name: "Default Icon" });
       expect(result.icon).toBe("folder");
 
       const body = JSON.parse(capturedBody);
@@ -156,7 +163,7 @@ describe("categories", () => {
         return d1Success();
       });
 
-      const result = await createCategory({ name: "Default Sort" });
+      const result = await createCategory(makeDb(), { name: "Default Sort" });
       expect(result.sort_order).toBe(0);
 
       const body = JSON.parse(capturedBody);
@@ -166,7 +173,7 @@ describe("categories", () => {
     test("returns a complete Category object", async () => {
       globalThis.fetch = mockFetch(async () => d1Success());
 
-      const result = await createCategory({ name: "Complete" });
+      const result = await createCategory(makeDb(), { name: "Complete" });
       expect(typeof result.id).toBe("string");
       expect(result.id.length).toBeGreaterThan(0);
       expect(result.name).toBe("Complete");
@@ -204,7 +211,7 @@ describe("categories", () => {
         return d1Success();
       });
 
-      const result = await updateCategory("cat-up", {
+      const result = await updateCategory(makeDb(), "cat-up", {
         name: "New Name",
         color: "#ff0000",
         icon: "star",
@@ -249,7 +256,9 @@ describe("categories", () => {
       });
 
       // Only update name
-      const result = await updateCategory("cat-partial", { name: "Updated" });
+      const result = await updateCategory(makeDb(), "cat-partial", {
+        name: "Updated",
+      });
 
       expect(result).toBeDefined();
       expect(result!.name).toBe("Updated");
@@ -261,7 +270,9 @@ describe("categories", () => {
     test("returns undefined when category does not exist", async () => {
       globalThis.fetch = mockFetch(async () => d1Success([]));
 
-      const result = await updateCategory("nonexistent", { name: "Nope" });
+      const result = await updateCategory(makeDb(), "nonexistent", {
+        name: "Nope",
+      });
       expect(result).toBeUndefined();
     });
   });
@@ -287,7 +298,7 @@ describe("categories", () => {
         return d1Success();
       });
 
-      const result = await deleteCategory("cat-del");
+      const result = await deleteCategory(makeDb(), "cat-del");
       expect(result).toBe(true);
 
       const body = JSON.parse(capturedDeleteBody);
@@ -298,7 +309,7 @@ describe("categories", () => {
     test("returns false when category does not exist", async () => {
       globalThis.fetch = mockFetch(async () => d1Success([]));
 
-      const result = await deleteCategory("nonexistent");
+      const result = await deleteCategory(makeDb(), "nonexistent");
       expect(result).toBe(false);
     });
   });

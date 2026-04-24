@@ -2,8 +2,9 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import {
   PROJECT_STUBS,
   BACKUP_STUBS,
-  R2_STUBS,
   WEBHOOK_LOG_STUBS,
+  makeMockCtx,
+  makeMockR2,
 } from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,32 +31,41 @@ let mockCreateWebhookLog: (entry: any) => Promise<void> = async () => {};
 
 mock.module("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProjectByToken: (token: string) => mockGetProjectByToken(token),
+  getProjectByToken: (_db: unknown, token: string) =>
+    mockGetProjectByToken(token),
 }));
 
 mock.module("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createBackup: (data: any) => mockCreateBackup(data),
-  countBackups: (projectId: string) => mockCountBackups(projectId),
+  createBackup: (_db: unknown, data: any) => mockCreateBackup(data),
+  countBackups: (_db: unknown, projectId: string) => mockCountBackups(projectId),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  listBackups: (opts: any) => mockListBackups(opts),
-}));
-
-mock.module("../../lib/r2/client", () => ({
-  ...R2_STUBS,
-  uploadToR2: (key: string, body: Uint8Array, contentType: string) =>
-    mockUploadToR2(key, body, contentType),
+  listBackups: (_db: unknown, opts: any) => mockListBackups(opts),
 }));
 
 mock.module("../../lib/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createWebhookLog: (entry: any) => mockCreateWebhookLog(entry),
+  createWebhookLog: (_db: unknown, entry: any) => mockCreateWebhookLog(entry),
 }));
 
-const { webhookHeadHandler, webhookGetHandler, webhookPostHandler } =
-  await import("../../handlers/webhook");
+const webhookHandlers = await import("../../handlers/webhook");
+const ctx = makeMockCtx({
+  r2: makeMockR2({
+    put: async (key, body, opts) =>
+      mockUploadToR2(key, body as Uint8Array, opts?.contentType ?? "application/octet-stream"),
+  }),
+});
+const webhookHeadHandler = (
+  input: Parameters<typeof webhookHandlers.webhookHeadHandler>[0],
+) => webhookHandlers.webhookHeadHandler(input, ctx);
+const webhookGetHandler = (
+  input: Parameters<typeof webhookHandlers.webhookGetHandler>[0],
+) => webhookHandlers.webhookGetHandler(input, ctx);
+const webhookPostHandler = (
+  input: Parameters<typeof webhookHandlers.webhookPostHandler>[0],
+) => webhookHandlers.webhookPostHandler(input, ctx);
 
 const baseProject = {
   id: "p1",

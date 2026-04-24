@@ -8,7 +8,8 @@ let mockRegenerateToken: (...args: any[]) => Promise<any> = async () => undefine
 
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  regenerateToken: (...args: unknown[]) => mockRegenerateToken(...args),
+  regenerateToken: (_db: unknown, ...args: unknown[]) =>
+    mockRegenerateToken(...args),
 }));
 
 const { POST } = await import("@/app/api/projects/[id]/token/route");

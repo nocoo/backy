@@ -10,12 +10,6 @@ import {
 } from "../lib/db/backups";
 import { listProjects, getProject } from "../lib/db/projects";
 import {
-  deleteFromR2,
-  uploadToR2,
-  downloadFromR2,
-  createPresignedDownloadUrl,
-} from "../lib/r2/client";
-import {
   detectFileType,
   isPreviewable,
   normalizeContentType,
@@ -29,10 +23,28 @@ import {
 } from "../lib/backup/storage";
 import { extractJson, MAX_DECOMPRESSED_SIZE } from "../lib/backup/extractors";
 import { json, type HandlerResponse } from "../http/response";
+import type { RuntimeContext } from "../runtime";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_PREVIEW_SIZE = 5 * 1024 * 1024;
 const PRESIGN_EXPIRES_IN = 900;
+
+async function readR2Bytes(result: {
+  bytes?: (() => Promise<Uint8Array>) | undefined;
+  body?: unknown;
+}): Promise<Uint8Array> {
+  if (typeof result.bytes === "function") {
+    return result.bytes();
+  }
+  const body = result.body as { transformToByteArray?: () => Promise<Uint8Array> } | null | undefined;
+  if (body?.transformToByteArray) {
+    return body.transformToByteArray();
+  }
+  if (result.body instanceof ReadableStream) {
+    return new Response(result.body).bytes();
+  }
+  throw new TypeError("R2 response does not expose bytes()");
+}
 
 export interface ListBackupsInput {
   projectId?: string;
@@ -58,6 +70,7 @@ function parseSortOrder(value: string | null | undefined): "asc" | "desc" {
 
 export async function listBackupsHandler(
   input: ListBackupsInput,
+  ctx: RuntimeContext,
 ): Promise<HandlerResponse> {
   try {
     const sortBy = parseSortBy(input.sortBy);
@@ -68,7 +81,7 @@ export async function listBackupsHandler(
       Math.max(1, parseInt(input.pageSize ?? "20", 10) || 20),
     );
     const [result, environments, projects] = await Promise.all([
-      listBackups({
+      listBackups(ctx.db, {
         ...(input.projectId && { projectId: input.projectId }),
         ...(input.search && { search: input.search }),
         ...(input.environment && { environment: input.environment }),
@@ -77,8 +90,8 @@ export async function listBackupsHandler(
         page,
         pageSize,
       }),
-      listEnvironments(),
-      listProjects(),
+      listEnvironments(ctx.db),
+      listProjects(ctx.db),
     ]);
     const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
     return json(200, {
@@ -92,9 +105,10 @@ export async function listBackupsHandler(
   }
 }
 
-export async function batchDeleteBackupsHandler(input: {
-  body: unknown;
-}): Promise<HandlerResponse> {
+export async function batchDeleteBackupsHandler(
+  input: { body: unknown },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
     const body = input.body as { ids?: unknown };
     const ids = body.ids;
@@ -112,11 +126,11 @@ export async function batchDeleteBackupsHandler(input: {
         error: "Maximum 50 backups can be deleted at once",
       });
     }
-    const keys = await deleteBackups(ids as string[]);
+    const keys = await deleteBackups(ctx.db, ids as string[]);
     for (const { fileKey, jsonKey } of keys) {
       try {
-        await deleteFromR2(fileKey);
-        if (jsonKey) await deleteFromR2(jsonKey);
+        await ctx.r2.delete(fileKey);
+        if (jsonKey) await ctx.r2.delete(jsonKey);
       } catch (r2Error) {
         console.error("R2 cleanup error (non-fatal):", r2Error);
       }
@@ -128,11 +142,12 @@ export async function batchDeleteBackupsHandler(input: {
   }
 }
 
-export async function getBackupHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function getBackupHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const backup = await getBackup(input.id);
+    const backup = await getBackup(ctx.db, input.id);
     if (!backup) return json(404, { error: "Backup not found" });
     return json(200, backup);
   } catch (error) {
@@ -141,15 +156,16 @@ export async function getBackupHandler(input: {
   }
 }
 
-export async function deleteBackupHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function deleteBackupHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const keys = await deleteBackup(input.id);
+    const keys = await deleteBackup(ctx.db, input.id);
     if (!keys) return json(404, { error: "Backup not found" });
     try {
-      await deleteFromR2(keys.fileKey);
-      if (keys.jsonKey) await deleteFromR2(keys.jsonKey);
+      await ctx.r2.delete(keys.fileKey);
+      if (keys.jsonKey) await ctx.r2.delete(keys.jsonKey);
     } catch (r2Error) {
       console.error("R2 cleanup error (non-fatal):", r2Error);
     }
@@ -166,6 +182,7 @@ export interface UploadBackupInput {
 
 export async function uploadBackupHandler(
   input: UploadBackupInput,
+  ctx: RuntimeContext,
 ): Promise<HandlerResponse> {
   try {
     const formData = input.formData;
@@ -176,7 +193,7 @@ export async function uploadBackupHandler(
 
     if (!projectId) return json(400, { error: "projectId is required" });
 
-    const project = await getProject(projectId);
+    const project = await getProject(ctx.db, projectId);
     if (!project) return json(404, { error: "Project not found" });
 
     if (!file || !(file instanceof File))
@@ -215,17 +232,17 @@ export async function uploadBackupHandler(
         compression: "DEFLATE",
       });
       fileKey = `backups/${projectId}/${timestamp}.zip`;
-      await uploadToR2(fileKey, zipBuffer, "application/zip");
+      await ctx.r2.put(fileKey, zipBuffer, { contentType: "application/zip" });
       fileSize = zipBuffer.length;
       jsonKey = generatePreviewKey(projectId, timestamp);
-      await uploadToR2(jsonKey, buffer, "application/json");
+      await ctx.r2.put(jsonKey, buffer, { contentType: "application/json" });
     } else {
       fileKey = generateBackupKey(projectId, fileType, fileName, timestamp);
-      await uploadToR2(fileKey, buffer, contentType);
+      await ctx.r2.put(fileKey, buffer, { contentType });
       fileSize = buffer.length;
     }
 
-    const backup = await createBackup({
+    const backup = await createBackup(ctx.db, {
       projectId,
       ...(environment ? { environment } : {}),
       senderIp: "manual-upload",
@@ -253,13 +270,17 @@ export async function uploadBackupHandler(
   }
 }
 
-export async function downloadBackupHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function downloadBackupHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const backup = await getBackup(input.id);
+    const backup = await getBackup(ctx.db, input.id);
     if (!backup) return json(404, { error: "Backup not found" });
-    const url = await createPresignedDownloadUrl(backup.file_key);
+    const url = await ctx.r2.presignDownload(
+      backup.file_key,
+      PRESIGN_EXPIRES_IN,
+    );
     return json(200, {
       url,
       file_key: backup.file_key,
@@ -272,11 +293,12 @@ export async function downloadBackupHandler(input: {
   }
 }
 
-export async function previewBackupHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function previewBackupHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const backup = await getBackup(input.id);
+    const backup = await getBackup(ctx.db, input.id);
     if (!backup) return json(404, { error: "Backup not found" });
 
     if (!backup.json_key) {
@@ -287,16 +309,14 @@ export async function previewBackupHandler(input: {
       });
     }
 
-    const r2Response = await downloadFromR2(backup.json_key);
-    if (!r2Response.body) {
+    const r2Response = await ctx.r2.get(backup.json_key);
+    if (!r2Response) {
       return json(500, {
         error: "Failed to download preview file from storage",
       });
     }
 
-    const bodyBytes = await (
-      r2Response.body as { transformToByteArray: () => Promise<Uint8Array> }
-    ).transformToByteArray();
+    const bodyBytes = await readR2Bytes(r2Response);
 
     if (bodyBytes.byteLength > MAX_PREVIEW_SIZE) {
       return json(413, {
@@ -326,11 +346,12 @@ export async function previewBackupHandler(input: {
   }
 }
 
-export async function extractBackupHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function extractBackupHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const backup = await getBackup(input.id);
+    const backup = await getBackup(ctx.db, input.id);
     if (!backup) return json(404, { error: "Backup not found" });
 
     if (backup.json_key) {
@@ -353,8 +374,8 @@ export async function extractBackupHandler(input: {
       });
     }
 
-    const r2Response = await downloadFromR2(backup.file_key);
-    if (!r2Response.body) {
+    const r2Response = await ctx.r2.get(backup.file_key);
+    if (!r2Response) {
       return json(500, {
         error: "Failed to download backup file from storage",
       });
@@ -369,9 +390,7 @@ export async function extractBackupHandler(input: {
       });
     }
 
-    const archiveBuffer = await (
-      r2Response.body as { transformToByteArray: () => Promise<Uint8Array> }
-    ).transformToByteArray();
+    const archiveBuffer = await readR2Bytes(r2Response);
 
     const outcome = await extractJson(new Uint8Array(archiveBuffer), fileType);
     if (!outcome.success) {
@@ -379,9 +398,11 @@ export async function extractBackupHandler(input: {
     }
 
     const jsonKey = generatePreviewKey(backup.project_id);
-    await uploadToR2(jsonKey, outcome.jsonContent, "application/json");
+    await ctx.r2.put(jsonKey, outcome.jsonContent, {
+      contentType: "application/json",
+    });
 
-    await updateBackup(input.id, {
+    await updateBackup(ctx.db, input.id, {
       jsonKey,
       jsonExtracted: true,
     });
@@ -398,15 +419,15 @@ export async function extractBackupHandler(input: {
   }
 }
 
-export async function restoreCommandHandler(input: {
-  id: string;
-  baseUrl: string;
-}): Promise<HandlerResponse> {
+export async function restoreCommandHandler(
+  input: { id: string; baseUrl: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const backup = await getBackup(input.id);
+    const backup = await getBackup(ctx.db, input.id);
     if (!backup) return json(404, { error: "Backup not found" });
 
-    const project = await getProject(backup.project_id);
+    const project = await getProject(ctx.db, backup.project_id);
     if (!project) return json(404, { error: "Project not found" });
 
     const command = `curl ${input.baseUrl}/api/restore/${backup.id} \\\n  -H "Authorization: Bearer ${project.webhook_token}"`;

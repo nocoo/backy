@@ -5,10 +5,16 @@
  * against an explicit allowlist before trusting it.
  */
 
-/** Parse ALLOWED_HOSTS from env — reads fresh on each call. */
-function parseAllowedHosts(): Set<string> {
+import type { BackyEnv } from "../runtime";
+
+const defaultEnv = (): Pick<BackyEnv, "ALLOWED_HOSTS"> => ({});
+
+/** Parse ALLOWED_HOSTS from a BackyEnv. Defaults to localhost dev port. */
+export function parseAllowedHosts(
+  env: Pick<BackyEnv, "ALLOWED_HOSTS"> = defaultEnv(),
+): Set<string> {
   return new Set(
-    (process.env.ALLOWED_HOSTS ?? "localhost:7017")
+    (env.ALLOWED_HOSTS ?? "localhost:7017")
       .split(",")
       .map((h) => h.trim())
       .filter(Boolean),
@@ -16,14 +22,19 @@ function parseAllowedHosts(): Set<string> {
 }
 
 /**
- * Trusted hosts for the current request cycle.
- * Re-reads process.env on every access so tests can modify it via beforeEach.
+ * Returns true if `host` is in the allowlist parsed from `env`.
  */
-export const ALLOWED_HOSTS = {
-  has(host: string): boolean {
-    return parseAllowedHosts().has(host);
-  },
-};
+export function isAllowedHost(
+  envOrHost: Pick<BackyEnv, "ALLOWED_HOSTS"> | string,
+  maybeHost?: string,
+): boolean {
+  if (typeof envOrHost === "string") {
+    return parseAllowedHosts().has(envOrHost);
+  }
+  return parseAllowedHosts(envOrHost).has(maybeHost ?? "");
+}
+
+export const ALLOWED_HOSTS = parseAllowedHosts();
 
 /**
  * Build the base URL for the current request, respecting reverse-proxy
@@ -32,11 +43,14 @@ export const ALLOWED_HOSTS = {
  * Falls back to the raw request URL origin when the header is missing
  * or untrusted.
  */
-export function buildBaseUrl(request: Request): string {
+export function buildBaseUrl(
+  request: Request,
+  env: Pick<BackyEnv, "ALLOWED_HOSTS"> = defaultEnv(),
+): string {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
 
-  if (forwardedHost && ALLOWED_HOSTS.has(forwardedHost)) {
+  if (forwardedHost && isAllowedHost(env, forwardedHost)) {
     return `${forwardedProto}://${forwardedHost}`;
   }
 

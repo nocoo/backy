@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { BACKUP_STUBS, R2_STUBS, makeBackup } from "./helpers";
+import { BACKUP_STUBS, makeBackup } from "./helpers";
 
 // --- Mutable mock state ---
 
@@ -14,12 +14,25 @@ let mockDownloadFromR2: (...args: any[]) => Promise<any> = async () => ({
 
 mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
-  getBackup: (...args: unknown[]) => mockGetBackup(...args),
+  getBackup: (_db: unknown, ...args: unknown[]) => mockGetBackup(...args),
 }));
 
-mock.module("@backy/api/r2", () => ({
-  ...R2_STUBS,
-  downloadFromR2: (...args: unknown[]) => mockDownloadFromR2(...args),
+mock.module("@backy/api/r2/s3-adapter", () => ({
+  createS3R2Adapter: () => ({
+    put: async () => {},
+    get: async (...args: unknown[]) => {
+      const result = await mockDownloadFromR2(...args);
+      if (!result?.body) return null;
+      return {
+        ...result,
+        bytes: async () => result.body.transformToByteArray(),
+      };
+    },
+    delete: async () => {},
+    presignDownload: async () => "https://mock.example.com/signed",
+    ping: async () => {},
+  }),
+  isS3R2Configured: () => true,
 }));
 
 const { GET } = await import("@/app/api/backups/[id]/preview/route");

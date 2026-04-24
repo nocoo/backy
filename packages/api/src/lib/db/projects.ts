@@ -2,7 +2,7 @@
  * Project database operations.
  */
 
-import { executeD1Query } from "./d1-client";
+import type { D1Adapter } from "../../runtime";
 import { generateId, generateWebhookToken } from "../id";
 
 export interface Project {
@@ -21,11 +21,21 @@ export interface Project {
   updated_at: string;
 }
 
+async function q<T>(
+  db: D1Adapter,
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const { results } = await db.query<T>(sql, params);
+  return results;
+}
+
 /**
  * List all projects, ordered by creation date descending.
  */
-export async function listProjects(): Promise<Project[]> {
-  return executeD1Query<Project>(
+export async function listProjects(db: D1Adapter): Promise<Project[]> {
+  return q<Project>(
+    db,
     "SELECT * FROM projects ORDER BY created_at DESC",
   );
 }
@@ -33,11 +43,11 @@ export async function listProjects(): Promise<Project[]> {
 /**
  * Get a single project by ID.
  */
-export async function getProject(id: string): Promise<Project | undefined> {
-  const rows = await executeD1Query<Project>(
-    "SELECT * FROM projects WHERE id = ?",
-    [id],
-  );
+export async function getProject(
+  db: D1Adapter,
+  id: string,
+): Promise<Project | undefined> {
+  const rows = await q<Project>(db, "SELECT * FROM projects WHERE id = ?", [id]);
   return rows[0];
 }
 
@@ -45,9 +55,11 @@ export async function getProject(id: string): Promise<Project | undefined> {
  * Get a project by its webhook token.
  */
 export async function getProjectByToken(
+  db: D1Adapter,
   token: string,
 ): Promise<Project | undefined> {
-  const rows = await executeD1Query<Project>(
+  const rows = await q<Project>(
+    db,
     "SELECT * FROM projects WHERE webhook_token = ?",
     [token],
   );
@@ -58,6 +70,7 @@ export async function getProjectByToken(
  * Create a new project.
  */
 export async function createProject(
+  db: D1Adapter,
   name: string,
   description?: string,
 ): Promise<Project> {
@@ -65,7 +78,8 @@ export async function createProject(
   const token = generateWebhookToken();
   const now = new Date().toISOString();
 
-  await executeD1Query(
+  await q(
+    db,
     "INSERT INTO projects (id, name, description, webhook_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
     [id, name, description ?? null, token, now, now],
   );
@@ -77,6 +91,7 @@ export async function createProject(
  * Update a project's name, description, allowed IPs, category, and auto-backup settings.
  */
 export async function updateProject(
+  db: D1Adapter,
   id: string,
   data: {
     name?: string | undefined;
@@ -90,7 +105,7 @@ export async function updateProject(
     auto_backup_header_value?: string | null | undefined;
   },
 ): Promise<Project | undefined> {
-  const existing = await getProject(id);
+  const existing = await getProject(db, id);
   if (!existing) return undefined;
 
   const name = data.name ?? existing.name;
@@ -104,7 +119,8 @@ export async function updateProject(
   const auto_backup_header_value = data.auto_backup_header_value !== undefined ? data.auto_backup_header_value : existing.auto_backup_header_value;
   const now = new Date().toISOString();
 
-  await executeD1Query(
+  await q(
+    db,
     `UPDATE projects SET name = ?, description = ?, allowed_ips = ?, category_id = ?,
      auto_backup_enabled = ?, auto_backup_interval = ?, auto_backup_webhook = ?,
      auto_backup_header_key = ?, auto_backup_header_value = ?, updated_at = ? WHERE id = ?`,
@@ -117,11 +133,14 @@ export async function updateProject(
 /**
  * Delete a project by ID. Cascades to backups.
  */
-export async function deleteProject(id: string): Promise<boolean> {
-  const existing = await getProject(id);
+export async function deleteProject(
+  db: D1Adapter,
+  id: string,
+): Promise<boolean> {
+  const existing = await getProject(db, id);
   if (!existing) return false;
 
-  await executeD1Query("DELETE FROM projects WHERE id = ?", [id]);
+  await q(db, "DELETE FROM projects WHERE id = ?", [id]);
   return true;
 }
 
@@ -129,15 +148,17 @@ export async function deleteProject(id: string): Promise<boolean> {
  * Regenerate a project's webhook token.
  */
 export async function regenerateToken(
+  db: D1Adapter,
   id: string,
 ): Promise<string | undefined> {
-  const existing = await getProject(id);
+  const existing = await getProject(db, id);
   if (!existing) return undefined;
 
   const token = generateWebhookToken();
   const now = new Date().toISOString();
 
-  await executeD1Query(
+  await q(
+    db,
     "UPDATE projects SET webhook_token = ?, updated_at = ? WHERE id = ?",
     [token, now, id],
   );
@@ -148,8 +169,11 @@ export async function regenerateToken(
 /**
  * List all projects that have auto-backup enabled with a configured webhook.
  */
-export async function listAutoBackupProjects(): Promise<Project[]> {
-  return executeD1Query<Project>(
+export async function listAutoBackupProjects(
+  db: D1Adapter,
+): Promise<Project[]> {
+  return q<Project>(
+    db,
     "SELECT * FROM projects WHERE auto_backup_enabled = 1 AND auto_backup_webhook IS NOT NULL",
   );
 }

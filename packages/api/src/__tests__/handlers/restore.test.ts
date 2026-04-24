@@ -1,5 +1,10 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { BACKUP_STUBS, PROJECT_STUBS, R2_STUBS } from "../helpers";
+import {
+  BACKUP_STUBS,
+  PROJECT_STUBS,
+  makeMockCtx,
+  makeMockR2,
+} from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetBackup: (id: string) => Promise<any> = async () => undefined;
@@ -10,21 +15,21 @@ let mockCreatePresignedDownloadUrl: (key: string) => Promise<string> =
 
 mock.module("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
-  getBackup: (id: string) => mockGetBackup(id),
+  getBackup: (_db: unknown, id: string) => mockGetBackup(id),
 }));
 
 mock.module("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProject: (id: string) => mockGetProject(id),
-}));
-
-mock.module("../../lib/r2/client", () => ({
-  ...R2_STUBS,
-  createPresignedDownloadUrl: (key: string) =>
-    mockCreatePresignedDownloadUrl(key),
+  getProject: (_db: unknown, id: string) => mockGetProject(id),
 }));
 
 const { restoreHandler } = await import("../../handlers/restore");
+
+const ctx = makeMockCtx({
+  r2: makeMockR2({
+    presignDownload: async (key) => mockCreatePresignedDownloadUrl(key),
+  }),
+});
 
 describe("restore handler", () => {
   beforeEach(() => {
@@ -39,7 +44,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: null,
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(401);
   });
 
@@ -48,7 +53,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Basic xyz",
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(401);
   });
 
@@ -57,7 +62,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer t",
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(404);
   });
 
@@ -72,7 +77,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer t",
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(403);
   });
 
@@ -92,7 +97,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer wrong",
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(403);
   });
 
@@ -112,7 +117,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer t",
       clientIp: "1.2.3.4",
-    });
+    }, ctx);
     expect(r.status).toBe(403);
   });
 
@@ -132,7 +137,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer t",
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(403);
   });
 
@@ -157,7 +162,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer t",
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(200);
     expect(calledKey).toBe("k1");
     if (r.kind === "json") {
@@ -186,7 +191,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer t",
       clientIp: "10.1.2.3",
-    });
+    }, ctx);
     expect(r.status).toBe(200);
   });
 
@@ -198,7 +203,7 @@ describe("restore handler", () => {
       id: "b1",
       authorization: "Bearer t",
       clientIp: null,
-    });
+    }, ctx);
     expect(r.status).toBe(500);
   });
 });

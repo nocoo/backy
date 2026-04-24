@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { PROJECT_STUBS, BACKUP_STUBS, R2_STUBS } from "./helpers";
+import { PROJECT_STUBS, BACKUP_STUBS } from "./helpers";
 
 // --- Mutable mock state ---
 
@@ -26,14 +26,18 @@ let mockCreateBackupResult = {
 
 const uploadCalls: Array<{ key: string; contentType: string }> = [];
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProject: async () => mockGetProjectResult,
+  getProject: skipDb(async () => mockGetProjectResult),
 }));
 
 mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
-  createBackup: async (data: Record<string, unknown>) => ({
+  createBackup: async (_db: unknown, data: Record<string, unknown>) => ({
     ...mockCreateBackupResult,
     project_id: data.projectId,
     environment: data.environment ?? null,
@@ -41,11 +45,24 @@ mock.module("@backy/api/db/backups", () => ({
   }),
 }));
 
-mock.module("@backy/api/r2", () => ({
-  ...R2_STUBS,
-  uploadToR2: async (key: string, _data: unknown, contentType: string) => {
-    uploadCalls.push({ key, contentType });
-  },
+mock.module("@backy/api/r2/s3-adapter", () => ({
+  createS3R2Adapter: () => ({
+    put: async (
+      key: string,
+      _data: unknown,
+      opts?: { contentType?: string },
+    ) => {
+      uploadCalls.push({
+        key,
+        contentType: opts?.contentType ?? "application/octet-stream",
+      });
+    },
+    get: async () => null,
+    delete: async () => {},
+    presignDownload: async () => "https://mock.example.com/signed",
+    ping: async () => {},
+  }),
+  isS3R2Configured: () => true,
 }));
 
 // Import AFTER mocks

@@ -12,6 +12,7 @@ import { validateAllowedIps, normalizeAllowedIps } from "../lib/ip";
 import { isUrlSafe } from "../lib/url";
 import { json, type HandlerResponse } from "../http/response";
 import { buildPromptMarkdown } from "./projects-prompt";
+import type { RuntimeContext } from "../runtime";
 
 const CreateProjectSchema = z.object({
   name: z.string().min(1).max(100),
@@ -36,9 +37,11 @@ const UpdateProjectSchema = z.object({
   auto_backup_header_value: z.string().max(2000).nullable().optional(),
 });
 
-export async function listProjectsHandler(): Promise<HandlerResponse> {
+export async function listProjectsHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const projects = await listProjects();
+    const projects = await listProjects(ctx.db);
     return json(200, projects.map(sanitizeProject));
   } catch (error) {
     console.error("Failed to list projects:", error);
@@ -46,9 +49,10 @@ export async function listProjectsHandler(): Promise<HandlerResponse> {
   }
 }
 
-export async function createProjectHandler(input: {
-  body: unknown;
-}): Promise<HandlerResponse> {
+export async function createProjectHandler(
+  input: { body: unknown },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
     const parsed = CreateProjectSchema.safeParse(input.body);
     if (!parsed.success) {
@@ -57,7 +61,11 @@ export async function createProjectHandler(input: {
         details: parsed.error.flatten(),
       });
     }
-    const project = await createProject(parsed.data.name, parsed.data.description);
+    const project = await createProject(
+      ctx.db,
+      parsed.data.name,
+      parsed.data.description,
+    );
     return json(201, project);
   } catch (error) {
     console.error("Failed to create project:", error);
@@ -65,11 +73,12 @@ export async function createProjectHandler(input: {
   }
 }
 
-export async function getProjectHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function getProjectHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const project = await getProject(input.id);
+    const project = await getProject(ctx.db, input.id);
     if (!project) return json(404, { error: "Project not found" });
     return json(200, sanitizeProject(project));
   } catch (error) {
@@ -78,10 +87,10 @@ export async function getProjectHandler(input: {
   }
 }
 
-export async function updateProjectHandler(input: {
-  id: string;
-  body: unknown;
-}): Promise<HandlerResponse> {
+export async function updateProjectHandler(
+  input: { id: string; body: unknown },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
     const parsed = UpdateProjectSchema.safeParse(input.body);
     if (!parsed.success) {
@@ -91,7 +100,7 @@ export async function updateProjectHandler(input: {
       });
     }
 
-    const updateData: Parameters<typeof updateProject>[1] = {
+    const updateData: Parameters<typeof updateProject>[2] = {
       name: parsed.data.name,
       description: parsed.data.description,
     };
@@ -127,7 +136,7 @@ export async function updateProjectHandler(input: {
     if (parsed.data.auto_backup_webhook !== undefined) {
       if (
         parsed.data.auto_backup_webhook !== null &&
-        !isUrlSafe(parsed.data.auto_backup_webhook)
+        !isUrlSafe(parsed.data.auto_backup_webhook, ctx.env)
       ) {
         return json(400, {
           error:
@@ -144,7 +153,7 @@ export async function updateProjectHandler(input: {
         parsed.data.auto_backup_header_value;
     }
 
-    const project = await updateProject(input.id, updateData);
+    const project = await updateProject(ctx.db, input.id, updateData);
     if (!project) return json(404, { error: "Project not found" });
     return json(200, sanitizeProject(project));
   } catch (error) {
@@ -153,11 +162,12 @@ export async function updateProjectHandler(input: {
   }
 }
 
-export async function deleteProjectHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function deleteProjectHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const deleted = await deleteProject(input.id);
+    const deleted = await deleteProject(ctx.db, input.id);
     if (!deleted) return json(404, { error: "Project not found" });
     return json(200, { success: true });
   } catch (error) {
@@ -166,11 +176,12 @@ export async function deleteProjectHandler(input: {
   }
 }
 
-export async function regenerateTokenHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function regenerateTokenHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const token = await regenerateToken(input.id);
+    const token = await regenerateToken(ctx.db, input.id);
     if (!token) return json(404, { error: "Project not found" });
     return json(200, { webhook_token: token });
   } catch (error) {
@@ -179,12 +190,12 @@ export async function regenerateTokenHandler(input: {
   }
 }
 
-export async function projectPromptHandler(input: {
-  id: string;
-  baseUrl: string;
-}): Promise<HandlerResponse> {
+export async function projectPromptHandler(
+  input: { id: string; baseUrl: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const project = await getProject(input.id);
+    const project = await getProject(ctx.db, input.id);
     if (!project) return json(404, { error: "Project not found" });
     const prompt = buildPromptMarkdown(project, input.baseUrl);
     return json(200, { prompt });

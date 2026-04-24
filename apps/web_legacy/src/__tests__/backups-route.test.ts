@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { BACKUP_STUBS, PROJECT_STUBS, R2_STUBS, makeBackup, makeProject } from "./helpers";
+import { BACKUP_STUBS, PROJECT_STUBS, makeBackup, makeProject } from "./helpers";
 import { NextRequest } from "next/server";
 
 // --- Mutable mock state ---
@@ -21,21 +21,31 @@ let mockListProjects: () => Promise<any> = async () => [];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteFromR2: (...args: any[]) => Promise<void> = async () => {};
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
-  listBackups: (...args: unknown[]) => mockListBackups(...args),
-  listEnvironments: () => mockListEnvironments(),
-  deleteBackups: (...args: unknown[]) => mockDeleteBackups(...args),
+  listBackups: skipDb((...args: unknown[]) => mockListBackups(...args)),
+  listEnvironments: skipDb(() => mockListEnvironments()),
+  deleteBackups: skipDb((...args: unknown[]) => mockDeleteBackups(...args)),
 }));
 
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  listProjects: () => mockListProjects(),
+  listProjects: skipDb(() => mockListProjects()),
 }));
 
-mock.module("@backy/api/r2", () => ({
-  ...R2_STUBS,
-  deleteFromR2: (...args: unknown[]) => mockDeleteFromR2(...args),
+mock.module("@backy/api/r2/s3-adapter", () => ({
+  createS3R2Adapter: () => ({
+    put: async () => {},
+    get: async () => null,
+    delete: (...args: unknown[]) => mockDeleteFromR2(...args),
+    presignDownload: async () => "https://mock.example.com/signed",
+    ping: async () => {},
+  }),
+  isS3R2Configured: () => true,
 }));
 
 const { GET, DELETE } = await import("@/app/api/backups/route");

@@ -5,7 +5,7 @@
  * for debugging, monitoring, and security auditing.
  */
 
-import { executeD1Query } from "./d1-client";
+import type { D1Adapter } from "../../runtime";
 import { generateId } from "../id";
 
 /** Structured error codes for webhook failures. */
@@ -57,6 +57,15 @@ export interface CreateWebhookLogInput {
   metadata: Record<string, unknown> | null;
 }
 
+async function q<T>(
+  db: D1Adapter,
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const { results } = await db.query<T>(sql, params);
+  return results;
+}
+
 /**
  * Write a webhook log entry to D1.
  *
@@ -64,13 +73,15 @@ export interface CreateWebhookLogInput {
  * must never block or break the webhook response.
  */
 export async function createWebhookLog(
+  db: D1Adapter,
   input: CreateWebhookLogInput,
 ): Promise<void> {
   try {
     const id = generateId();
     const now = new Date().toISOString();
 
-    await executeD1Query(
+    await q(
+      db,
       `INSERT INTO webhook_logs
          (id, project_id, method, path, status_code, client_ip, user_agent,
           error_code, error_message, duration_ms, metadata, created_at)
@@ -91,7 +102,6 @@ export async function createWebhookLog(
       ],
     );
   } catch (error) {
-    // Log write failures are non-fatal — never propagate
     console.error("Webhook log write failed:", error);
   }
 }
@@ -122,6 +132,7 @@ export interface PaginatedWebhookLogs {
  * List webhook logs with filtering and pagination.
  */
 export async function listWebhookLogs(
+  db: D1Adapter,
   options: ListWebhookLogsOptions = {},
 ): Promise<PaginatedWebhookLogs> {
   const {
@@ -178,16 +189,16 @@ export async function listWebhookLogs(
   const whereClause =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  // Count total
-  const countRows = await executeD1Query<{ count: number }>(
+  const countRows = await q<{ count: number }>(
+    db,
     `SELECT COUNT(*) as count FROM webhook_logs l ${whereClause}`,
     params,
   );
   const total = countRows[0]?.count ?? 0;
 
-  // Fetch page (newest first)
   const offset = (page - 1) * pageSize;
-  const items = await executeD1Query<WebhookLogWithProject>(
+  const items = await q<WebhookLogWithProject>(
+    db,
     `SELECT l.*, p.name as project_name
      FROM webhook_logs l
      LEFT JOIN projects p ON l.project_id = p.id
@@ -218,6 +229,7 @@ export interface DeleteWebhookLogsOptions {
  * If no filters are provided, deletes ALL logs.
  */
 export async function deleteWebhookLogs(
+  db: D1Adapter,
   options: DeleteWebhookLogsOptions = {},
 ): Promise<void> {
   const { projectId, method, success } = options;
@@ -242,5 +254,5 @@ export async function deleteWebhookLogs(
   const whereClause =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  await executeD1Query(`DELETE FROM webhook_logs ${whereClause}`, params);
+  await q(db, `DELETE FROM webhook_logs ${whereClause}`, params);
 }

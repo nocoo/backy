@@ -2,6 +2,7 @@ import { listAutoBackupProjects, getProject } from "../lib/db/projects";
 import { createCronLog } from "../lib/db/cron-logs";
 import { isUrlSafe, resolveAndValidateUrl } from "../lib/url";
 import { json, type HandlerResponse } from "../http/response";
+import type { D1Adapter, RuntimeContext } from "../runtime";
 
 const VALID_INTERVALS = [1, 12, 24];
 
@@ -63,8 +64,11 @@ async function fireProjectWebhook(
   }
 }
 
-function logFireAndForget(entry: Parameters<typeof createCronLog>[0]) {
-  void createCronLog(entry).catch((err) =>
+function logFireAndForget(
+  db: D1Adapter,
+  entry: Parameters<typeof createCronLog>[1],
+) {
+  void createCronLog(db, entry).catch((err) =>
     console.error("Cron log write failed:", err),
   );
 }
@@ -75,8 +79,9 @@ export interface CronTriggerInput {
 
 export async function cronTriggerHandler(
   input: CronTriggerInput,
+  ctx: RuntimeContext,
 ): Promise<HandlerResponse> {
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = ctx.env.CRON_SECRET;
   if (!cronSecret) {
     return json(500, { error: "CRON_SECRET not configured" });
   }
@@ -87,7 +92,7 @@ export async function cronTriggerHandler(
   const now = new Date();
   let projects: AutoBackupProject[];
   try {
-    projects = (await listAutoBackupProjects()) as AutoBackupProject[];
+    projects = (await listAutoBackupProjects(ctx.db)) as AutoBackupProject[];
   } catch (error) {
     console.error("Cron trigger: failed to list projects:", error);
     return json(500, { error: "Failed to query projects" });
@@ -106,12 +111,12 @@ export async function cronTriggerHandler(
       continue;
     }
     if (!shouldTrigger(project.auto_backup_interval, now)) {
-      logFireAndForget({ projectId: project.id, status: "skipped" });
+      logFireAndForget(ctx.db, { projectId: project.id, status: "skipped" });
       summary.skipped++;
       continue;
     }
-    if (!isUrlSafe(project.auto_backup_webhook)) {
-      logFireAndForget({
+    if (!isUrlSafe(project.auto_backup_webhook, ctx.env)) {
+      logFireAndForget(ctx.db, {
         projectId: project.id,
         status: "failed",
         error:
@@ -120,9 +125,12 @@ export async function cronTriggerHandler(
       summary.failed++;
       continue;
     }
-    const dnsCheck = await resolveAndValidateUrl(project.auto_backup_webhook);
+    const dnsCheck = await resolveAndValidateUrl(
+      project.auto_backup_webhook,
+      ctx.env,
+    );
     if (!dnsCheck.safe) {
-      logFireAndForget({
+      logFireAndForget(ctx.db, {
         projectId: project.id,
         status: "failed",
         error: `SSRF blocked: ${dnsCheck.reason}`,
@@ -131,7 +139,7 @@ export async function cronTriggerHandler(
       continue;
     }
     const outcome = await fireProjectWebhook(project);
-    logFireAndForget({
+    logFireAndForget(ctx.db, {
       projectId: project.id,
       status: outcome.status,
       ...(outcome.responseCode !== undefined && {
@@ -153,10 +161,11 @@ export interface CronTriggerOneInput {
 
 export async function cronTriggerOneHandler(
   input: CronTriggerOneInput,
+  ctx: RuntimeContext,
 ): Promise<HandlerResponse> {
   let project;
   try {
-    project = await getProject(input.projectId);
+    project = await getProject(ctx.db, input.projectId);
   } catch (error) {
     console.error("Manual trigger: failed to fetch project:", error);
     return json(500, { error: "Failed to fetch project" });
@@ -166,8 +175,8 @@ export async function cronTriggerOneHandler(
     return json(400, { error: "No webhook URL configured for auto-backup" });
   }
 
-  if (!isUrlSafe(project.auto_backup_webhook)) {
-    logFireAndForget({
+  if (!isUrlSafe(project.auto_backup_webhook, ctx.env)) {
+    logFireAndForget(ctx.db, {
       projectId: project.id,
       status: "failed",
       error: "SSRF blocked: webhook URL targets a private/internal address",
@@ -177,9 +186,12 @@ export async function cronTriggerOneHandler(
       error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
     });
   }
-  const dnsCheck = await resolveAndValidateUrl(project.auto_backup_webhook);
+  const dnsCheck = await resolveAndValidateUrl(
+    project.auto_backup_webhook,
+    ctx.env,
+  );
   if (!dnsCheck.safe) {
-    logFireAndForget({
+    logFireAndForget(ctx.db, {
       projectId: project.id,
       status: "failed",
       error: `SSRF blocked: ${dnsCheck.reason}`,
@@ -191,7 +203,7 @@ export async function cronTriggerOneHandler(
   }
 
   const outcome = await fireProjectWebhook(project as AutoBackupProject);
-  logFireAndForget({
+  logFireAndForget(ctx.db, {
     projectId: project.id,
     status: outcome.status,
     ...(outcome.responseCode !== undefined && {

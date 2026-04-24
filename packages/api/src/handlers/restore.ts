@@ -1,8 +1,8 @@
 import { getBackup } from "../lib/db/backups";
 import { getProject } from "../lib/db/projects";
-import { createPresignedDownloadUrl } from "../lib/r2/client";
 import { isIpAllowed } from "../lib/ip";
 import { json, type HandlerResponse } from "../http/response";
+import type { RuntimeContext } from "../runtime";
 
 const PRESIGN_EXPIRES_IN = 900;
 
@@ -14,6 +14,7 @@ export interface RestoreInput {
 
 export async function restoreHandler(
   input: RestoreInput,
+  ctx: RuntimeContext,
 ): Promise<HandlerResponse> {
   try {
     const auth = input.authorization;
@@ -25,10 +26,10 @@ export async function restoreHandler(
       });
     }
 
-    const backup = await getBackup(input.id);
+    const backup = await getBackup(ctx.db, input.id);
     if (!backup) return json(404, { error: "Backup not found" });
 
-    const project = await getProject(backup.project_id);
+    const project = await getProject(ctx.db, backup.project_id);
     if (!project || project.webhook_token !== token) {
       return json(403, { error: "Invalid token" });
     }
@@ -39,7 +40,10 @@ export async function restoreHandler(
       }
     }
 
-    const downloadUrl = await createPresignedDownloadUrl(backup.file_key);
+    const downloadUrl = await ctx.r2.presignDownload(
+      backup.file_key,
+      PRESIGN_EXPIRES_IN,
+    );
     return json(200, {
       url: downloadUrl,
       backup_id: backup.id,

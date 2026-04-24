@@ -1,9 +1,6 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { PROJECT_STUBS, makeProject } from "./helpers";
 
-// Ensure backy.hexly.ai is in ALLOWED_HOSTS for x-forwarded-host tests
-process.env.ALLOWED_HOSTS = "backy.hexly.ai,localhost:7017";
-
 // --- Mutable mock state ---
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,7 +8,16 @@ let mockGetProject: (...args: any[]) => Promise<any> = async () => undefined;
 
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProject: (...args: unknown[]) => mockGetProject(...args),
+  getProject: (_db: unknown, ...args: unknown[]) => mockGetProject(...args),
+}));
+
+mock.module("@/lib/runtime", () => ({
+  getCtx: () => ({
+    db: {},
+    r2: {},
+    env: { ALLOWED_HOSTS: "backy.hexly.ai,localhost:7017" },
+    info: { uptimeSeconds: () => 0 },
+  }),
 }));
 
 const { GET } = await import("@/app/api/projects/[id]/prompt/route");

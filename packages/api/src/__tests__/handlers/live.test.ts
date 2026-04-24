@@ -1,74 +1,48 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
-
-let mockIsD1Configured = () => true;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let mockExecuteD1Query: (...args: any[]) => Promise<any[]> = async () => [
-  { ok: 1 },
-];
-let mockIsR2Configured = () => true;
-let mockPingR2: () => Promise<void> = async () => {};
-
-mock.module("../../lib/db/d1-client", () => ({
-  executeD1Query: (...args: unknown[]) => mockExecuteD1Query(...args),
-  isD1Configured: () => mockIsD1Configured(),
-}));
-
-mock.module("../../lib/r2/client", () => ({
-  pingR2: () => mockPingR2(),
-  isR2Configured: () => mockIsR2Configured(),
-}));
-
-const { liveCheckHandler } = await import("../../handlers/live");
+import { beforeEach, describe, expect, test } from "bun:test";
+import { makeMockCtx, makeMockD1, makeMockR2 } from "../helpers";
+import { liveCheckHandler } from "../../handlers/live";
 
 describe("live handler", () => {
+  let db: ReturnType<typeof makeMockD1>;
+  let r2: ReturnType<typeof makeMockR2>;
+
   beforeEach(() => {
-    mockIsD1Configured = () => true;
-    mockIsR2Configured = () => true;
-    mockExecuteD1Query = async () => [{ ok: 1 }];
-    mockPingR2 = async () => {};
+    db = makeMockD1(async () => ({ results: [{ ok: 1 }] }));
+    r2 = makeMockR2();
   });
 
   test("returns 200 when both up", async () => {
-    const r = await liveCheckHandler();
+    const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect(
-      (r as { body: { status: string } }).body.status,
-    ).toBe("ok");
-  });
-
-  test("returns 503 when D1 not configured", async () => {
-    mockIsD1Configured = () => false;
-    const r = await liveCheckHandler();
-    expect(r.status).toBe(503);
-  });
-
-  test("returns 503 when R2 not configured", async () => {
-    mockIsR2Configured = () => false;
-    const r = await liveCheckHandler();
-    expect(r.status).toBe(503);
+    expect((r as { body: { status: string } }).body.status).toBe("ok");
   });
 
   test("returns 503 when D1 throws", async () => {
-    mockExecuteD1Query = async () => {
+    db = makeMockD1(async () => {
       throw new Error("db down");
-    };
-    const r = await liveCheckHandler();
+    });
+
+    const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(503);
   });
 
   test("returns 503 when R2 throws", async () => {
-    mockPingR2 = async () => {
-      throw new Error("r2 down");
-    };
-    const r = await liveCheckHandler();
+    r2 = makeMockR2({
+      ping: async () => {
+        throw new Error("r2 down");
+      },
+    });
+
+    const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(503);
   });
 
   test("sanitizes 'ok' from error messages", async () => {
-    mockExecuteD1Query = async () => {
+    db = makeMockD1(async () => {
       throw new Error("not ok message");
-    };
-    const r = await liveCheckHandler();
+    });
+
+    const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     const body = r as {
       body: { dependencies: { d1: { message?: string } } };
     };
@@ -76,10 +50,11 @@ describe("live handler", () => {
   });
 
   test("non-Error throw uses default message", async () => {
-    mockExecuteD1Query = async () => {
+    db = makeMockD1(async () => {
       throw "raw";
-    };
-    const r = await liveCheckHandler();
+    });
+
+    const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(503);
   });
 });

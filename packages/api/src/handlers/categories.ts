@@ -7,6 +7,7 @@ import {
   deleteCategory,
 } from "../lib/db/categories";
 import { json, type HandlerResponse } from "../http/response";
+import type { RuntimeContext } from "../runtime";
 
 const CreateCategorySchema = z.object({
   name: z.string().min(1).max(50),
@@ -28,9 +29,11 @@ const UpdateCategorySchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
 });
 
-export async function listCategoriesHandler(): Promise<HandlerResponse> {
+export async function listCategoriesHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const categories = await listCategories();
+    const categories = await listCategories(ctx.db);
     return json(200, categories);
   } catch (error) {
     console.error("Failed to list categories:", error);
@@ -38,9 +41,10 @@ export async function listCategoriesHandler(): Promise<HandlerResponse> {
   }
 }
 
-export async function createCategoryHandler(input: {
-  body: unknown;
-}): Promise<HandlerResponse> {
+export async function createCategoryHandler(
+  input: { body: unknown },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
     const parsed = CreateCategorySchema.safeParse(input.body);
     if (!parsed.success) {
@@ -49,7 +53,7 @@ export async function createCategoryHandler(input: {
         details: parsed.error.flatten(),
       });
     }
-    const category = await createCategory(parsed.data);
+    const category = await createCategory(ctx.db, parsed.data);
     return json(201, category);
   } catch (error) {
     console.error("Failed to create category:", error);
@@ -57,11 +61,12 @@ export async function createCategoryHandler(input: {
   }
 }
 
-export async function getCategoryHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function getCategoryHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const category = await getCategory(input.id);
+    const category = await getCategory(ctx.db, input.id);
     if (!category) return json(404, { error: "Category not found" });
     return json(200, category);
   } catch (error) {
@@ -70,10 +75,10 @@ export async function getCategoryHandler(input: {
   }
 }
 
-export async function updateCategoryHandler(input: {
-  id: string;
-  body: unknown;
-}): Promise<HandlerResponse> {
+export async function updateCategoryHandler(
+  input: { id: string; body: unknown },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
     const parsed = UpdateCategorySchema.safeParse(input.body);
     if (!parsed.success) {
@@ -82,7 +87,7 @@ export async function updateCategoryHandler(input: {
         details: parsed.error.flatten(),
       });
     }
-    const category = await updateCategory(input.id, parsed.data);
+    const category = await updateCategory(ctx.db, input.id, parsed.data);
     if (!category) return json(404, { error: "Category not found" });
     return json(200, category);
   } catch (error) {
@@ -91,11 +96,12 @@ export async function updateCategoryHandler(input: {
   }
 }
 
-export async function deleteCategoryHandler(input: {
-  id: string;
-}): Promise<HandlerResponse> {
+export async function deleteCategoryHandler(
+  input: { id: string },
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const deleted = await deleteCategory(input.id);
+    const deleted = await deleteCategory(ctx.db, input.id);
     if (!deleted) return json(404, { error: "Category not found" });
     return json(200, { success: true });
   } catch (error) {

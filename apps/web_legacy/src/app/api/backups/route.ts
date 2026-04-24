@@ -3,6 +3,7 @@ import {
   batchDeleteBackupsHandler,
 } from "@backy/api/handlers/backups";
 import { toResponse } from "@/lib/http";
+import { getCtx } from "@/lib/runtime";
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
@@ -10,15 +11,18 @@ export async function GET(request: Request) {
   const search = sp.get("search");
   const environment = sp.get("environment");
   return toResponse(
-    await listBackupsHandler({
-      ...(projectId && { projectId }),
-      ...(search && { search }),
-      ...(environment && { environment }),
-      sortBy: sp.get("sortBy"),
-      sortOrder: sp.get("sortOrder"),
-      page: sp.get("page"),
-      pageSize: sp.get("pageSize"),
-    }),
+    await listBackupsHandler(
+      {
+        ...(projectId && { projectId }),
+        ...(search && { search }),
+        ...(environment && { environment }),
+        sortBy: sp.get("sortBy"),
+        sortOrder: sp.get("sortOrder"),
+        page: sp.get("page"),
+        pageSize: sp.get("pageSize"),
+      },
+      getCtx(),
+    ),
   );
 }
 
@@ -33,5 +37,5 @@ export async function DELETE(request: Request) {
       { status: 500 },
     );
   }
-  return toResponse(await batchDeleteBackupsHandler({ body }));
+  return toResponse(await batchDeleteBackupsHandler({ body }, getCtx()));
 }

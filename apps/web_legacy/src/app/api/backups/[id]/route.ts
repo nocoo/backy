@@ -3,13 +3,14 @@ import {
   deleteBackupHandler,
 } from "@backy/api/handlers/backups";
 import { toResponse } from "@/lib/http";
+import { getCtx } from "@/lib/runtime";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  return toResponse(await getBackupHandler({ id }));
+  return toResponse(await getBackupHandler({ id }, getCtx()));
 }
 
 export async function DELETE(
@@ -17,5 +18,5 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  return toResponse(await deleteBackupHandler({ id }));
+  return toResponse(await deleteBackupHandler({ id }, getCtx()));
 }

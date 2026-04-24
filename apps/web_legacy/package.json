@@ -9,7 +9,7 @@
     "lint": "eslint --max-warnings=0",
     "lint:staged": "lint-staged",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src/__tests__/",
+    "test": "bun run scripts/run-unit-tests.ts",
     "test:coverage": "bun run scripts/check-coverage.ts",
     "test:e2e": "bun run scripts/run-e2e.ts",
     "test:e2e:api": "bun run scripts/run-e2e.ts",

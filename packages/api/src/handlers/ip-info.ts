@@ -1,7 +1,5 @@
 import { json, type HandlerResponse } from "../http/response";
-
-const ECHO_API_URL = process.env.ECHO_API_URL ?? "";
-const ECHO_API_KEY = process.env.ECHO_API_KEY ?? "";
+import type { RuntimeContext } from "../runtime";
 
 export type IpInfoFetcher = (
   url: string,
@@ -12,9 +10,12 @@ const defaultFetcher: IpInfoFetcher = (url, init) => fetch(url, init);
 
 export async function ipInfoHandler(
   input: { ip: string | null },
+  ctx: RuntimeContext,
   fetcher: IpInfoFetcher = defaultFetcher,
 ): Promise<HandlerResponse> {
-  if (!ECHO_API_URL) {
+  const echoUrl = ctx.env.ECHO_API_URL ?? "";
+  const echoKey = ctx.env.ECHO_API_KEY ?? "";
+  if (!echoUrl) {
     return json(503, { error: "IP info service not configured" });
   }
   try {
@@ -22,8 +23,8 @@ export async function ipInfoHandler(
       return json(400, { error: "Missing ip parameter" });
     }
     const res = await fetcher(
-      `${ECHO_API_URL}?ip=${encodeURIComponent(input.ip)}`,
-      { headers: { "x-api-key": ECHO_API_KEY } },
+      `${echoUrl}?ip=${encodeURIComponent(input.ip)}`,
+      { headers: { "x-api-key": echoKey } },
     );
     if (!res.ok) {
       console.error(`Echo API error: ${res.status} ${res.statusText}`);

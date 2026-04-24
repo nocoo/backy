@@ -1,5 +1,9 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { WEBHOOK_LOG_STUBS, CRON_LOG_STUBS } from "../helpers";
+import {
+  WEBHOOK_LOG_STUBS,
+  CRON_LOG_STUBS,
+  makeMockCtx,
+} from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListWebhookLogs: (...a: any[]) => Promise<any> = async () => ({
@@ -18,14 +22,15 @@ let mockDeleteCronLogs: (...a: any[]) => Promise<void> = async () => {};
 
 mock.module("../../lib/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
-  listWebhookLogs: (...a: unknown[]) => mockListWebhookLogs(...a),
-  deleteWebhookLogs: (...a: unknown[]) => mockDeleteWebhookLogs(...a),
+  listWebhookLogs: (_db: unknown, ...a: unknown[]) => mockListWebhookLogs(...a),
+  deleteWebhookLogs: (_db: unknown, ...a: unknown[]) =>
+    mockDeleteWebhookLogs(...a),
 }));
 
 mock.module("../../lib/db/cron-logs", () => ({
   ...CRON_LOG_STUBS,
-  listCronLogs: (...a: unknown[]) => mockListCronLogs(...a),
-  deleteCronLogs: (...a: unknown[]) => mockDeleteCronLogs(...a),
+  listCronLogs: (_db: unknown, ...a: unknown[]) => mockListCronLogs(...a),
+  deleteCronLogs: (_db: unknown, ...a: unknown[]) => mockDeleteCronLogs(...a),
 }));
 
 const {
@@ -34,6 +39,8 @@ const {
   listCronLogsHandler,
   deleteCronLogsHandler,
 } = await import("../../handlers/logs");
+
+const ctx = makeMockCtx();
 
 describe("logs handlers", () => {
   beforeEach(() => {
@@ -45,7 +52,7 @@ describe("logs handlers", () => {
 
   describe("listWebhookLogsHandler", () => {
     test("200 with default pagination", async () => {
-      expect((await listWebhookLogsHandler({})).status).toBe(200);
+      expect((await listWebhookLogsHandler({}, ctx)).status).toBe(200);
     });
 
     test("200 with all filters parsed", async () => {
@@ -64,7 +71,7 @@ describe("logs handlers", () => {
         success: "true",
         page: "2",
         pageSize: "9999",
-      });
+      }, ctx);
       expect(r.status).toBe(200);
       const c = captured as {
         projectId?: string;
@@ -91,7 +98,7 @@ describe("logs handlers", () => {
         captured = input;
         return { items: [] };
       };
-      await listWebhookLogsHandler({ success: "false" });
+      await listWebhookLogsHandler({ success: "false" }, ctx);
       expect(captured.success).toBe(false);
     });
 
@@ -101,7 +108,7 @@ describe("logs handlers", () => {
         captured = input;
         return { items: [] };
       };
-      await listWebhookLogsHandler({ statusCode: "junk" });
+      await listWebhookLogsHandler({ statusCode: "junk" }, ctx);
       expect(captured.statusCode).toBeUndefined();
     });
 
@@ -109,7 +116,7 @@ describe("logs handlers", () => {
       mockListWebhookLogs = async () => {
         throw new Error("db");
       };
-      expect((await listWebhookLogsHandler({})).status).toBe(500);
+      expect((await listWebhookLogsHandler({}, ctx)).status).toBe(500);
     });
   });
 
@@ -117,13 +124,13 @@ describe("logs handlers", () => {
     test("200 on success", async () => {
       const r = await deleteWebhookLogsHandler({
         body: { projectId: "p1", method: "POST", success: false },
-      });
+      }, ctx);
       expect(r.status).toBe(200);
     });
 
     test("200 with empty body", async () => {
       expect(
-        (await deleteWebhookLogsHandler({ body: null })).status,
+        (await deleteWebhookLogsHandler({ body: null }, ctx)).status,
       ).toBe(200);
     });
 
@@ -132,14 +139,14 @@ describe("logs handlers", () => {
         throw new Error("db");
       };
       expect(
-        (await deleteWebhookLogsHandler({ body: {} })).status,
+        (await deleteWebhookLogsHandler({ body: {} }, ctx)).status,
       ).toBe(500);
     });
   });
 
   describe("listCronLogsHandler", () => {
     test("200 with defaults", async () => {
-      expect((await listCronLogsHandler({})).status).toBe(200);
+      expect((await listCronLogsHandler({}, ctx)).status).toBe(200);
     });
 
     test("200 with valid status", async () => {
@@ -153,7 +160,7 @@ describe("logs handlers", () => {
         status: "success",
         page: "3",
         pageSize: "10",
-      });
+      }, ctx);
       expect(captured.status).toBe("success");
     });
 
@@ -163,7 +170,7 @@ describe("logs handlers", () => {
         captured = input;
         return { items: [] };
       };
-      await listCronLogsHandler({ status: "bogus" });
+      await listCronLogsHandler({ status: "bogus" }, ctx);
       expect(captured.status).toBeUndefined();
     });
 
@@ -171,13 +178,13 @@ describe("logs handlers", () => {
       mockListCronLogs = async () => {
         throw new Error("db");
       };
-      expect((await listCronLogsHandler({})).status).toBe(500);
+      expect((await listCronLogsHandler({}, ctx)).status).toBe(500);
     });
   });
 
   describe("deleteCronLogsHandler", () => {
     test("204 on success", async () => {
-      const r = await deleteCronLogsHandler({});
+      const r = await deleteCronLogsHandler({}, ctx);
       expect(r.status).toBe(204);
       expect(r.kind).toBe("empty");
     });
@@ -186,7 +193,7 @@ describe("logs handlers", () => {
       const r = await deleteCronLogsHandler({
         projectId: "p1",
         status: "failed",
-      });
+      }, ctx);
       expect(r.status).toBe(204);
     });
 
@@ -194,7 +201,7 @@ describe("logs handlers", () => {
       mockDeleteCronLogs = async () => {
         throw new Error("db");
       };
-      expect((await deleteCronLogsHandler({})).status).toBe(500);
+      expect((await deleteCronLogsHandler({}, ctx)).status).toBe(500);
     });
   });
 });

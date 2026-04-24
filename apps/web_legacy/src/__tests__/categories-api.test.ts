@@ -19,13 +19,19 @@ let mockCreateResult: Category = mockCategory;
 let mockUpdateResult: Category | undefined = mockCategory;
 let mockDeleteResult = true;
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("@backy/api/db/categories", () => ({
-  listCategories: async () => mockListResult,
-  getCategory: async () => mockGetResult,
-  createCategory: async (data: { name: string; color?: string; icon?: string; sortOrder?: number }) =>
-    ({ ...mockCreateResult, name: data.name, color: data.color ?? "#6b7280", icon: data.icon ?? "folder" }),
-  updateCategory: async () => mockUpdateResult,
-  deleteCategory: async () => mockDeleteResult,
+  listCategories: skipDb(async () => mockListResult),
+  getCategory: skipDb(async () => mockGetResult),
+  createCategory: skipDb(async (
+    data: { name: string; color?: string; icon?: string; sortOrder?: number },
+  ) =>
+    ({ ...mockCreateResult, name: data.name, color: data.color ?? "#6b7280", icon: data.icon ?? "folder" })),
+  updateCategory: skipDb(async () => mockUpdateResult),
+  deleteCategory: skipDb(async () => mockDeleteResult),
 }));
 
 // Import routes AFTER mocks

@@ -1,12 +1,13 @@
 import { initializeSchema } from "../lib/db/schema";
-import { executeD1Query } from "../lib/db/d1-client";
-import { deleteFromR2 } from "../lib/r2/client";
 import { TEST_PROJECT } from "../lib/test-project";
 import { json, type HandlerResponse } from "../http/response";
+import type { RuntimeContext } from "../runtime";
 
-export async function dbInitHandler(): Promise<HandlerResponse> {
+export async function dbInitHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    await initializeSchema();
+    await initializeSchema(ctx.db);
     return json(200, { success: true, message: "Schema initialized" });
   } catch (error) {
     console.error("Schema initialization failed:", error);
@@ -14,15 +15,17 @@ export async function dbInitHandler(): Promise<HandlerResponse> {
   }
 }
 
-export async function seedTestProjectHandler(): Promise<HandlerResponse> {
-  if (process.env.E2E_SKIP_AUTH !== "true") {
+export async function seedTestProjectHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
+  if (ctx.env.E2E_SKIP_AUTH !== "true") {
     return json(403, { error: "Forbidden" });
   }
 
   const { id, name, webhookToken, description } = TEST_PROJECT;
 
   try {
-    const orphanedBackups = await executeD1Query<{
+    const { results: orphanedBackups } = await ctx.db.query<{
       id: string;
       file_key: string;
       json_key: string | null;
@@ -34,14 +37,14 @@ export async function seedTestProjectHandler(): Promise<HandlerResponse> {
       const r2Keys = orphanedBackups.flatMap((b) =>
         b.json_key ? [b.file_key, b.json_key] : [b.file_key],
       );
-      await Promise.allSettled(r2Keys.map((key) => deleteFromR2(key)));
-      await executeD1Query("DELETE FROM backups WHERE project_id = ?", [id]);
+      await Promise.allSettled(r2Keys.map((key) => ctx.r2.delete(key)));
+      await ctx.db.query("DELETE FROM backups WHERE project_id = ?", [id]);
       console.log(
         `  🧹 Cleaned ${orphanedBackups.length} orphaned backups (${r2Keys.length} R2 keys)`,
       );
     }
 
-    const existing = await executeD1Query<{
+    const { results: existing } = await ctx.db.query<{
       name: string;
       webhook_token: string;
       description: string | null;
@@ -61,7 +64,7 @@ export async function seedTestProjectHandler(): Promise<HandlerResponse> {
     );
 
     if (existing.length === 0) {
-      await executeD1Query(
+      await ctx.db.query(
         `INSERT INTO projects (id, name, description, webhook_token, created_at, updated_at)
          VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))`,
         [id, name, description, webhookToken],
@@ -101,7 +104,7 @@ export async function seedTestProjectHandler(): Promise<HandlerResponse> {
       });
     }
 
-    await executeD1Query(
+    await ctx.db.query(
       `UPDATE projects SET
          name = ?, webhook_token = ?, description = ?,
          allowed_ips = NULL, category_id = NULL,

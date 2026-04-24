@@ -8,10 +8,14 @@ let mockListProjects: () => Promise<any> = async () => [];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateProject: (...args: any[]) => Promise<any> = async () => ({});
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  listProjects: () => mockListProjects(),
-  createProject: (...args: unknown[]) => mockCreateProject(...args),
+  listProjects: skipDb(() => mockListProjects()),
+  createProject: skipDb((...args: unknown[]) => mockCreateProject(...args)),
 }));
 
 const { GET, POST } = await import("@/app/api/projects/route");

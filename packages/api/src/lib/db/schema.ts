@@ -4,7 +4,7 @@
  * Tables: categories, projects, backups, webhook_logs, cron_logs
  */
 
-import { executeD1Query } from "./d1-client";
+import type { D1Adapter } from "../../runtime";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS categories (
@@ -82,13 +82,13 @@ CREATE INDEX IF NOT EXISTS idx_cron_logs_status ON cron_logs(status);
 /**
  * Initialize the D1 schema. Safe to call multiple times (uses IF NOT EXISTS).
  */
-export async function initializeSchema(): Promise<void> {
+export async function initializeSchema(db: D1Adapter): Promise<void> {
   const statements = SCHEMA_SQL.split(";")
     .map((s) => s.trim())
     .filter(Boolean);
 
   for (const sql of statements) {
-    await executeD1Query(sql);
+    await db.query(sql);
   }
 
   // Migrations: add columns idempotently (D1 doesn't support IF NOT EXISTS for ALTER)
@@ -104,31 +104,29 @@ export async function initializeSchema(): Promise<void> {
   ];
   for (const sql of migrations) {
     try {
-      await executeD1Query(sql);
+      await db.query(sql);
     } catch {
       // Column already exists — safe to ignore
     }
   }
 
-  // Backfill file_type from is_single_json for existing rows
   const backfills = [
     "UPDATE backups SET file_type = 'json' WHERE is_single_json = 1 AND file_type = 'unknown'",
     "UPDATE backups SET file_type = 'zip' WHERE is_single_json = 0 AND file_type = 'unknown'",
   ];
   for (const sql of backfills) {
     try {
-      await executeD1Query(sql);
+      await db.query(sql);
     } catch {
       // Backfill may fail if file_type column doesn't exist yet (first run) — safe to ignore
     }
   }
 
-  // Create indexes that depend on migration columns (must run after ALTER TABLE)
   const postMigrationIndexes = [
     "CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id)",
     "CREATE INDEX IF NOT EXISTS idx_backups_file_type ON backups(file_type)",
   ];
   for (const sql of postMigrationIndexes) {
-    await executeD1Query(sql);
+    await db.query(sql);
   }
 }

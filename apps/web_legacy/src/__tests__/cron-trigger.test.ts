@@ -7,15 +7,19 @@ let mockProjects: Record<string, unknown>[] = [];
 let capturedCronLogs: Record<string, unknown>[] = [];
 let listAutoBackupProjectsShouldThrow = false;
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 // Mock only @backy/api/db/projects (global mock; must include stubs for ALL exports
 // so other test files that mock.module the same module don't break).
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  listAutoBackupProjects: async () => {
+  listAutoBackupProjects: skipDb(async () => {
     if (listAutoBackupProjectsShouldThrow) throw new Error("D1 timeout");
     return mockProjects;
-  },
-  createProject: async () => ({ id: "mock" }),
+  }),
+  createProject: skipDb(async () => ({ id: "mock" })),
 }));
 
 // NOTE: Do NOT mock @backy/api/db/cron-logs here — that breaks cron-logs.test.ts

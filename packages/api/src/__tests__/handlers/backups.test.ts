@@ -1,5 +1,10 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { PROJECT_STUBS, BACKUP_STUBS } from "../helpers";
+import {
+  PROJECT_STUBS,
+  BACKUP_STUBS,
+  makeMockCtx,
+  makeMockR2,
+} from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListBackups: (...args: any[]) => Promise<any> = async () => ({
@@ -29,6 +34,7 @@ let mockDeleteFromR2: (k: string) => Promise<void> = async () => {};
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDownloadFromR2: (k: string) => Promise<any> = async () => ({
   body: null,
+  bytes: async () => new Uint8Array(),
   contentType: undefined,
   contentLength: undefined,
 });
@@ -37,43 +43,62 @@ let mockCreatePresignedDownloadUrl: (k: string) => Promise<string> = async () =>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUpdateBackup: (...args: any[]) => Promise<any> = async () => ({});
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
-  listBackups: (...a: unknown[]) => mockListBackups(...a),
-  listEnvironments: () => mockListEnvironments(),
-  getBackup: (id: string) => mockGetBackup(id),
-  deleteBackup: (id: string) => mockDeleteBackup(id),
-  deleteBackups: (ids: string[]) => mockDeleteBackups(ids),
-  createBackup: (...a: unknown[]) => mockCreateBackup(...a),
-  updateBackup: (...a: unknown[]) => mockUpdateBackup(...a),
+  listBackups: skipDb((...a: unknown[]) => mockListBackups(...a)),
+  listEnvironments: skipDb(() => mockListEnvironments()),
+  getBackup: skipDb((id: string) => mockGetBackup(id)),
+  deleteBackup: skipDb((id: string) => mockDeleteBackup(id)),
+  deleteBackups: skipDb((ids: string[]) => mockDeleteBackups(ids)),
+  createBackup: skipDb((...a: unknown[]) => mockCreateBackup(...a)),
+  updateBackup: skipDb((...a: unknown[]) => mockUpdateBackup(...a)),
 }));
 
 mock.module("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
-  listProjects: () => mockListProjects(),
-  getProject: (id: string) => mockGetProject(id),
+  listProjects: skipDb(() => mockListProjects()),
+  getProject: skipDb((id: string) => mockGetProject(id)),
 }));
 
-mock.module("../../lib/r2/client", () => ({
-  uploadToR2: (...a: unknown[]) => mockUploadToR2(...a),
-  deleteFromR2: (k: string) => mockDeleteFromR2(k),
-  pingR2: async () => {},
-  isR2Configured: () => true,
-  downloadFromR2: (k: string) => mockDownloadFromR2(k),
-  createPresignedDownloadUrl: (k: string) => mockCreatePresignedDownloadUrl(k),
-}));
-
-const {
-  listBackupsHandler,
-  batchDeleteBackupsHandler,
-  getBackupHandler,
-  deleteBackupHandler,
-  uploadBackupHandler,
-  downloadBackupHandler,
-  previewBackupHandler,
-  extractBackupHandler,
-  restoreCommandHandler,
-} = await import("../../handlers/backups");
+const backupsHandlers = await import("../../handlers/backups");
+const ctx = makeMockCtx({
+  r2: makeMockR2({
+    put: async (key, body, opts) =>
+      mockUploadToR2(key, body, opts?.contentType),
+    delete: async (key) => mockDeleteFromR2(key),
+    get: async (key) => mockDownloadFromR2(key),
+    presignDownload: async (key) => mockCreatePresignedDownloadUrl(key),
+  }),
+});
+const listBackupsHandler = (input: Parameters<typeof backupsHandlers.listBackupsHandler>[0]) =>
+  backupsHandlers.listBackupsHandler(input, ctx);
+const batchDeleteBackupsHandler = (
+  input: Parameters<typeof backupsHandlers.batchDeleteBackupsHandler>[0],
+) => backupsHandlers.batchDeleteBackupsHandler(input, ctx);
+const getBackupHandler = (input: Parameters<typeof backupsHandlers.getBackupHandler>[0]) =>
+  backupsHandlers.getBackupHandler(input, ctx);
+const deleteBackupHandler = (
+  input: Parameters<typeof backupsHandlers.deleteBackupHandler>[0],
+) => backupsHandlers.deleteBackupHandler(input, ctx);
+const uploadBackupHandler = (
+  input: Parameters<typeof backupsHandlers.uploadBackupHandler>[0],
+) => backupsHandlers.uploadBackupHandler(input, ctx);
+const downloadBackupHandler = (
+  input: Parameters<typeof backupsHandlers.downloadBackupHandler>[0],
+) => backupsHandlers.downloadBackupHandler(input, ctx);
+const previewBackupHandler = (
+  input: Parameters<typeof backupsHandlers.previewBackupHandler>[0],
+) => backupsHandlers.previewBackupHandler(input, ctx);
+const extractBackupHandler = (
+  input: Parameters<typeof backupsHandlers.extractBackupHandler>[0],
+) => backupsHandlers.extractBackupHandler(input, ctx);
+const restoreCommandHandler = (
+  input: Parameters<typeof backupsHandlers.restoreCommandHandler>[0],
+) => backupsHandlers.restoreCommandHandler(input, ctx);
 
 describe("backups handlers", () => {
   beforeEach(() => {
@@ -93,6 +118,7 @@ describe("backups handlers", () => {
     mockDeleteFromR2 = async () => {};
     mockDownloadFromR2 = async () => ({
       body: null,
+      bytes: async () => new Uint8Array(),
       contentType: undefined,
       contentLength: undefined,
     });

@@ -1,4 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { makeMockCtx } from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListCategories: () => Promise<any[]> = async () => [];
@@ -11,12 +12,16 @@ let mockUpdateCategory: (...args: any[]) => Promise<any> = async () => undefined
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteCategory: (id: string) => Promise<any> = async () => false;
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("../../lib/db/categories", () => ({
   listCategories: () => mockListCategories(),
-  createCategory: (...args: unknown[]) => mockCreateCategory(...args),
-  getCategory: (id: string) => mockGetCategory(id),
-  updateCategory: (...args: unknown[]) => mockUpdateCategory(...args),
-  deleteCategory: (id: string) => mockDeleteCategory(id),
+  createCategory: skipDb((...args: unknown[]) => mockCreateCategory(...args)),
+  getCategory: skipDb((id: string) => mockGetCategory(id)),
+  updateCategory: skipDb((...args: unknown[]) => mockUpdateCategory(...args)),
+  deleteCategory: skipDb((id: string) => mockDeleteCategory(id)),
 }));
 
 const {
@@ -26,6 +31,8 @@ const {
   updateCategoryHandler,
   deleteCategoryHandler,
 } = await import("../../handlers/categories");
+
+const ctx = makeMockCtx();
 
 describe("categories handlers", () => {
   beforeEach(() => {
@@ -38,7 +45,7 @@ describe("categories handlers", () => {
 
   test("list returns 200 with rows", async () => {
     mockListCategories = async () => [{ id: "c1", name: "Web" }];
-    const r = await listCategoriesHandler();
+    const r = await listCategoriesHandler(ctx);
     expect(r.status).toBe(200);
   });
 
@@ -46,27 +53,29 @@ describe("categories handlers", () => {
     mockListCategories = async () => {
       throw new Error("db");
     };
-    expect((await listCategoriesHandler()).status).toBe(500);
+    expect((await listCategoriesHandler(ctx)).status).toBe(500);
   });
 
   test("create 201 with valid input", async () => {
     mockCreateCategory = async () => ({ id: "c1" });
-    const r = await createCategoryHandler({
-      body: { name: "Web", color: "#ffaabb", icon: "globe" },
-    });
+    const r = await createCategoryHandler(
+      { body: { name: "Web", color: "#ffaabb", icon: "globe" } },
+      ctx,
+    );
     expect(r.status).toBe(201);
   });
 
   test("create 400 invalid color", async () => {
-    const r = await createCategoryHandler({
-      body: { name: "X", color: "red" },
-    });
+    const r = await createCategoryHandler(
+      { body: { name: "X", color: "red" } },
+      ctx,
+    );
     expect(r.status).toBe(400);
   });
 
   test("create 400 missing name", async () => {
     expect(
-      (await createCategoryHandler({ body: {} })).status,
+      (await createCategoryHandler({ body: {} }, ctx)).status,
     ).toBe(400);
   });
 
@@ -75,47 +84,49 @@ describe("categories handlers", () => {
       throw new Error("db");
     };
     expect(
-      (await createCategoryHandler({ body: { name: "X" } })).status,
+      (await createCategoryHandler({ body: { name: "X" } }, ctx)).status,
     ).toBe(500);
   });
 
   test("get 200 when found", async () => {
     mockGetCategory = async () => ({ id: "c1" });
-    expect((await getCategoryHandler({ id: "c1" })).status).toBe(200);
+    expect((await getCategoryHandler({ id: "c1" }, ctx)).status).toBe(200);
   });
 
   test("get 404 when missing", async () => {
-    expect((await getCategoryHandler({ id: "c1" })).status).toBe(404);
+    expect((await getCategoryHandler({ id: "c1" }, ctx)).status).toBe(404);
   });
 
   test("get 500 on db error", async () => {
     mockGetCategory = async () => {
       throw new Error("db");
     };
-    expect((await getCategoryHandler({ id: "c1" })).status).toBe(500);
+    expect((await getCategoryHandler({ id: "c1" }, ctx)).status).toBe(500);
   });
 
   test("update 200 when patched", async () => {
     mockUpdateCategory = async () => ({ id: "c1" });
     expect(
-      (await updateCategoryHandler({ id: "c1", body: { name: "X" } })).status,
+      (await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx))
+        .status,
     ).toBe(200);
   });
 
   test("update 400 invalid input", async () => {
     expect(
       (
-        await updateCategoryHandler({
-          id: "c1",
-          body: { color: "red" },
-        })
+        await updateCategoryHandler(
+          { id: "c1", body: { color: "red" } },
+          ctx,
+        )
       ).status,
     ).toBe(400);
   });
 
   test("update 404 when missing", async () => {
     expect(
-      (await updateCategoryHandler({ id: "c1", body: { name: "X" } })).status,
+      (await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx))
+        .status,
     ).toBe(404);
   });
 
@@ -124,23 +135,24 @@ describe("categories handlers", () => {
       throw new Error("db");
     };
     expect(
-      (await updateCategoryHandler({ id: "c1", body: { name: "X" } })).status,
+      (await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx))
+        .status,
     ).toBe(500);
   });
 
   test("delete 200 when deleted", async () => {
     mockDeleteCategory = async () => true;
-    expect((await deleteCategoryHandler({ id: "c1" })).status).toBe(200);
+    expect((await deleteCategoryHandler({ id: "c1" }, ctx)).status).toBe(200);
   });
 
   test("delete 404 when missing", async () => {
-    expect((await deleteCategoryHandler({ id: "c1" })).status).toBe(404);
+    expect((await deleteCategoryHandler({ id: "c1" }, ctx)).status).toBe(404);
   });
 
   test("delete 500 on db error", async () => {
     mockDeleteCategory = async () => {
       throw new Error("db");
     };
-    expect((await deleteCategoryHandler({ id: "c1" })).status).toBe(500);
+    expect((await deleteCategoryHandler({ id: "c1" }, ctx)).status).toBe(500);
   });
 });

@@ -1,10 +1,10 @@
 import { describe, expect, test, mock } from "bun:test";
-import { BACKUP_STUBS, PROJECT_STUBS, R2_STUBS } from "./helpers";
+import { BACKUP_STUBS, PROJECT_STUBS } from "./helpers";
 
 // Mock DB and R2 before importing the route
 mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
-  getBackup: async (id: string) => {
+  getBackup: async (_db: unknown, id: string) => {
     if (id === "backup-open") {
       return {
         id: "backup-open",
@@ -27,7 +27,7 @@ mock.module("@backy/api/db/backups", () => ({
 
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProject: async (id: string) => {
+  getProject: async (_db: unknown, id: string) => {
     if (id === "proj-open") {
       return {
         id: "proj-open",
@@ -48,9 +48,15 @@ mock.module("@backy/api/db/projects", () => ({
   },
 }));
 
-mock.module("@backy/api/r2", () => ({
-  ...R2_STUBS,
-  createPresignedDownloadUrl: async () => "https://r2.example.com/signed-url",
+mock.module("@backy/api/r2/s3-adapter", () => ({
+  createS3R2Adapter: () => ({
+    put: async () => {},
+    get: async () => null,
+    delete: async () => {},
+    presignDownload: async () => "https://r2.example.com/signed-url",
+    ping: async () => {},
+  }),
+  isS3R2Configured: () => true,
 }));
 
 const { GET } = await import("@/app/api/restore/[id]/route");

@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { PROJECT_STUBS, makeProject } from "../helpers";
+import { PROJECT_STUBS, makeMockCtx, makeProject } from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListProjects: () => Promise<any> = async () => [];
@@ -14,14 +14,18 @@ let mockDeleteProject: (id: string) => Promise<any> = async () => false;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockRegenerateToken: (id: string) => Promise<any> = async () => undefined;
 
+function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
+  return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
+}
+
 mock.module("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
-  listProjects: () => mockListProjects(),
-  createProject: (...args: unknown[]) => mockCreateProject(...args),
-  getProject: (id: string) => mockGetProject(id),
-  updateProject: (...args: unknown[]) => mockUpdateProject(...args),
-  deleteProject: (id: string) => mockDeleteProject(id),
-  regenerateToken: (id: string) => mockRegenerateToken(id),
+  listProjects: skipDb(() => mockListProjects()),
+  createProject: skipDb((...args: unknown[]) => mockCreateProject(...args)),
+  getProject: skipDb((id: string) => mockGetProject(id)),
+  updateProject: skipDb((...args: unknown[]) => mockUpdateProject(...args)),
+  deleteProject: skipDb((id: string) => mockDeleteProject(id)),
+  regenerateToken: skipDb((id: string) => mockRegenerateToken(id)),
 }));
 
 const {
@@ -33,6 +37,8 @@ const {
   regenerateTokenHandler,
   projectPromptHandler,
 } = await import("../../handlers/projects");
+
+const ctx = makeMockCtx();
 
 describe("projects handlers", () => {
   beforeEach(() => {
@@ -47,7 +53,7 @@ describe("projects handlers", () => {
   describe("listProjectsHandler", () => {
     test("returns 200 with sanitized list", async () => {
       mockListProjects = async () => [makeProject({ webhook_token: "secret" })];
-      const r = await listProjectsHandler();
+      const r = await listProjectsHandler(ctx);
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
       const body = (r as { body: { webhook_token?: string }[] }).body;
@@ -58,19 +64,19 @@ describe("projects handlers", () => {
       mockListProjects = async () => {
         throw new Error("db");
       };
-      expect((await listProjectsHandler()).status).toBe(500);
+      expect((await listProjectsHandler(ctx)).status).toBe(500);
     });
   });
 
   describe("createProjectHandler", () => {
     test("returns 201 on valid input", async () => {
       mockCreateProject = async () => makeProject();
-      const r = await createProjectHandler({ body: { name: "ok" } });
+      const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
       expect(r.status).toBe(201);
     });
 
     test("returns 400 on invalid input", async () => {
-      const r = await createProjectHandler({ body: { name: "" } });
+      const r = await createProjectHandler({ body: { name: "" } }, ctx);
       expect(r.status).toBe(400);
     });
 
@@ -78,7 +84,7 @@ describe("projects handlers", () => {
       mockCreateProject = async () => {
         throw new Error("db");
       };
-      const r = await createProjectHandler({ body: { name: "ok" } });
+      const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
       expect(r.status).toBe(500);
     });
   });
@@ -86,12 +92,12 @@ describe("projects handlers", () => {
   describe("getProjectHandler", () => {
     test("returns 200 when found", async () => {
       mockGetProject = async () => makeProject();
-      const r = await getProjectHandler({ id: "p1" });
+      const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(200);
     });
 
     test("returns 404 when not found", async () => {
-      const r = await getProjectHandler({ id: "p1" });
+      const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(404);
     });
 
@@ -99,7 +105,7 @@ describe("projects handlers", () => {
       mockGetProject = async () => {
         throw new Error("db");
       };
-      expect((await getProjectHandler({ id: "p1" })).status).toBe(500);
+      expect((await getProjectHandler({ id: "p1" }, ctx)).status).toBe(500);
     });
   });
 
@@ -109,7 +115,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { name: "Renamed", description: "d" },
-      });
+      }, ctx);
       expect(r.status).toBe(200);
     });
 
@@ -118,12 +124,12 @@ describe("projects handlers", () => {
       const r1 = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: null },
-      });
+      }, ctx);
       expect(r1.status).toBe(200);
       const r2 = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: "  " },
-      });
+      }, ctx);
       expect(r2.status).toBe(200);
     });
 
@@ -131,7 +137,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: "not-an-ip" },
-      });
+      }, ctx);
       expect(r.status).toBe(400);
     });
 
@@ -140,7 +146,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: "10.0.0.0/8" },
-      });
+      }, ctx);
       expect(r.status).toBe(200);
     });
 
@@ -148,7 +154,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { auto_backup_webhook: "http://10.0.0.1/x" },
-      });
+      }, ctx);
       expect(r.status).toBe(400);
     });
 
@@ -157,7 +163,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { auto_backup_webhook: null },
-      });
+      }, ctx);
       expect(r.status).toBe(200);
     });
 
@@ -172,7 +178,7 @@ describe("projects handlers", () => {
           auto_backup_header_value: "V",
           category_id: "cat1",
         },
-      });
+      }, ctx);
       expect(r.status).toBe(200);
     });
 
@@ -180,7 +186,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { auto_backup_interval: 5 },
-      });
+      }, ctx);
       expect(r.status).toBe(400);
     });
 
@@ -188,7 +194,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { name: "x" },
-      });
+      }, ctx);
       expect(r.status).toBe(404);
     });
 
@@ -199,7 +205,7 @@ describe("projects handlers", () => {
       const r = await updateProjectHandler({
         id: "p1",
         body: { name: "x" },
-      });
+      }, ctx);
       expect(r.status).toBe(500);
     });
   });
@@ -207,25 +213,25 @@ describe("projects handlers", () => {
   describe("deleteProjectHandler", () => {
     test("returns 200 when deleted", async () => {
       mockDeleteProject = async () => true;
-      expect((await deleteProjectHandler({ id: "p1" })).status).toBe(200);
+      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(200);
     });
 
     test("returns 404 when not found", async () => {
-      expect((await deleteProjectHandler({ id: "p1" })).status).toBe(404);
+      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(404);
     });
 
     test("returns 500 on db error", async () => {
       mockDeleteProject = async () => {
         throw new Error("db");
       };
-      expect((await deleteProjectHandler({ id: "p1" })).status).toBe(500);
+      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(500);
     });
   });
 
   describe("regenerateTokenHandler", () => {
     test("returns 200 with token", async () => {
       mockRegenerateToken = async () => "new-token";
-      const r = await regenerateTokenHandler({ id: "p1" });
+      const r = await regenerateTokenHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(200);
       expect((r as { body: { webhook_token: string } }).body.webhook_token).toBe(
         "new-token",
@@ -233,14 +239,14 @@ describe("projects handlers", () => {
     });
 
     test("returns 404 when project missing", async () => {
-      expect((await regenerateTokenHandler({ id: "p1" })).status).toBe(404);
+      expect((await regenerateTokenHandler({ id: "p1" }, ctx)).status).toBe(404);
     });
 
     test("returns 500 on db error", async () => {
       mockRegenerateToken = async () => {
         throw new Error("db");
       };
-      expect((await regenerateTokenHandler({ id: "p1" })).status).toBe(500);
+      expect((await regenerateTokenHandler({ id: "p1" }, ctx)).status).toBe(500);
     });
   });
 
@@ -250,7 +256,7 @@ describe("projects handlers", () => {
       const r = await projectPromptHandler({
         id: "p1",
         baseUrl: "https://x.example.com",
-      });
+      }, ctx);
       expect(r.status).toBe(200);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       expect(prompt).toContain("https://x.example.com/api/webhook/proj-test");
@@ -267,7 +273,7 @@ describe("projects handlers", () => {
       const r = await projectPromptHandler({
         id: "p1",
         baseUrl: "https://x.example.com",
-      });
+      }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       expect(prompt).toContain("Active");
       expect(prompt).toContain("X-K");
@@ -278,7 +284,7 @@ describe("projects handlers", () => {
       const r = await projectPromptHandler({
         id: "p1",
         baseUrl: "https://x.example.com",
-      });
+      }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       expect(prompt).toContain("not yet enabled");
     });
@@ -287,7 +293,7 @@ describe("projects handlers", () => {
       const r = await projectPromptHandler({
         id: "p1",
         baseUrl: "https://x",
-      });
+      }, ctx);
       expect(r.status).toBe(404);
     });
 
@@ -298,7 +304,7 @@ describe("projects handlers", () => {
       const r = await projectPromptHandler({
         id: "p1",
         baseUrl: "https://x",
-      });
+      }, ctx);
       expect(r.status).toBe(500);
     });
   });

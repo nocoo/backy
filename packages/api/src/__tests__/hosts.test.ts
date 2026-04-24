@@ -1,28 +1,30 @@
 import { describe, expect, test } from "bun:test";
+import {
+  buildBaseUrl,
+  isAllowedHost,
+  parseAllowedHosts,
+} from "@backy/api/hosts";
 
-// Set up environment BEFORE importing the module
 const TEST_HOSTS = "example.com,backy.hexly.ai,localhost:7017";
-process.env.ALLOWED_HOSTS = TEST_HOSTS;
-
-// Re-import to pick up the env var (Bun evaluates at import time)
-const { buildBaseUrl, ALLOWED_HOSTS } = await import("@backy/api/hosts");
+const env = { ALLOWED_HOSTS: TEST_HOSTS };
 
 describe("ALLOWED_HOSTS", () => {
   test("contains expected hosts from env", () => {
-    expect(ALLOWED_HOSTS.has("example.com")).toBe(true);
-    expect(ALLOWED_HOSTS.has("localhost:7017")).toBe(true);
+    const allowedHosts = parseAllowedHosts(env);
+    expect(allowedHosts.has("example.com")).toBe(true);
+    expect(allowedHosts.has("localhost:7017")).toBe(true);
   });
 
   test("does not contain arbitrary hosts", () => {
-    expect(ALLOWED_HOSTS.has("evil.com")).toBe(false);
-    expect(ALLOWED_HOSTS.has("localhost:9999")).toBe(false);
+    expect(isAllowedHost(env, "evil.com")).toBe(false);
+    expect(isAllowedHost(env, "localhost:9999")).toBe(false);
   });
 });
 
 describe("buildBaseUrl", () => {
   test("returns request origin when no x-forwarded-host", () => {
     const req = new Request("https://localhost:7017/api/projects/1/prompt");
-    expect(buildBaseUrl(req)).toBe("https://localhost:7017");
+    expect(buildBaseUrl(req, env)).toBe("https://localhost:7017");
   });
 
   test("uses forwarded host when in ALLOWED_HOSTS", () => {
@@ -32,7 +34,7 @@ describe("buildBaseUrl", () => {
         "x-forwarded-proto": "https",
       },
     });
-    expect(buildBaseUrl(req)).toBe("https://backy.hexly.ai");
+    expect(buildBaseUrl(req, env)).toBe("https://backy.hexly.ai");
   });
 
   test("ignores forwarded host NOT in ALLOWED_HOSTS (host injection defense)", () => {
@@ -43,7 +45,7 @@ describe("buildBaseUrl", () => {
       },
     });
     // Falls back to request origin, does NOT use evil.com
-    expect(buildBaseUrl(req)).toBe("http://localhost:7017");
+    expect(buildBaseUrl(req, env)).toBe("http://localhost:7017");
   });
 
   test("defaults x-forwarded-proto to https when missing", () => {
@@ -52,7 +54,7 @@ describe("buildBaseUrl", () => {
         "x-forwarded-host": "backy.hexly.ai",
       },
     });
-    expect(buildBaseUrl(req)).toBe("https://backy.hexly.ai");
+    expect(buildBaseUrl(req, env)).toBe("https://backy.hexly.ai");
   });
 
   test("handles http protocol in x-forwarded-proto", () => {
@@ -62,6 +64,6 @@ describe("buildBaseUrl", () => {
         "x-forwarded-proto": "http",
       },
     });
-    expect(buildBaseUrl(req)).toBe("http://localhost:7017");
+    expect(buildBaseUrl(req, env)).toBe("http://localhost:7017");
   });
 });

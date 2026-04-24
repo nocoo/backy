@@ -14,7 +14,15 @@
  */
 
 import { resolve4, resolve6 } from "node:dns/promises";
+import type { BackyEnv } from "../runtime";
 import { ipToInt } from "./ip";
+
+const defaultEnv = (): Pick<BackyEnv, "SSRF_ALLOWLIST"> => ({});
+
+type DnsResolver = {
+  resolve4(hostname: string): Promise<string[]>;
+  resolve6(hostname: string): Promise<string[]>;
+};
 
 const BLOCKED_HOSTNAMES = new Set([
   "localhost",
@@ -189,8 +197,11 @@ function expandIpv6(addr: string): string | null {
  *
  * Returns true if the URL is allowlisted (bypasses all SSRF checks).
  */
-function isAllowlisted(url: string): boolean {
-  const allowlist = process.env.SSRF_ALLOWLIST;
+function isAllowlisted(
+  url: string,
+  env: Pick<BackyEnv, "SSRF_ALLOWLIST">,
+): boolean {
+  const allowlist = env.SSRF_ALLOWLIST;
   if (!allowlist) return false;
 
   let parsed: URL;
@@ -224,8 +235,11 @@ function isAllowlisted(url: string): boolean {
  *
  * Returns true if the URL passes all static SSRF checks, false otherwise.
  */
-export function isUrlSafe(url: string): boolean {
-  if (isAllowlisted(url)) return true;
+export function isUrlSafe(
+  url: string,
+  env: Pick<BackyEnv, "SSRF_ALLOWLIST"> = defaultEnv(),
+): boolean {
+  if (isAllowlisted(url, env)) return true;
 
   let parsed: URL;
   try {
@@ -276,8 +290,10 @@ export function isUrlSafe(url: string): boolean {
  */
 export async function resolveAndValidateUrl(
   url: string,
+  env: Pick<BackyEnv, "SSRF_ALLOWLIST"> = defaultEnv(),
+  resolver: DnsResolver = { resolve4, resolve6 },
 ): Promise<{ safe: true } | { safe: false; reason: string }> {
-  if (isAllowlisted(url)) return { safe: true };
+  if (isAllowlisted(url, env)) return { safe: true };
 
   let parsed: URL;
   try {
@@ -306,8 +322,8 @@ export async function resolveAndValidateUrl(
 
   // DNS resolve the hostname — query both A (IPv4) and AAAA (IPv6) records
   const [v4Result, v6Result] = await Promise.allSettled([
-    resolve4(hostname),
-    resolve6(hostname),
+    resolver.resolve4(hostname),
+    resolver.resolve6(hostname),
   ]);
 
   const v4Addresses = v4Result.status === "fulfilled" ? v4Result.value : [];

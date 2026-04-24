@@ -3,9 +3,10 @@ import {
   createProjectHandler,
 } from "@backy/api/handlers/projects";
 import { toResponse } from "@/lib/http";
+import { getCtx } from "@/lib/runtime";
 
 export async function GET() {
-  return toResponse(await listProjectsHandler());
+  return toResponse(await listProjectsHandler(getCtx()));
 }
 
 export async function POST(request: Request) {
@@ -19,5 +20,5 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-  return toResponse(await createProjectHandler({ body }));
+  return toResponse(await createProjectHandler({ body }, getCtx()));
 }

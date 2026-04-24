@@ -227,7 +227,7 @@ bucket_name = "backy-test"
 
 **验收**：根 `bun install` ok；`legacy:test:coverage` + `legacy:test:e2e:api` 全绿。
 
-### Wave B — `@backy/api` 运行时上下文抽象  ⬜
+### Wave B — `@backy/api` 运行时上下文抽象  ✅
 
 > 不只是数据层。包括 D1、R2、`process.env`、`process.uptime()`、
 > CRON_SECRET 读取等所有"运行时事实"。详见上文「运行时抽象（不止 D1/R2）」。

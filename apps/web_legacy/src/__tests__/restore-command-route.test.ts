@@ -10,12 +10,12 @@ let mockGetProject: (...args: any[]) => Promise<any> = async () => undefined;
 
 mock.module("@backy/api/db/backups", () => ({
   ...BACKUP_STUBS,
-  getBackup: (...args: unknown[]) => mockGetBackup(...args),
+  getBackup: (_db: unknown, ...args: unknown[]) => mockGetBackup(...args),
 }));
 
 mock.module("@backy/api/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProject: (...args: unknown[]) => mockGetProject(...args),
+  getProject: (_db: unknown, ...args: unknown[]) => mockGetProject(...args),
 }));
 
 const { GET } = await import("@/app/api/backups/[id]/restore-command/route");

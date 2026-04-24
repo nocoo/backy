@@ -1,5 +1,5 @@
-import { executeD1Query } from "../lib/db/d1-client";
 import { json, type HandlerResponse } from "../http/response";
+import type { RuntimeContext } from "../runtime";
 
 interface StatsRow {
   total_projects: number;
@@ -28,15 +28,17 @@ interface DailyCronStat {
   triggered: number;
 }
 
-export async function statsTotalsHandler(): Promise<HandlerResponse> {
+export async function statsTotalsHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const rows = await executeD1Query<StatsRow>(
+    const { results } = await ctx.db.query<StatsRow>(
       `SELECT
         (SELECT COUNT(*) FROM projects) as total_projects,
         (SELECT COUNT(*) FROM backups) as total_backups,
         (SELECT COALESCE(SUM(file_size), 0) FROM backups) as total_size`,
     );
-    const stats = rows[0] ?? {
+    const stats = results[0] ?? {
       total_projects: 0,
       total_backups: 0,
       total_size: 0,
@@ -52,10 +54,12 @@ export async function statsTotalsHandler(): Promise<HandlerResponse> {
   }
 }
 
-export async function statsChartsHandler(): Promise<HandlerResponse> {
+export async function statsChartsHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
   try {
-    const [projectStats, dailyBackups, cronStats] = await Promise.all([
-      executeD1Query<ProjectStat>(
+    const [projectStatsR, dailyBackupsR, cronStatsR] = await Promise.all([
+      ctx.db.query<ProjectStat>(
         `SELECT
           p.id as project_id,
           p.name as project_name,
@@ -67,7 +71,7 @@ export async function statsChartsHandler(): Promise<HandlerResponse> {
         GROUP BY p.id, p.name
         ORDER BY backup_count DESC`,
       ),
-      executeD1Query<DailyBackup>(
+      ctx.db.query<DailyBackup>(
         `SELECT
           DATE(created_at) as date,
           COUNT(*) as count
@@ -76,7 +80,7 @@ export async function statsChartsHandler(): Promise<HandlerResponse> {
         GROUP BY DATE(created_at)
         ORDER BY date ASC`,
       ),
-      executeD1Query<DailyCronStat>(
+      ctx.db.query<DailyCronStat>(
         `SELECT
           DATE(triggered_at) as date,
           SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
@@ -89,7 +93,11 @@ export async function statsChartsHandler(): Promise<HandlerResponse> {
         ORDER BY date ASC`,
       ),
     ]);
-    return json(200, { projectStats, dailyBackups, cronStats });
+    return json(200, {
+      projectStats: projectStatsR.results,
+      dailyBackups: dailyBackupsR.results,
+      cronStats: cronStatsR.results,
+    });
   } catch (error) {
     console.error("Failed to fetch chart data:", error);
     return json(500, { error: "Failed to fetch chart data" });
