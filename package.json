@@ -11,7 +11,7 @@
     "lint:staged": "bun --cwd apps/web_legacy lint:staged && bun --cwd apps/web lint:staged && bun --cwd packages/api lint:staged && bun --cwd apps/worker lint:staged",
     "typecheck": "bun --cwd apps/web_legacy typecheck && bun --cwd apps/web typecheck && bun --cwd packages/api typecheck && bun --cwd apps/worker typecheck && bun --cwd apps/cli typecheck",
     "test": "bun --cwd apps/web_legacy test && bun --cwd apps/web test && bun --cwd packages/api test && bun --cwd apps/worker test && bun --cwd apps/cli test",
-    "test:coverage": "bun --cwd packages/api test:coverage && bun --cwd apps/worker test:coverage && bun --cwd apps/web_legacy test:coverage",
+    "test:coverage": "bun --cwd packages/api test:coverage && bun --cwd apps/worker test:coverage && bun --cwd apps/web test:coverage && bun --cwd apps/web_legacy test:coverage",
     "test:e2e": "bun --cwd apps/web_legacy test:e2e",
     "test:e2e:api": "bun --cwd apps/web_legacy test:e2e:api",
     "test:e2e:bdd": "bun --cwd apps/web_legacy test:e2e:bdd",
