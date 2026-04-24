@@ -10,6 +10,15 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "production"
 CF_ACCESS_TEAM_DOMAIN = "nocoo.cloudflareaccess.com"
 CF_ACCESS_AUD = "a920d3430b1e5a636590cd5d4f04dc657f89f9939c76a6870140015c0381d9b3"
+# R2 binding doesn't natively support presigned URLs. Download/restore
+# routes need an S3-compatible presigner; account id + bucket name live
+# here, the access key/secret are loaded as Wrangler secrets at deploy
+# time:
+#   wrangler secret put R2_ACCESS_KEY_ID
+#   wrangler secret put R2_SECRET_ACCESS_KEY
+# (and the same for `--env test`).
+R2_ACCOUNT_ID = "<account-id>"
+R2_BUCKET_NAME = "backy"
 
 [[d1_databases]]
 binding = "DB"
@@ -35,6 +44,8 @@ name = "backy-test"
 [env.test.vars]
 ENVIRONMENT = "test"
 E2E_SKIP_AUTH = "true"
+R2_ACCOUNT_ID = "<account-id>"
+R2_BUCKET_NAME = "backy-test"
 
 [env.test.assets]
 directory = "./static"
