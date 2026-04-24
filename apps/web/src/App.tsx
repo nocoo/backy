@@ -1,34 +1,35 @@
 import { Routes, Route } from "react-router";
 import { AppLayout } from "./AppLayout";
 import { DashboardPage } from "./pages/dashboard";
+import { ProjectsPage } from "./pages/projects";
+import { ProjectNewPage } from "./pages/project-new";
+import { ProjectDetailPage } from "./pages/project-detail";
+import { Toaster } from "./components/ui/sonner";
 
 export function App() {
   return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/projects" element={<Placeholder name="Projects" />} />
-        <Route
-          path="/projects/new"
-          element={<Placeholder name="New project" />}
-        />
-        <Route
-          path="/projects/:id"
-          element={<Placeholder name="Project detail" />}
-        />
-        <Route path="/backups" element={<Placeholder name="Backups" />} />
-        <Route
-          path="/backups/:id"
-          element={<Placeholder name="Backup detail" />}
-        />
-        <Route path="/logs" element={<Placeholder name="Webhook logs" />} />
-        <Route
-          path="/cron-logs"
-          element={<Placeholder name="Cron logs" />}
-        />
-        <Route path="*" element={<Placeholder name="Not found" />} />
-      </Route>
-    </Routes>
+    <>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/new" element={<ProjectNewPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/backups" element={<Placeholder name="Backups" />} />
+          <Route
+            path="/backups/:id"
+            element={<Placeholder name="Backup detail" />}
+          />
+          <Route path="/logs" element={<Placeholder name="Webhook logs" />} />
+          <Route
+            path="/cron-logs"
+            element={<Placeholder name="Cron logs" />}
+          />
+          <Route path="*" element={<Placeholder name="Not found" />} />
+        </Route>
+      </Routes>
+      <Toaster />
+    </>
   );
 }
 
