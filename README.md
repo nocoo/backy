@@ -10,9 +10,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js">
+  <img src="https://img.shields.io/badge/Vite-7-purple" alt="Vite">
+  <img src="https://img.shields.io/badge/Cloudflare%20Workers-orange" alt="Cloudflare Workers">
   <img src="https://img.shields.io/badge/TypeScript-5-blue" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Cloudflare-D1%20%2B%20R2-orange" alt="Cloudflare">
+  <img src="https://img.shields.io/badge/D1%20%2B%20R2-orange" alt="Cloudflare">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
 </p>
 
@@ -41,46 +42,25 @@
 bun install
 ```
 
-### 2️⃣ 配置环境变量
+### 2️⃣ 配置环境
+
+`apps/worker` 通过 wrangler 读取 secrets/vars；本地开发可在 `apps/worker/.dev.vars` 写：
 
 ```bash
-cp .env.example .env
+# Cloudflare D1 (元数据数据库) — 通过 wrangler D1 binding 注入
+# Cloudflare R2 (文件存储)     — 通过 wrangler R2 binding 注入
+# Cloudflare Access (身份)     — 由 CF Access JWT 注入 cf-access-jwt-assertion header
 ```
 
-编辑 `.env` 文件，配置以下内容：
-
-```bash
-# Google OAuth 配置 (从 Google Cloud Console 获取)
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your-client-secret
-
-# NextAuth 密钥 (生成命令: openssl rand -base64 32)
-NEXTAUTH_SECRET=your-generated-secret-here
-
-# 允许登录的邮箱列表 (逗号分隔)
-ALLOWED_EMAILS=your-email@gmail.com
-
-# Cloudflare D1 (元数据数据库)
-D1_ACCOUNT_ID=your-cloudflare-account-id
-D1_DATABASE_ID=your-d1-database-id
-D1_API_TOKEN=your-d1-api-token
-
-# Cloudflare R2 (文件存储)
-R2_ACCOUNT_ID=your-cloudflare-account-id
-R2_ACCESS_KEY_ID=your-r2-access-key
-R2_SECRET_ACCESS_KEY=your-r2-secret-key
-R2_BUCKET_NAME=your-bucket-name
-```
-
-> 💡 **提示**: Google OAuth 回调地址设置为 `http://localhost:7017/api/auth/callback/google`
+详见 `apps/worker/wrangler.toml` 的 `[d1_databases]` / `[[r2_buckets]]` 段。
 
 ### 3️⃣ 启动开发服务器
 
 ```bash
-bun dev
+bun dev   # 同时拉起 wrangler dev (7018) + vite (7019)
 ```
 
-打开浏览器访问 👉 [http://localhost:7017](http://localhost:7017)
+打开浏览器访问 👉 [http://localhost:7019](http://localhost:7019)（vite 代理 `/api/*` → 7018 worker）
 
 ## 📁 项目结构
 
@@ -89,37 +69,37 @@ Backy 采用 **Bun monorepo** 结构（`workspaces: ["apps/*", "packages/*"]`）
 ```
 backy/
 ├── 📂 apps/
-│   ├── 📂 web_legacy/             # @backy/web-legacy — Next.js 16 主应用 (FROZEN, 迁移期暂存)
-│   │   ├── 📂 src/                # App Router、组件、库、单元测试
-│   │   ├── 📂 e2e/                # L2 API + L3 Playwright 测试
-│   │   ├── 📂 scripts/            # 覆盖率/E2E/release/security 等运行器
-│   │   ├── 📂 worker/             # Cloudflare Worker (cron 触发器)
-│   │   ├── Dockerfile             # Docker 容器化 (3-stage build)
-│   │   ├── railway.json           # Railway 部署配置
-│   │   ├── .env.example           # 环境变量示例
-│   │   └── package.json           # @backy/web-legacy
-│   ├── 📂 web/                    # @backy/web — 占位包，Wave D 接管 (Vite SPA)
-│   ├── 📂 worker/                 # @backy/worker — 占位包，Wave C 接管 (Hono on CF Workers)
+│   ├── 📂 web/                    # @backy/web — Vite + React SPA (生产前端)
+│   │   ├── 📂 src/                # 路由、组件、库、单元测试
+│   │   └── package.json
+│   ├── 📂 worker/                 # @backy/worker — Hono on Cloudflare Workers (API + cron + assets)
+│   │   ├── 📂 src/                # routes、middleware、lib
+│   │   ├── 📂 static/             # vite 构建产物落盘点 (gitignored)
+│   │   ├── wrangler.toml
+│   │   └── package.json
+│   ├── 📂 web_legacy/             # @backy/web-legacy — 旧 Next.js 16 主应用 (FROZEN, 待删)
 │   └── 📂 cli/                    # @backy/cli — 占位包，下一波将实现 AI-facing CLI
 ├── 📂 packages/
-│   └── 📂 api/                    # @backy/api — 占位包，下一波抽离共享业务逻辑
-├── 📂 docs/                       # 项目文档 (07-vite-web-migration-plan.md 跟踪当前迁移)
+│   └── 📂 api/                    # @backy/api — 共享业务逻辑 (handlers/lib)
+├── 📂 scripts/                    # 仓库级运行器 (gate-security.ts, release.ts)
+├── 📂 docs/                       # 项目文档 (07-vite-web-migration-plan.md 跟踪迁移)
 ├── 📂 .husky/                     # Git hooks (pre-commit, pre-push)
-├── package.json                   # 根包，仅 husky + workspaces，所有脚本转发到 apps/web_legacy
+├── osv-scanner.toml               # G2 osv-scanner 配置
+├── .gitleaks.toml                 # G2 gitleaks 配置
+├── package.json                   # 根包，scripts 转发到 apps/web + apps/worker + packages/api
 ├── bun.lock
 ├── CLAUDE.md
 ├── CHANGELOG.md
 └── LICENSE
 ```
 
-> 根 `package.json` 中 `dev` / `build` / `test` / `typecheck` / `lint` /
-> `gate:security` / `release` 等脚本都通过 `bun --cwd apps/web_legacy …` 转发，
-> 同时提供 `legacy:*` 前缀别名供显式调用；husky hooks 调用根脚本，无需感知
-> monorepo 拆分。新 `apps/web` / `apps/worker` 是 Wave A 落地的占位骨架，
-> 业务代码尚未迁入。`@backy/api` 与 `@backy/cli` 当前仅导出 `PACKAGE_NAME`
-> 占位常量。
+> 根 `package.json` 的 `dev` / `build` / `typecheck` / `test` / `test:coverage` /
+> `lint` 等都 fan-out 到 `apps/web`、`apps/worker`、`packages/api`、`apps/cli`；
+> `gate:security` / `release` 直接调用根 `scripts/`。`apps/web_legacy` 仅通过
+> `legacy:*` 别名访问，pre-commit / pre-push 不再触达，可随时整目录删除。
 
-`apps/web_legacy/src/` 内部布局参见 `CLAUDE.md` 的 *Project Structure* 章节。
+`apps/web/src/` 与 `apps/worker/src/` 内部布局参见 `CLAUDE.md` 的
+*Project Structure* 章节。
 
 ## 🔌 Webhook 协议
 
@@ -220,43 +200,48 @@ curl https://your-domain.example.com/api/restore/{backupId} \
 
 | 组件 | 选型 |
 |------|------|
-| ⚡ Runtime | [Bun](https://bun.sh) |
-| 🖥️ Framework | [Next.js 16](https://nextjs.org) (App Router) |
+| ⚡ Runtime | [Bun](https://bun.sh) (本地) + [Cloudflare Workers](https://developers.cloudflare.com/workers/) (生产) |
+| 🖥️ 前端 | [Vite](https://vitejs.dev) + React 19 + [react-router](https://reactrouter.com) v7 |
+| 🛣️ 后端 | [Hono](https://hono.dev) on Workers |
 | 📝 Language | TypeScript (strict mode) |
-| 🗄️ Metadata DB | [Cloudflare D1](https://developers.cloudflare.com/d1/) (remote REST API) |
-| 📁 File Storage | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible) |
+| 🗄️ Metadata DB | [Cloudflare D1](https://developers.cloudflare.com/d1/) (binding) |
+| 📁 File Storage | [Cloudflare R2](https://developers.cloudflare.com/r2/) (binding) |
 | 🎨 UI | [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
-| 🔐 Auth | [NextAuth v5](https://next-auth.js.org) (Google OAuth + 邮箱白名单) |
-| 🚀 Deployment | [Railway](https://railway.com) + Docker |
+| 🔐 Auth | [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) (JWT) |
+| 🚀 Deployment | `wrangler deploy` |
 
 ## 📋 常用命令
 
 | 命令 | 说明 |
 |------|------|
-| `bun dev` | 启动开发服务器 (端口 7017) |
-| `bun run build` | 生产构建 |
-| `bun start` | 启动生产服务器 |
-| `bun test` | 运行单元测试 (486 tests) |
+| `bun dev` | 同时启动 wrangler (7018) + vite (7019) |
+| `bun run build` | 生产构建 (vite → `apps/worker/static/`) |
+| `bun run worker:deploy` | `wrangler deploy` 上线 worker |
+| `bun test` | 运行所有 workspace 单元测试 |
 | `bun run test:coverage` | 单元测试 + 90% 覆盖率门禁 |
-| `bun run test:e2e:api` | API E2E 测试 (146 tests, port 17017) |
-| `bun run test:e2e:bdd` | Playwright E2E 测试 (5 specs, port 27017) |
 | `bun run typecheck` | TypeScript 类型检查 |
 | `bun run lint` | ESLint 检查 |
 | `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |
+| `bun run release` | 版本号 + CHANGELOG + tag |
+
+> Legacy 备份命令仍在 `legacy:*` 前缀下可用（`legacy:dev` / `legacy:test:e2e:api` 等），
+> 直到 `apps/web_legacy` 整目录删除。
 
 ## 🧪 质量体系
 
-三层测试 + 两道门控。L1/G1 由 pre-commit 执行，L2/G2 由 pre-push 执行，L3 按需运行：
+L1 单元测试 + G1 静态分析由 pre-commit 执行，G2 安全扫描由 pre-push 执行：
 
 | 层级 | 工具 | 触发时机 | 要求 |
 |------|------|----------|------|
-| L1 单元测试 | bun test | pre-commit | 90%+ 覆盖率，486 tests |
-| L2 API E2E | BDD 自举测试 | pre-push | 146 tests 全部通过 |
-| L3 系统 E2E | Playwright | 按需 | 5 specs 全部通过 |
+| L1 单元测试 | bun test | pre-commit | 90%+ 覆盖率 |
 | G1 静态分析 | tsc + ESLint | pre-commit | 0 错误 / 0 警告 |
 | G2 安全扫描 | osv-scanner + gitleaks | pre-push | 0 漏洞 / 0 泄露 |
 
-E2E 测试使用**独立的测试资源**（D1: `backy-db-test`，R2: `backy-test`），通过 `.env.test` 覆盖生产凭据，确保测试永远不会触及生产数据。`backy-test` 项目由 seed 端点自动创建和维护。通过 `E2E_SKIP_AUTH=true` 在本地绕过 OAuth。详见 `.env.example` 中的配置说明。
+L2 (API E2E) / L3 (Playwright) 当前仅 `apps/web_legacy` 留存历史套件，
+`legacy:test:e2e:*` 按需运行；worker 侧 L2 计划随 Wave B' 流式上传一起回归。
+
+E2E 测试使用**独立的测试资源**（D1: `backy-db-test`，R2: `backy-test`），通过
+`.env.test` 覆盖生产凭据，确保测试永远不会触及生产数据。
 
 ## 📄 License
 

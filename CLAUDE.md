@@ -6,16 +6,17 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 
 | Component | Choice |
 |---|---|
-| Runtime | Bun |
-| Framework | Next.js 16 (App Router) |
+| Runtime | Bun (local) + Cloudflare Workers (production) |
+| Frontend | Vite 7 + React 19 + react-router v7 (SPA) |
+| Backend | Hono on Cloudflare Workers |
 | Language | TypeScript (strict mode) |
 | UI | Tailwind CSS v4 + shadcn/ui (basalt design system) |
 | Charts | Recharts |
 | Validation | Zod v4 |
-| Auth | NextAuth v5 + Google OAuth (whitelist) |
-| Metadata DB | Cloudflare D1 (remote REST API) |
-| File Storage | Cloudflare R2 (S3-compatible API) |
-| Deployment | Railway + Docker, port 7017 |
+| Auth | Cloudflare Access (JWT, nocoo team) |
+| Metadata DB | Cloudflare D1 (Workers binding) |
+| File Storage | Cloudflare R2 (Workers binding) |
+| Deployment | `wrangler deploy` (Cloudflare Workers) |
 | Domain | your-domain.example.com |
 
 ## Project Structure
@@ -24,85 +25,83 @@ This is a **Bun monorepo** (`workspaces: ["apps/*", "packages/*"]`).
 
 ```
 apps/
-  web_legacy/              # @backy/web-legacy — Next.js 16 + NextAuth (FROZEN, see docs/07)
-  web/                     # @backy/web — placeholder, Vite SPA target (Wave D)
-  worker/                  # @backy/worker — placeholder, Hono on CF Workers (Wave C)
+  web/                     # @backy/web — Vite + React 19 SPA (production frontend)
+  worker/                  # @backy/worker — Hono on Cloudflare Workers (API + cron + assets host)
+  web_legacy/              # @backy/web-legacy — frozen Next.js snapshot (deletion pending)
   cli/                     # @backy/cli — placeholder, AI-facing CLI (next wave)
 packages/
-  api/                     # @backy/api — placeholder, shared API/business logic (next wave)
+  api/                     # @backy/api — shared business logic (handlers, lib, runtime context)
+scripts/
+  gate-security.ts         # G2 security gate (osv-scanner + gitleaks)
+  release.ts               # Version bump + CHANGELOG + GitHub release
+osv-scanner.toml           # G2 osv-scanner config
+.gitleaks.toml             # G2 gitleaks config
 ```
 
-The root `package.json` only carries `husky` + workspace plumbing; every script
-(`dev`, `build`, `test`, `typecheck`, `lint`, `gate:security`, `release`, …)
-forwards into `apps/web_legacy` via `bun --cwd apps/web_legacy …` while the
-migration in `docs/07-vite-web-migration-plan.md` is in flight. `legacy:*`
-prefixed aliases call the same workspace explicitly. Husky hooks live at the
-repo root and call those forwarders unchanged. `typecheck` and `test` also fan
-out to `packages/api` and `apps/cli`. The new `apps/web` and `apps/worker`
-directories are empty scaffolds today and only ship a placeholder `build` script.
+The root `package.json` fans out to `apps/web`, `apps/worker`,
+`packages/api`, and `apps/cli` for `lint` / `typecheck` / `test` /
+`test:coverage`. `dev` runs `wrangler dev` (port 7018) and `vite dev`
+(port 7019) in parallel; vite proxies `/api/*` to the worker. `build`
+runs `vite build` which writes the SPA bundle into `apps/worker/static/`
+(gitignored) so `wrangler deploy` ships frontend + API in one Worker.
 
-The legacy web workspace itself:
+`apps/web_legacy` is no longer touched by `bun dev` / `bun test` /
+`bun run gate:security`; it's reachable only via `legacy:*` aliases
+(`legacy:dev`, `legacy:test:coverage`, `legacy:test:e2e:api`, etc.) and
+can be deleted whenever its history isn't needed for reference.
+
+The new web workspace:
 
 ```
-apps/web_legacy/
+apps/web/
   src/
-    app/
-      api/                 # 26 route files, 39 HTTP method handlers
-        auth/              # NextAuth v5 handler (Google OAuth)
-        backups/           # CRUD + upload, download, preview, extract, restore-command
-        categories/        # CRUD
-        cron/              # Auto-backup trigger + logs
-        db/init/           # D1 schema initialization
-        ip-info/           # IP geolocation proxy
-        live/              # Health check (D1 + R2 ping)
-        logs/              # Webhook audit logs
-        projects/          # CRUD + token regeneration + prompt generation
-        restore/           # Public presigned download (token-auth)
-        stats/             # Dashboard totals + chart data
-        webhook/           # AI agent ingestion endpoint (HEAD/GET/POST)
-      backups/             # Backup list + detail pages
-      cron-logs/           # Cron log viewer page
-      login/               # Google OAuth login page
-      logs/                # Webhook log viewer page
-      projects/            # Project list + detail + new pages
-      page.tsx             # Dashboard (stats, charts, recent backups)
-      layout.tsx           # Root layout (AuthProvider, theme FOUC prevention)
-    auth.ts                # NextAuth v5 config (Google OAuth, email whitelist)
-    proxy.ts               # Next.js 16 proxy convention (replaces middleware.ts)
+    pages/                 # dashboard / projects(+new+detail) / backups(+detail) / logs / cron-logs
     components/
-      charts/              # Recharts: activity, cron, project charts
-      layout/              # App shell, sidebar, breadcrumbs, theme toggle
-      ui/                  # 11 shadcn/ui primitives
-    hooks/                 # useIsMobile
-    lib/
-      backup/              # File type detection, archive extractors, R2 key generation
-      db/                  # D1 client, schema, CRUD modules (projects, backups, categories, webhook-logs, cron-logs)
-      r2/                  # S3-compatible R2 client (upload, download, presign, delete)
-      id.ts                # nanoid generators (21-char ID, 48-char webhook token)
-      hosts.ts             # Shared ALLOWED_HOSTS set + buildBaseUrl() for reverse proxy
-      sanitize.ts          # Strip sensitive fields from Project records for API responses
-      ip.ts                # IP/CIDR validation and enforcement
-      test-project.ts      # E2E test project constants (single source of truth)
-  scripts/
-    check-coverage.ts      # Coverage gate (90%+ threshold)
-    load-env-test.ts       # .env.test loader with three-layer safety
-    run-e2e.ts             # L3 API E2E server lifecycle + runner
-  worker/                  # Cloudflare Worker for cron triggers (separate package)
-  e2e/                     # L2 + L3 test suites (see "Test Structure" below)
-  .env, .env.test          # Cwd-local — module-load-time process.env reads must resolve here
+      charts/              # recharts wrappers (activity, cron, project)
+      layout/              # app-shell, sidebar, theme toggle, breadcrumbs
+      ui/                  # shadcn/ui primitives (cn helper, badges, dialogs, …)
+    hooks/                 # useIsMobile etc.
+    lib/                   # api fetcher (swrFetcher), formatters, utils
+    __tests__/             # bun test + happy-dom (api/auth/backups/charts/dashboard/layout/logs/projects/scaffold/ui)
+    App.tsx                # react-router routes
+    AppLayout.tsx          # shell wrapper
+    main.tsx               # vite entry
+  vite.config.ts           # outDir: ../worker/static, proxy /api → :7018
+  scripts/check-coverage.ts
 ```
 
-> The `@backy/api` and `@backy/cli` packages currently contain only a
-> `PACKAGE_NAME` stamp and one unit test each. They reserve the import
-> namespace; the actual extraction happens in the next refactor wave.
+The new worker workspace:
+
+```
+apps/worker/
+  src/
+    routes/                # backups / categories / cron / db / ip-info / live / logs / me / projects / restore / stats / webhook
+    middleware/            # accessAuth (CF Access JWT), ctx (D1/R2 bindings → RuntimeContext)
+    lib/                   # is-localhost, handler-response adapter
+    __tests__/             # bun test (access-auth, ctx, handler-response, is-localhost, routes)
+    index.ts               # Hono app + scheduled() cron handler
+  static/                  # vite build output drops here (gitignored, served via [assets] binding)
+  wrangler.toml            # name, compatibility_date, D1/R2 bindings, [env.test], cron triggers
+  scripts/check-coverage.ts
+```
+
+Shared business logic:
+
+```
+packages/api/
+  src/
+    handlers/              # backups, projects, logs, stats, webhook, restore, etc.
+    lib/                   # runtime context (D1/R2/env), id generation, sanitize, hosts, ip
+    __tests__/             # bun test
+```
 
 ## Quality System (3 Test Layers + 2 Gates)
 
 | Layer | Tool | Script | Trigger | Requirement |
 |---|---|---|---|---|
-| L1 Unit | bun test | `bun run test:coverage` | pre-commit | 90%+ coverage, 486 tests |
-| L2 Integration/API | Custom BDD runner | `bun run test:e2e:api` | pre-push | 146 tests, 37 route/method combos |
-| L3 System/E2E | Playwright (Chromium) | `bun run test:e2e:bdd` | on-demand | 5 core user flow specs |
+| L1 Unit | bun test | `bun run test:coverage` | pre-commit | 90%+ coverage on `src/lib/**` |
+| L2 Integration/API | (legacy only) | `bun run legacy:test:e2e:api` | on-demand | 146 tests, returns to root with Wave B' |
+| L3 System/E2E | Playwright (legacy only) | `bun run legacy:test:e2e:bdd` | on-demand | 5 specs, returns with Wave B' |
 | G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings (`--max-warnings 0`) |
 | G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
 
@@ -111,16 +110,18 @@ apps/web_legacy/
 | Hook | Budget | Runs |
 |---|---|---|
 | pre-commit | <30s | G1 → L1 (sequential) |
-| pre-push | <3min | L2 ‖ G2 (parallel) |
-| on-demand | — | L3 |
+| pre-push | <30s | G2 |
+| on-demand | — | legacy L2 / L3 |
 
 ### Port Convention
 
 | Purpose | Port |
 |---|---|
-| Dev server | 7017 |
-| L2 API E2E | 17017 |
-| L3 BDD E2E | 27017 |
+| Vite dev server | 7019 |
+| Wrangler dev (worker) | 7018 |
+| Legacy Next.js dev | 7017 |
+| Legacy L2 API E2E | 17017 |
+| Legacy L3 BDD E2E | 27017 |
 
 ### Core Principles
 
@@ -128,58 +129,39 @@ apps/web_legacy/
 2. **Self-resolve** — no relying on manual review for basic errors
 3. **Quality gate** — bad code cannot enter main branch
 
-### Test Structure
-
-Paths below are relative to `apps/web_legacy/` (the only workspace with tests
-today). The placeholder `@backy/api` and `@backy/cli` packages each ship a
-single unit test under `packages/api/src/__tests__/` and
-`apps/cli/src/__tests__/`.
-
-```
-src/__tests__/          # L1 unit tests (35 files, 486 tests)
-  helpers.ts            # Shared: mockFetch, d1Success/d1Error, stubs, builders
-e2e/api/                # L2 API E2E (21 suites, 148 defined, 146 run)
-  config.ts             # Constants, shared mutable state
-  framework.ts          # Minimal BDD framework (test, assert, assertEqual)
-  helpers.ts            # Upload helpers, builders
-  runner.ts             # Main runner, exports runE2ETests(url)
-  suites/               # 21 individual suite files
-e2e/bdd/                # L3 Playwright BDD E2E (5 specs, 17 tests)
-  playwright.config.ts  # Playwright config (Chromium, serial, headless)
-  runner.ts             # Server lifecycle (port 27017) + playwright exec
-  specs/                # 5 spec files (dashboard, projects, backup, upload, nav)
-```
-
 ## Common Commands
 
-All commands run from the repo root and forward into `apps/web_legacy` (or
-fan out to other workspaces where noted).
+All commands run from the repo root.
 
 ```bash
-bun dev                # Dev server (7017)
-bun run build          # Production build
-bun test               # Unit tests (web + packages/api + apps/cli)
-bun run test:coverage  # Web unit tests + 90% coverage gate
-bun run typecheck      # TypeScript type check across all workspaces
-bun run lint           # ESLint (web)
-bun run lint:staged    # ESLint on staged files only (web)
-bun run gate:security  # Security scan (osv-scanner + gitleaks)
-bun run test:e2e:api   # L2 API E2E (port 17017)
-bun run test:e2e:bdd   # L3 Playwright BDD E2E (port 27017)
+bun dev                    # wrangler dev (7018) + vite (7019) in parallel
+bun run build              # vite build → apps/worker/static/
+bun run worker:deploy      # wrangler deploy
+bun test                   # all workspaces (web + worker + api + cli)
+bun run test:coverage      # web + worker + api with 90% gate
+bun run typecheck          # tsc --noEmit across all workspaces
+bun run lint               # ESLint across all workspaces
+bun run lint:staged        # ESLint on staged files (per-workspace lint-staged)
+bun run gate:security      # osv-scanner + gitleaks (root configs)
+bun run release            # bump version + CHANGELOG + GitHub release
+bun run legacy:dev         # legacy Next.js (port 7017) — deletion pending
+bun run legacy:test:e2e:api  # legacy L2 (port 17017) — until Wave B' rebuilds on worker
 ```
 
 ## Test Resource Isolation
 
-E2E tests (L2 + L3) use **dedicated Cloudflare D1 + R2** to prevent production data corruption.
+E2E tests (legacy L2 + L3) use **dedicated Cloudflare D1 + R2** to prevent production data corruption.
 
 | Resource | Production | Test |
 |---|---|---|
 | D1 database | `backy-db` | `backy-db-test` |
 | R2 bucket | `backy` | `backy-test` |
 
-**Mechanism:** `apps/web_legacy/.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `apps/web_legacy/scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
+**Mechanism (legacy):** `apps/web_legacy/.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `apps/web_legacy/scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
 
-**Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state (name, token, all optional fields reset). Gated by `E2E_SKIP_AUTH`.
+**Mechanism (worker):** `apps/worker/wrangler.toml` `[env.test]` declares separate D1/R2 bindings + `E2E_SKIP_AUTH = "true"`; `accessAuth` middleware short-circuits when that env is set and injects `accessEmail = "e2e@local.test"`.
+
+**Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state. Gated by `E2E_SKIP_AUTH`.
 
 ## Release
 
@@ -215,3 +197,4 @@ The script auto-detects project name and CHANGELOG format, then: bumps version �
 - **Monorepo: `.env*` must move with the app, not stay at the repo root**: Bun reads `.env*` from the cwd at process start. After moving the Next.js app under `apps/web/`, leaving `.env` at the repo root caused 80 unit tests to fail because route modules read `process.env.X` at import time and got empty strings. Fix: `.env`, `.env.example`, `.env.test` live next to the workspace that consumes them.
 - **Monorepo: pre-commit lint-staged surfaces dormant rule violations on bulk renames**: Moving 100+ tracked files into `apps/web/` flagged 17 `react-hooks/{set-state-in-effect,static-components}` errors that existed in main but had never been touched by an incidental edit. lint-staged only lints *changed* paths, so violations introduced by a config upgrade (next-config 16) can sit dormant until something restages them. Disabled both rules with a `TODO` comment; track the cleanup separately so the structural commit stays focused.
 - **Monorepo: ESLint `tseslint.configs.strict` collides with `eslint-config-next/typescript`**: Both register the `@typescript-eslint` plugin. After `next-config@16.1.7` started shipping its own registration, declaring `typescript-eslint` directly throws `Cannot redefine plugin "@typescript-eslint"`. Fix: spread strict configs but strip their `plugins` key (`const { plugins, ...rest } = config; void plugins;`). Pin `typescript-eslint@8.56.0` to match the version next-config bundles.
+- **Monorepo: `vite build` with `emptyOutDir: true` deletes dotfiles**: `apps/web/vite.config.ts` writes to `apps/worker/static/` and clears it each build. The previously committed `static/.gitignore` (rules to ignore the build output itself) gets nuked, so subsequent builds dirty the repo. Fix: `apps/web` `build` script re-emits the gitignore via `printf > ../worker/static/.gitignore` after vite finishes.
