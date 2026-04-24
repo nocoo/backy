@@ -346,7 +346,7 @@ export interface RuntimeContext {
 - 带 `E2E_SKIP_AUTH=true` 跑 L2 e2e（指向 worker）146/146；
 - `grep -r "next/server\|NextResponse" apps/worker/src` → 空。
 
-### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.7 完成）
+### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.8 完成）
 
 1. 套用 surety 的脚手架：`vite.config.ts` + `@tailwindcss/vite` + `react@19` + `react-router@7` + `swr`。 ✅ (D.1)
 2. 路由表对齐 Next.js App Router 现有页面：
@@ -368,6 +368,7 @@ export interface RuntimeContext {
    D.5 进度：`components/charts/{activity-chart,cron-chart,project-charts}` ✅（去 `"use client"`，纯 recharts，无 Next 依赖）。`project/*` 业务组件留到 D.7。
    D.6 进度：`pages/dashboard.tsx` + `lib/format.ts` ✅，挂在 `/`。三个 `useSWR` 拉 `/api/stats`、`/api/backups?pageSize=5`、`/api/stats/charts`，渲染 stats / charts / recent backups，AppShell 由 `AppLayout` 统一提供。
    D.7 进度：`pages/{projects,project-new,project-detail}.tsx` ✅；新增 `lib/category-icons.ts`、`components/{category-management,manual-upload-dialog}.tsx`、`components/project/{project-webhook-panel,project-recent-backups-card}.tsx`，全部去 `"use client"`、`next/link` → `react-router Link`、`useRouter` → `useNavigate`、`useParams<{id}>` 适配 react-router 7（`Record<string, string|undefined>`）。fetch 全部走 `apiFetch`/`apiJson`（`credentials: include`，`ApiError` 统一抛错）。`App.tsx` 挂三条 `/projects*` 路由 + 全局 `<Toaster />`。`__tests__/projects.test.ts` 覆盖 7 个 surface + `getCategoryIcon` 命中/兜底 + 调色板长度/十六进制格式。
+   D.8 进度：`pages/{backups,backup-detail}.tsx` + `components/json-tree-viewer.tsx` ✅。list 保留 debounce search、project/env filters、可排序列、ellipsis 分页、batch select + 单/批量删除。detail 复用 `apiFetch` 的 404 通过 `ApiError.status` 判断；自动加载 JSON preview / IP 地理信息；`POST /api/backups/:id/extract` 走新契约。`App.tsx` 挂 `/backups` 与 `/backups/:id`。`__tests__/backups.test.ts` 覆盖 `generatePageNumbers` 4 个分支 + 3 个 surface（共 7 用例）。
 5. 主题：保留现有 FOUC 预防方案（root layout 注入小段脚本，迁到 `index.html`）。
 6. 构建：`vite build --outDir ../worker/static`，worker `[assets]` 直接托管。
 7. **Auth 替换专项**（不是删一个文件就完事）：
