@@ -346,7 +346,7 @@ export interface RuntimeContext {
 - 带 `E2E_SKIP_AUTH=true` 跑 L2 e2e（指向 worker）146/146；
 - `grep -r "next/server\|NextResponse" apps/worker/src` → 空。
 
-### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.3 完成）
+### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.4 完成）
 
 1. 套用 surety 的脚手架：`vite.config.ts` + `@tailwindcss/vite` + `react@19` + `react-router@7` + `swr`。 ✅ (D.1)
 2. 路由表对齐 Next.js App Router 现有页面：
@@ -363,7 +363,8 @@ export interface RuntimeContext {
    - `next/image` → `<img>`（D1/R2 来源都是直链）
    - `next/navigation` 的 `useRouter` → `useNavigate`
 
-   D.3 进度：`components/ui/*` 14 个 primitives + `lib/utils` ✅。layout/charts/project 仍待 D.4–D.5。
+   D.3 进度：`components/ui/*` 14 个 primitives + `lib/utils` ✅。
+   D.4 进度：`components/layout/{app-shell,sidebar,sidebar-context,breadcrumbs,theme-toggle}` + `components/loading-screen` + `hooks/use-mobile` + `lib/version` ✅；sidebar 已替换 NextAuth → `useMe()` + CF Access logout 直链；`AppLayout` 已挂 `<AppShell>`。charts/project 仍待 D.5。
 5. 主题：保留现有 FOUC 预防方案（root layout 注入小段脚本，迁到 `index.html`）。
 6. 构建：`vite build --outDir ../worker/static`，worker `[assets]` 直接托管。
 7. **Auth 替换专项**（不是删一个文件就完事）：

@@ -1,20 +1,19 @@
 import type { ReactNode } from "react";
 import { Outlet } from "react-router";
 import { RequireAuth } from "./lib/RequireAuth";
+import { AppShell } from "./components/layout/app-shell";
 
 /**
- * App shell skeleton — sidebar + content slot. The full layout (sidebar
- * navigation, theme toggle, breadcrumbs) is ported in Wave D.4. This
- * stub keeps RequireAuth at the top of the protected subtree.
+ * Protected layout: CF Access gate → SWR /api/me check → AppShell with
+ * sidebar / breadcrumbs / theme toggle. Per-route breadcrumbs land in the
+ * page-level Wave D sub-steps.
  */
 export function AppLayout(): ReactNode {
   return (
     <RequireAuth>
-      <div className="min-h-screen bg-background text-foreground">
-        <main className="p-6">
-          <Outlet />
-        </main>
-      </div>
+      <AppShell>
+        <Outlet />
+      </AppShell>
     </RequireAuth>
   );
 }
