@@ -401,7 +401,7 @@ export interface RuntimeContext {
 - L3 Playwright 5 个 spec 全绿（runner 改起 vite + wrangler 双进程）；
 - 无 console error / 404；FOUC 不闪。
 
-### Wave E — 部署 + 收尾  🟡（E.1 ✅，E.2/E.3 待 operator）
+### Wave E — 部署 + 收尾  🟡（E.1 ✅，E.2 ✅，E.3 待 operator）
 
 E.1 落地（2026-04-25）—— "随时可删 web_legacy" 状态：
 
@@ -422,9 +422,19 @@ E.1 落地（2026-04-25）—— "随时可删 web_legacy" 状态：
 
 剩余（operator 手动）：
 
-1. `wrangler deploy --env=test` 验 staging（test D1/R2、test 域名）。
-2. `wrangler deploy` 上线生产；DNS 切到 worker route，下掉 Railway 服务。
+1. ~~`wrangler deploy --env=test` 验 staging（test D1/R2、test 域名）。~~ ✅ 2026-04-25
+2. ~~`wrangler deploy` 上线生产；DNS 切到 worker route，下掉 Railway 服务。~~ ✅ 2026-04-25（custom domain `backy.hexly.ai`，Railway 暂留作回滚物料）
 3. 验完上线后再删：
+
+E.2 落地（2026-04-25）—— prod (`backy`) + test (`backy-test`) 双 worker 上线：
+
+- 删除老 `backy-cron` worker（旧 cron-only 实现）。
+- `wrangler secret put R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` × 2 环境。
+- prod `backy` 绑 custom domain `backy.hexly.ai`；test `backy-test` 走
+  默认 `*.workers.dev`。
+- **坑**：`[env.test]` 默认继承顶层 `routes`，首次 `--env=test` 部署
+  把 `backy.hexly.ai` 抢到了 backy-test 上。修复：在 `[env.test]`
+  显式写 `routes = []` 后重新两次 deploy 恢复路由归属。
    - `apps/web_legacy/Dockerfile` + `apps/web_legacy/railway.json`（暂留作回滚物料）
    - 整个 `apps/web_legacy/` 目录（含 `legacy:*` 根脚本别名）
    - 根目录 `Dockerfile` / 根 `railway.json` —— 当前不存在，无操作

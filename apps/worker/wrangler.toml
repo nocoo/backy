@@ -3,8 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2026-04-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Production routes are filled in at deploy time (see Wave E).
-# routes = [{ pattern = "your-domain.example.com", custom_domain = true }]
+routes = [
+  { pattern = "backy.hexly.ai", custom_domain = true },
+]
 
 [vars]
 ENVIRONMENT = "production"
@@ -17,13 +18,13 @@ CF_ACCESS_AUD = "a920d3430b1e5a636590cd5d4f04dc657f89f9939c76a6870140015c0381d9b
 #   wrangler secret put R2_ACCESS_KEY_ID
 #   wrangler secret put R2_SECRET_ACCESS_KEY
 # (and the same for `--env test`).
-R2_ACCOUNT_ID = "<account-id>"
+R2_ACCOUNT_ID = "d51a8fde361e4be31db17d8c56737c1f"
 R2_BUCKET_NAME = "backy"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "backy-db"
-database_id = "<prod>"
+database_id = "7ecc6581-6f0e-4e8c-8783-7e58b8676f93"
 
 [[r2_buckets]]
 binding = "R2"
@@ -40,11 +41,18 @@ crons = ["0 * * * *"]
 
 [env.test]
 name = "backy-test"
+# No custom domain in test env; rely on the default workers.dev hostname
+# (https://backy-test.<account>.workers.dev). Keep `routes = []` so the
+# top-level `routes` declaration above doesn't get inherited and steal
+# backy.hexly.ai from prod.
+routes = []
 
 [env.test.vars]
 ENVIRONMENT = "test"
 E2E_SKIP_AUTH = "true"
-R2_ACCOUNT_ID = "<account-id>"
+CF_ACCESS_TEAM_DOMAIN = "nocoo.cloudflareaccess.com"
+CF_ACCESS_AUD = "a920d3430b1e5a636590cd5d4f04dc657f89f9939c76a6870140015c0381d9b3"
+R2_ACCOUNT_ID = "d51a8fde361e4be31db17d8c56737c1f"
 R2_BUCKET_NAME = "backy-test"
 
 [env.test.assets]
@@ -56,7 +64,7 @@ not_found_handling = "single-page-application"
 [[env.test.d1_databases]]
 binding = "DB"
 database_name = "backy-db-test"
-database_id = "<test>"
+database_id = "a5fdd703-b491-43de-94bd-0ea548e17da3"
 
 [[env.test.r2_buckets]]
 binding = "R2"
