@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && printf '%s\\n' '# Build output from `bun --cwd apps/web build` (vite outputs here).' '# Worker [assets] picks it up at deploy time; never commit.' '*' '!.gitignore' > ../worker/static/.gitignore",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --max-warnings=0 src",
