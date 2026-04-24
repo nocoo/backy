@@ -4,6 +4,46 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo 'apps/web build — placeholder until Wave D' && exit 0"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --max-warnings=0 src",
+    "lint:staged": "lint-staged",
+    "test": "bun test src/__tests__/",
+    "test:coverage": "bun run scripts/check-coverage.ts"
+  },
+  "dependencies": {
+    "@backy/api": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.577.0",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-router": "^7.10.1",
+    "recharts": "^3.8.0",
+    "sonner": "^2.0.7",
+    "swr": "^2.4.0",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/bun": "^1.3.11",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.39.4",
+    "happy-dom": "^17.0.0",
+    "lint-staged": "^16.3.4",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --max-warnings=0 --no-warn-ignored"
   }
 }
