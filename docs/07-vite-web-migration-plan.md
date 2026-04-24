@@ -346,7 +346,7 @@ export interface RuntimeContext {
 - 带 `E2E_SKIP_AUTH=true` 跑 L2 e2e（指向 worker）146/146；
 - `grep -r "next/server\|NextResponse" apps/worker/src` → 空。
 
-### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.9 完成）
+### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.10 完成）
 
 1. 套用 surety 的脚手架：`vite.config.ts` + `@tailwindcss/vite` + `react@19` + `react-router@7` + `swr`。 ✅ (D.1)
 2. 路由表对齐 Next.js App Router 现有页面：
@@ -370,6 +370,7 @@ export interface RuntimeContext {
    D.7 进度：`pages/{projects,project-new,project-detail}.tsx` ✅；新增 `lib/category-icons.ts`、`components/{category-management,manual-upload-dialog}.tsx`、`components/project/{project-webhook-panel,project-recent-backups-card}.tsx`，全部去 `"use client"`、`next/link` → `react-router Link`、`useRouter` → `useNavigate`、`useParams<{id}>` 适配 react-router 7（`Record<string, string|undefined>`）。fetch 全部走 `apiFetch`/`apiJson`（`credentials: include`，`ApiError` 统一抛错）。`App.tsx` 挂三条 `/projects*` 路由 + 全局 `<Toaster />`。`__tests__/projects.test.ts` 覆盖 7 个 surface + `getCategoryIcon` 命中/兜底 + 调色板长度/十六进制格式。
    D.8 进度：`pages/{backups,backup-detail}.tsx` + `components/json-tree-viewer.tsx` ✅。list 保留 debounce search、project/env filters、可排序列、ellipsis 分页、batch select + 单/批量删除。detail 复用 `apiFetch` 的 404 通过 `ApiError.status` 判断；自动加载 JSON preview / IP 地理信息；`POST /api/backups/:id/extract` 走新契约。`App.tsx` 挂 `/backups` 与 `/backups/:id`。`__tests__/backups.test.ts` 覆盖 `generatePageNumbers` 4 个分支 + 3 个 surface（共 7 用例）。
    D.9 进度：`pages/{logs,cron-logs}.tsx` + `lib/pagination.ts`（共享 `generatePageNumbers` + `formatLogDate`）✅。webhook logs：project/method/success filters，"exclude-test" 模式硬编码 `EXCLUDED_PROJECT_NAMES = ["backy-test"]` + `EXCLUDED_CLIENT_IPS = ["::1"]`（取代 legacy 的 `process.env.EXCLUDED_LOG_PROJECT_NAMES`，SPA 端无 env），expandable rows 含 IP 地理信息（`apiFetch("/api/ip-info?ip=…")`），DELETE `/api/logs` 带 filter body。cron logs：status/project filters，DELETE `/api/cron/logs?projectId=…&status=…` 走 query params。`App.tsx` 挂 `/logs` 与 `/cron-logs` 真实组件。`__tests__/logs.test.ts` 覆盖 2 个 surface + `generatePageNumbers` 边界 + `formatLogDate` 形状。
+   D.10 进度：root `package.json` scripts 已 fan-out `apps/web`（`lint`/`lint:staged`/`typecheck`/`test`/`test:coverage` 均把 `apps/web` 串入流水线，新增 `web:*` 别名）；保留 `legacy:*` 与 `dev`/`build`/`start`/`gate:security`/`release` 仍指向 web_legacy（Wave E 切换）。`apps/worker/static/` 加 `.gitignore`（仅保留自身），`vite build` 产物不进版本库；worker `[assets]` 配置已就位（`directory = "./static"`、`run_worker_first = ["/api/*"]`、`not_found_handling = "single-page-application"`）。`bun run typecheck` / `bun run test` / `bun --cwd apps/web run build` 全绿。
 5. 主题：保留现有 FOUC 预防方案（root layout 注入小段脚本，迁到 `index.html`）。
 6. 构建：`vite build --outDir ../worker/static`，worker `[assets]` 直接托管。
 7. **Auth 替换专项**（不是删一个文件就完事）：

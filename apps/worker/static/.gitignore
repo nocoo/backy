@@ -1,0 +1,4 @@
+# Build output from `bun --cwd apps/web build` (vite outputs here).
+# Worker [assets] picks it up at deploy time; never commit.
+*
+!.gitignore
