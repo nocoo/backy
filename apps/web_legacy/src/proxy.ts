@@ -4,16 +4,18 @@ import type { NextRequest } from "next/server";
 import { isAllowedHost } from "@backy/api/hosts";
 
 const SKIP_AUTH = process.env.E2E_SKIP_AUTH === "true";
-const ALLOWED_HOSTS_ENV: { ALLOWED_HOSTS?: string } = process.env.ALLOWED_HOSTS
-  ? { ALLOWED_HOSTS: process.env.ALLOWED_HOSTS }
-  : {};
+
+function readAllowedHostsEnv(): { ALLOWED_HOSTS?: string } {
+  const value = process.env.ALLOWED_HOSTS;
+  return value ? { ALLOWED_HOSTS: value } : {};
+}
 
 // Build redirect URL respecting reverse proxy headers
 function buildRedirectUrl(req: NextRequest, pathname: string): URL {
   const forwardedHost = req.headers.get("x-forwarded-host");
   const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
 
-  if (forwardedHost && isAllowedHost(ALLOWED_HOSTS_ENV, forwardedHost)) {
+  if (forwardedHost && isAllowedHost(readAllowedHostsEnv(), forwardedHost)) {
     return new URL(pathname, `${forwardedProto}://${forwardedHost}`);
   }
 

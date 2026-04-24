@@ -1,9 +1,12 @@
 /**
  * Legacy Next.js host runtime factory.
  *
- * Wires `process.env` once and constructs a singleton {@link RuntimeContext}
- * that handlers consume. Keeps `process.env` reads at the host edge so
- * `@backy/api` itself stays portable to the Cloudflare Worker host.
+ * `getCtx()` reads `process.env` and constructs a fresh
+ * {@link RuntimeContext} per call (per-request factory, NOT a cached
+ * singleton). This keeps env reads at the host edge and lets the same
+ * `@backy/api` handlers run unchanged on the upcoming Cloudflare Worker
+ * host. Adapter construction is cheap; the FROZEN legacy host does not
+ * need an adapter cache.
  */
 
 import { createRestD1Adapter } from "@backy/api/db/d1-rest-adapter";

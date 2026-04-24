@@ -16,6 +16,7 @@ let totalFail = 0;
 let totalErrors = 0;
 let totalExpectCalls = 0;
 let totalTests = 0;
+let crashedFiles = 0;
 
 for (const file of files) {
   const proc = Bun.spawnSync(["bun", "test", file], {
@@ -38,7 +39,11 @@ for (const file of files) {
   }
 
   if (proc.exitCode !== 0) {
+    crashedFiles += 1;
     process.stdout.write(output);
+    console.error(
+      `\n[run-unit-tests] ${file} exited with code ${proc.exitCode} (signal=${proc.signalCode ?? "none"})`,
+    );
   }
 }
 
@@ -51,6 +56,12 @@ if (totalErrors > 0) {
 console.log(`  ${totalExpectCalls} expect() calls`);
 console.log(`Ran ${totalTests} tests across ${files.length} files.`);
 
-if (totalFail > 0 || totalErrors > 0) {
+if (crashedFiles > 0) {
+  console.error(
+    `\n${crashedFiles} test file(s) exited non-zero — treating as failure.`,
+  );
+}
+
+if (totalFail > 0 || totalErrors > 0 || crashedFiles > 0) {
   process.exit(1);
 }
