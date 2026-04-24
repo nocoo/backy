@@ -34,12 +34,12 @@ app.get("/", async (c) => {
   );
 });
 
-app.post("/", async (c) => {
+app.post("/upload", async (c) => {
   const formData = await c.req.formData();
   return toResponse(await uploadBackupHandler({ formData }, c.get("ctx")));
 });
 
-app.post("/batch-delete", async (c) => {
+app.delete("/", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   return toResponse(await batchDeleteBackupsHandler({ body }, c.get("ctx")));
 });
@@ -62,7 +62,7 @@ app.get("/:id/preview", async (c) =>
     await previewBackupHandler({ id: c.req.param("id") }, c.get("ctx")),
   ),
 );
-app.get("/:id/extract", async (c) =>
+app.post("/:id/extract", async (c) =>
   toResponse(
     await extractBackupHandler({ id: c.req.param("id") }, c.get("ctx")),
   ),

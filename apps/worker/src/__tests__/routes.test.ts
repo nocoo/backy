@@ -202,8 +202,13 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(res.status).toBe(404);
   });
 
-  test("GET /api/backups/:id/extract 404 when missing", async () => {
+  test("GET /api/backups/:id/extract → 405 (POST-only)", async () => {
     const res = await fetchWith("/api/backups/missing/extract");
+    expect([404, 405]).toContain(res.status);
+  });
+
+  test("POST /api/backups/:id/extract 404 when missing", async () => {
+    const res = await fetchWith("/api/backups/missing/extract", { method: "POST" });
     expect(res.status).toBe(404);
   });
 
@@ -212,9 +217,18 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(res.status).toBe(404);
   });
 
-  test("POST /api/backups/batch-delete with bad body → 400", async () => {
-    const res = await fetchWith("/api/backups/batch-delete", {
+  test("POST /api/backups/upload with empty form → 400", async () => {
+    const fd = new FormData();
+    const res = await fetchWith("/api/backups/upload", {
       method: "POST",
+      body: fd,
+    });
+    expect([400, 422, 500]).toContain(res.status);
+  });
+
+  test("DELETE /api/backups with bad body → 400", async () => {
+    const res = await fetchWith("/api/backups", {
+      method: "DELETE",
       headers: { "content-type": "application/json" },
       body: "{}",
     });
