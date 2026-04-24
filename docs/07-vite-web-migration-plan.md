@@ -346,22 +346,24 @@ export interface RuntimeContext {
 - 带 `E2E_SKIP_AUTH=true` 跑 L2 e2e（指向 worker）146/146；
 - `grep -r "next/server\|NextResponse" apps/worker/src` → 空。
 
-### Wave D — `apps/web`（Vite SPA）  ⬜
+### Wave D — `apps/web`（Vite SPA）  🟨 进行中（D.1–D.3 完成）
 
-1. 套用 surety 的脚手架：`vite.config.ts` + `@tailwindcss/vite` + `react@19` + `react-router@7` + `swr`。
+1. 套用 surety 的脚手架：`vite.config.ts` + `@tailwindcss/vite` + `react@19` + `react-router@7` + `swr`。 ✅ (D.1)
 2. 路由表对齐 Next.js App Router 现有页面：
    - `/` → Dashboard
    - `/login` 删除（Access 接管登录跳转）
    - `/projects`、`/projects/new`、`/projects/:id`
    - `/backups`、`/backups/:id`
    - `/logs`、`/cron-logs`
-3. 数据层：`src/api.ts` 用 `fetch`（默认 `credentials: "include"`），SWR key 即 URL。
+3. 数据层：`src/api.ts` 用 `fetch`（默认 `credentials: "include"`），SWR key 即 URL。 ✅ (D.2 — `src/lib/api.ts` + `useMe` + `RequireAuth`)
 4. 组件平移：`components/{layout,ui,charts,project,...}` 从 `web_legacy` 直接 `cp -R`，
    按 React 19/router 7 调整：
    - 去掉 `"use client"`
    - `next/link` → `react-router` 的 `<Link>`
    - `next/image` → `<img>`（D1/R2 来源都是直链）
    - `next/navigation` 的 `useRouter` → `useNavigate`
+
+   D.3 进度：`components/ui/*` 14 个 primitives + `lib/utils` ✅。layout/charts/project 仍待 D.4–D.5。
 5. 主题：保留现有 FOUC 预防方案（root layout 注入小段脚本，迁到 `index.html`）。
 6. 构建：`vite build --outDir ../worker/static`，worker `[assets]` 直接托管。
 7. **Auth 替换专项**（不是删一个文件就完事）：
