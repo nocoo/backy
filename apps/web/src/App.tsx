@@ -1,11 +1,12 @@
 import { Routes, Route } from "react-router";
 import { AppLayout } from "./AppLayout";
+import { DashboardPage } from "./pages/dashboard";
 
 export function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Placeholder name="Dashboard" />} />
+        <Route path="/" element={<DashboardPage />} />
         <Route path="/projects" element={<Placeholder name="Projects" />} />
         <Route
           path="/projects/new"
