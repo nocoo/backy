@@ -6,6 +6,8 @@ import { ProjectNewPage } from "./pages/project-new";
 import { ProjectDetailPage } from "./pages/project-detail";
 import { BackupsPage } from "./pages/backups";
 import { BackupDetailPage } from "./pages/backup-detail";
+import { LogsPage } from "./pages/logs";
+import { CronLogsPage } from "./pages/cron-logs";
 import { Toaster } from "./components/ui/sonner";
 
 export function App() {
@@ -19,11 +21,8 @@ export function App() {
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/backups" element={<BackupsPage />} />
           <Route path="/backups/:id" element={<BackupDetailPage />} />
-          <Route path="/logs" element={<Placeholder name="Webhook logs" />} />
-          <Route
-            path="/cron-logs"
-            element={<Placeholder name="Cron logs" />}
-          />
+          <Route path="/logs" element={<LogsPage />} />
+          <Route path="/cron-logs" element={<CronLogsPage />} />
           <Route path="*" element={<Placeholder name="Not found" />} />
         </Route>
       </Routes>
