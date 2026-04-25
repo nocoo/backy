@@ -75,8 +75,13 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: d51a8fde361e4be31db17d8c56737c1f
           workingDirectory: apps/worker
-          command: deploy
+          # `--env=""` targets the top-level config (production) explicitly.
+          # Without it wrangler warns and CLOUDFLARE_API_TOKEN scoped tokens
+          # without Memberships:Read fail when wrangler tries to auto-select
+          # an account via /memberships.
+          command: deploy --env=""
 
       - name: Verify /api/live
         run: |
