@@ -1,4 +1,4 @@
-import { describe, expect, test, mock } from "bun:test";
+import { describe, expect, test, vi } from "vitest";
 import {
   createBindingR2Adapter,
   type R2Binding,
@@ -133,7 +133,7 @@ describe("createBindingR2Adapter", () => {
 
   test("presignDownload delegates to options when provided", async () => {
     const { bucket } = makeBucket();
-    const presign = mock(async (key: string, ttl: number) => `signed:${key}:${ttl}`);
+    const presign = vi.fn(async (key: string, ttl: number) => `signed:${key}:${ttl}`);
     const adapter = createBindingR2Adapter(bucket, { presignDownload: presign });
     const url = await adapter.presignDownload("file.bin", 120);
     expect(url).toBe("signed:file.bin:120");

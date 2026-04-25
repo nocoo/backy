@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import {
   BACKUP_STUBS,
   PROJECT_STUBS,
@@ -13,12 +13,12 @@ let mockGetProject: (id: string) => Promise<any> = async () => undefined;
 let mockCreatePresignedDownloadUrl: (key: string) => Promise<string> =
   async () => "https://mock.example.com/signed";
 
-mock.module("../../lib/db/backups", () => ({
+vi.doMock("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
   getBackup: (_db: unknown, id: string) => mockGetBackup(id),
 }));
 
-mock.module("../../lib/db/projects", () => ({
+vi.doMock("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
   getProject: (_db: unknown, id: string) => mockGetProject(id),
 }));

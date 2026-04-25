@@ -4,8 +4,8 @@ import {
   test,
   beforeEach,
   afterAll,
-  mock,
-} from "bun:test";
+  vi,
+} from "vitest";
 import {
   PROJECT_STUBS,
   CRON_LOG_STUBS,
@@ -43,7 +43,7 @@ function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
   return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
 }
 
-mock.module("../../lib/url", () => ({
+vi.doMock("../../lib/url", () => ({
   isUrlSafe: (url: string, env: { SSRF_ALLOWLIST?: string }) =>
     mockIsUrlSafe(url, env),
   resolveAndValidateUrl: (
@@ -52,13 +52,13 @@ mock.module("../../lib/url", () => ({
   ) => mockResolveAndValidateUrl(url, env),
 }));
 
-mock.module("../../lib/db/projects", () => ({
+vi.doMock("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
   listAutoBackupProjects: skipDb(() => mockListAutoBackupProjects()),
   getProject: skipDb((id: string) => mockGetProject(id)),
 }));
 
-mock.module("../../lib/db/cron-logs", () => ({
+vi.doMock("../../lib/db/cron-logs", () => ({
   ...CRON_LOG_STUBS,
   createCronLog: skipDb((...a: unknown[]) => mockCreateCronLog(...a)),
 }));

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { json, empty, bytes, text } from "../http/response";
 
 describe("HandlerResponse constructors", () => {

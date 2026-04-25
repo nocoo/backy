@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { PACKAGE_NAME } from "../index";
 
 describe("@backy/api placeholder", () => {

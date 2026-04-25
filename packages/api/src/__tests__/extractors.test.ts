@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { gzip } from "node:zlib";
 import { promisify } from "node:util";
 import JSZip from "jszip";

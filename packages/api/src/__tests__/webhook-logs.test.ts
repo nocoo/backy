@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   createWebhookLog as createWebhookLogRaw,
   deleteWebhookLogs as deleteWebhookLogsRaw,
@@ -79,7 +79,7 @@ describe("webhook-logs", () => {
     });
 
     test("does not throw on D1 failure (fire-and-forget)", async () => {
-      const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       db = makeMockD1(async () => {
         throw new Error("database locked");
       });
@@ -102,7 +102,7 @@ describe("webhook-logs", () => {
     });
 
     test("does not throw on network failure", async () => {
-      const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       db = makeMockD1(async () => {
         throw new Error("Network unreachable");
       });

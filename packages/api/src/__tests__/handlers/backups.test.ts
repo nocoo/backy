@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import {
   PROJECT_STUBS,
   BACKUP_STUBS,
@@ -47,7 +47,7 @@ function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
   return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
 }
 
-mock.module("../../lib/db/backups", () => ({
+vi.doMock("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
   listBackups: skipDb((...a: unknown[]) => mockListBackups(...a)),
   listEnvironments: skipDb(() => mockListEnvironments()),
@@ -58,7 +58,7 @@ mock.module("../../lib/db/backups", () => ({
   updateBackup: skipDb((...a: unknown[]) => mockUpdateBackup(...a)),
 }));
 
-mock.module("../../lib/db/projects", () => ({
+vi.doMock("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
   listProjects: skipDb(() => mockListProjects()),
   getProject: skipDb((id: string) => mockGetProject(id)),

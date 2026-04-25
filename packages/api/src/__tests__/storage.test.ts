@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import {
   generateTimestamp,
   generateBackupKey,
@@ -77,8 +77,8 @@ describe("generateBackupKey", () => {
 
   test("auto-generates timestamp when not provided", () => {
     const key = generateBackupKey("proj1", "json", "data.json");
-    expect(key).toStartWith("backups/proj1/");
-    expect(key).toEndWith(".json");
+    expect(key.startsWith("backups/proj1/")).toBe(true);
+    expect(key.endsWith(".json")).toBe(true);
     expect(key.length).toBeGreaterThan("backups/proj1/.json".length);
   });
 });
@@ -97,12 +97,12 @@ describe("generatePreviewKey", () => {
 
   test("auto-generates timestamp when not provided", () => {
     const key = generatePreviewKey("proj1");
-    expect(key).toStartWith("previews/proj1/");
-    expect(key).toEndWith(".json");
+    expect(key.startsWith("previews/proj1/")).toBe(true);
+    expect(key.endsWith(".json")).toBe(true);
   });
 
   test("always uses .json extension", () => {
     const key = generatePreviewKey("proj1", ts);
-    expect(key).toEndWith(".json");
+    expect(key.endsWith(".json")).toBe(true);
   });
 });

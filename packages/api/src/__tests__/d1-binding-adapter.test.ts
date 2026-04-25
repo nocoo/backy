@@ -1,4 +1,4 @@
-import { describe, expect, test, mock } from "bun:test";
+import { describe, expect, test, vi } from "vitest";
 import {
   createBindingD1Adapter,
   type D1Binding,
@@ -74,7 +74,7 @@ describe("createBindingD1Adapter", () => {
   });
 
   test("default empty params still calls bind", async () => {
-    const bindSpy = mock(() => undefined);
+    const bindSpy = vi.fn(() => undefined);
     const stmt: D1BindingPreparedStatement = {
       bind(...values: unknown[]) {
         bindSpy();

@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import {
   PROJECT_STUBS,
   BACKUP_STUBS,
@@ -29,13 +29,13 @@ let mockUploadToR2: (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateWebhookLog: (entry: any) => Promise<void> = async () => {};
 
-mock.module("../../lib/db/projects", () => ({
+vi.doMock("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
   getProjectByToken: (_db: unknown, token: string) =>
     mockGetProjectByToken(token),
 }));
 
-mock.module("../../lib/db/backups", () => ({
+vi.doMock("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createBackup: (_db: unknown, data: any) => mockCreateBackup(data),
@@ -44,7 +44,7 @@ mock.module("../../lib/db/backups", () => ({
   listBackups: (_db: unknown, opts: any) => mockListBackups(opts),
 }));
 
-mock.module("../../lib/db/webhook-logs", () => ({
+vi.doMock("../../lib/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createWebhookLog: (_db: unknown, entry: any) => mockCreateWebhookLog(entry),

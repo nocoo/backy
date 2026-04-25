@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import { PROJECT_STUBS, makeMockCtx, makeProject } from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +18,7 @@ function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
   return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
 }
 
-mock.module("../../lib/db/projects", () => ({
+vi.doMock("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
   listProjects: skipDb(() => mockListProjects()),
   createProject: skipDb((...args: unknown[]) => mockCreateProject(...args)),

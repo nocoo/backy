@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import {
   WEBHOOK_LOG_STUBS,
   CRON_LOG_STUBS,
@@ -20,14 +20,14 @@ let mockListCronLogs: (...a: any[]) => Promise<any> = async () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteCronLogs: (...a: any[]) => Promise<void> = async () => {};
 
-mock.module("../../lib/db/webhook-logs", () => ({
+vi.doMock("../../lib/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
   listWebhookLogs: (_db: unknown, ...a: unknown[]) => mockListWebhookLogs(...a),
   deleteWebhookLogs: (_db: unknown, ...a: unknown[]) =>
     mockDeleteWebhookLogs(...a),
 }));
 
-mock.module("../../lib/db/cron-logs", () => ({
+vi.doMock("../../lib/db/cron-logs", () => ({
   ...CRON_LOG_STUBS,
   listCronLogs: (_db: unknown, ...a: unknown[]) => mockListCronLogs(...a),
   deleteCronLogs: (_db: unknown, ...a: unknown[]) => mockDeleteCronLogs(...a),

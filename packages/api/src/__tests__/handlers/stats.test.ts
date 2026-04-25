@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "vitest";
 import { makeMockCtx, makeMockD1 } from "../helpers";
 import { statsChartsHandler, statsTotalsHandler } from "../../handlers/stats";
 

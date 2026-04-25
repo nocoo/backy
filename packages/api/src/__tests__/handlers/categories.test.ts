@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import { makeMockCtx } from "../helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,7 +16,7 @@ function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
   return (...args: [unknown, ...T]) => fn(...(args.slice(1) as T));
 }
 
-mock.module("../../lib/db/categories", () => ({
+vi.doMock("../../lib/db/categories", () => ({
   listCategories: () => mockListCategories(),
   createCategory: skipDb((...args: unknown[]) => mockCreateCategory(...args)),
   getCategory: skipDb((id: string) => mockGetCategory(id)),

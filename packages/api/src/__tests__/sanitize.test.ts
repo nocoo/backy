@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { sanitizeProject } from "@backy/api/sanitize";
 import { makeProject } from "./helpers";
 
