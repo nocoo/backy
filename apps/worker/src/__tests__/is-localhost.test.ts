@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { Hono } from "hono";
 import { isLocalhost } from "../middleware/is-localhost";
 import type { AppEnv } from "../lib/types";

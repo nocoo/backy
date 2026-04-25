@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import worker from "../index";
 import { fakeD1, fakeR2, makeEnv, type EnvOverrides } from "./helpers";
 import type { Bindings } from "../lib/types";

@@ -9,8 +9,8 @@
     "deploy": "wrangler deploy",
     "lint": "eslint --max-warnings=0 src",
     "lint:staged": "lint-staged",
-    "test": "bun test src/__tests__/",
-    "test:coverage": "bun run scripts/check-coverage.ts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,10 +21,12 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250620.0",
     "@types/bun": "^1.3.11",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.4",
     "lint-staged": "^16.4.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "8.56.0",
+    "vitest": "^4.0.18",
     "wrangler": "^4.21.2"
   },
   "lint-staged": {
