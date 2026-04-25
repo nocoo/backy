@@ -22,13 +22,10 @@ export default defineConfig({
       include: ["src/lib/**/*.{ts,tsx}"],
       exclude: ["src/__tests__/**", "src/**/*.d.ts"],
       thresholds: {
-        lines: 90,
-        functions: 90,
-        // RequireAuth.tsx has a window.location.reload effect that
-        // renderToStaticMarkup never runs; leaves a few unreachable
-        // branches. Bump to 80 once we render under happy-dom directly.
-        branches: 75,
-        statements: 90,
+        lines: 95,
+        functions: 95,
+        branches: 90,
+        statements: 95,
       },
     },
   },
