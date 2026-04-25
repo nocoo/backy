@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { AppShell } from "../components/layout/app-shell";
 import {
   Sidebar,

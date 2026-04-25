@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { JsonTreeViewer } from "../components/json-tree-viewer";
 import { BackupsPage, generatePageNumbers } from "../pages/backups";
 import { BackupDetailPage } from "../pages/backup-detail";

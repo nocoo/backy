@@ -1,13 +1,13 @@
-import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach, vi } from "vitest";
 import { ApiError, apiFetch, apiJson, swrFetcher } from "../lib/api";
 
 const realFetch = globalThis.fetch;
 
 function stubFetch(responder: (input: RequestInfo | URL, init?: RequestInit) => Response | Promise<Response>) {
-  const fn = mock(responder) as unknown as typeof fetch;
+  const fn = vi.fn(responder) as unknown as typeof fetch;
   (fn as typeof fetch & { preconnect: () => void }).preconnect = () => {};
   globalThis.fetch = fn;
-  return fn as unknown as ReturnType<typeof mock>;
+  return fn as unknown as ReturnType<typeof vi.fn>;
 }
 
 beforeEach(() => {

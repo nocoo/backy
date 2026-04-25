@@ -1,22 +1,13 @@
 // Minimal DOM-rendering tests for the auth/session shim.
-// Avoids `mock.module` (which is global per Bun) — stubs `globalThis.fetch`
-// instead so the real api/swrFetcher path is exercised end-to-end.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
+// Stubs globalThis.fetch so the real api/swrFetcher path runs end-to-end;
+// happy-dom provides window/document via vitest's `environment: happy-dom`.
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const originalFetch = globalThis.fetch;
 
 beforeAll(() => {
-  const win = new Window();
-  // @ts-expect-error happy-dom Window mostly matches DOM Window but isn't a perfect type match.
-  globalThis.window = win;
-  // @ts-expect-error happy-dom Document mostly matches DOM Document but isn't a perfect type match.
-  globalThis.document = win.document;
-  // @ts-expect-error happy-dom Navigator mostly matches DOM Navigator but isn't a perfect type match.
-  globalThis.navigator = win.navigator;
-
   const stub = (async (input: RequestInfo | URL) => {
     const url = typeof input === "string" ? input : input.toString();
     if (url.includes("/api/me")) {
@@ -38,6 +29,11 @@ beforeAll(() => {
 
 afterAll(() => {
   globalThis.fetch = originalFetch;
+});
+
+afterEach(() => {
+  vi.resetModules();
+  vi.doUnmock("../lib/useMe");
 });
 
 const { useMe } = await import("../lib/useMe");
@@ -86,5 +82,79 @@ describe("RequireAuth", () => {
     expect((err.body as { code: string }).code).toBe("x");
     expect(err).toBeInstanceOf(Error);
     expect(err.name).toBe("ApiError");
+  });
+
+  test("renders 'Redirecting to login' when session has no email", async () => {
+    vi.doMock("../lib/useMe", () => ({
+      useMe: () => ({
+        email: null,
+        authenticated: false,
+        isLoading: false,
+        error: undefined,
+        mutate: () => {},
+      }),
+    }));
+    const { RequireAuth: RA } = await import("../lib/RequireAuth");
+    const html = renderToStaticMarkup(
+      React.createElement(RA, null, React.createElement("div", null, "x")),
+    );
+    expect(html.toLowerCase()).toContain("redirecting to login");
+  });
+
+  test("renders the 401 redirect branch when ApiError(401) surfaces", async () => {
+    const { ApiError: FreshApiError } = await import("../lib/api");
+    vi.doMock("../lib/useMe", () => ({
+      useMe: () => ({
+        email: null,
+        authenticated: false,
+        isLoading: false,
+        error: new FreshApiError(401, null, "Unauthorized"),
+        mutate: () => {},
+      }),
+    }));
+    const { RequireAuth: RA } = await import("../lib/RequireAuth");
+    const html = renderToStaticMarkup(
+      React.createElement(RA, null, React.createElement("div", null, "x")),
+    );
+    expect(html.toLowerCase()).toContain("redirecting to login");
+  });
+
+  test("renders the generic error branch for non-401 errors", async () => {
+    vi.doMock("../lib/useMe", () => ({
+      useMe: () => ({
+        email: null,
+        authenticated: false,
+        isLoading: false,
+        error: new ApiError(500, null, "boom"),
+        mutate: () => {},
+      }),
+    }));
+    const { RequireAuth: RA } = await import("../lib/RequireAuth");
+    const html = renderToStaticMarkup(
+      React.createElement(RA, null, React.createElement("div", null, "x")),
+    );
+    expect(html.toLowerCase()).toContain("failed to load session");
+    expect(html).toContain("boom");
+  });
+
+  test("renders children when session has an email", async () => {
+    vi.doMock("../lib/useMe", () => ({
+      useMe: () => ({
+        email: "you@example.com",
+        authenticated: true,
+        isLoading: false,
+        error: undefined,
+        mutate: () => {},
+      }),
+    }));
+    const { RequireAuth: RA } = await import("../lib/RequireAuth");
+    const html = renderToStaticMarkup(
+      React.createElement(
+        RA,
+        null,
+        React.createElement("div", null, "secret-payload"),
+      ),
+    );
+    expect(html).toContain("secret-payload");
   });
 });

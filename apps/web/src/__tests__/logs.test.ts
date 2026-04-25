@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { LogsPage } from "../pages/logs";
 import { CronLogsPage } from "../pages/cron-logs";
 import { generatePageNumbers, formatLogDate } from "../lib/pagination";

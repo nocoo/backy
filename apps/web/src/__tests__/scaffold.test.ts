@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 describe("@backy/web scaffold", () => {
   test("App module is importable", async () => {

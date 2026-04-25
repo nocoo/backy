@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { formatBytes, formatDate, formatDateOnly } from "../lib/format";
 import { DashboardPage } from "../pages/dashboard";
 

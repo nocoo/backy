@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { useMe } from "../lib/useMe";
 import { RequireAuth, CF_ACCESS_LOGOUT_URL } from "../lib/RequireAuth";
 
