@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { PACKAGE_NAME, main } from "../index";
 
 describe("@backy/cli placeholder", () => {
@@ -16,5 +16,15 @@ describe("@backy/cli placeholder", () => {
 
   test("main returns not-implemented notice without flags", () => {
     expect(main([])).toContain("not yet implemented");
+  });
+
+  test("main with no args reads from process.argv", () => {
+    const original = process.argv;
+    process.argv = ["bun", "cli"];
+    try {
+      expect(main()).toContain("not yet implemented");
+    } finally {
+      process.argv = original;
+    }
   });
 });

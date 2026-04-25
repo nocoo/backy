@@ -10,7 +10,7 @@
     "lint:staged": "bun --cwd apps/web lint:staged && bun --cwd packages/api lint:staged && bun --cwd apps/worker lint:staged",
     "typecheck": "bun --cwd apps/web typecheck && bun --cwd packages/api typecheck && bun --cwd apps/worker typecheck && bun --cwd apps/cli typecheck",
     "test": "bun --cwd apps/web test && bun --cwd packages/api test && bun --cwd apps/worker test && bun --cwd apps/cli test",
-    "test:coverage": "bun --cwd packages/api test:coverage && bun --cwd apps/worker test:coverage && bun --cwd apps/web test:coverage",
+    "test:coverage": "bun --cwd packages/api test:coverage && bun --cwd apps/worker test:coverage && bun --cwd apps/web test:coverage && bun --cwd apps/cli test:coverage",
     "gate:security": "bun run scripts/gate-security.ts",
     "release": "bun run scripts/release.ts",
     "web:dev": "bun --cwd apps/web dev",
