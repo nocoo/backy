@@ -167,7 +167,7 @@ export function Sidebar() {
     >
       {collapsed ? (
         <div className="flex h-screen w-[68px] flex-col items-center">
-          <div className="flex h-14 w-full items-center justify-start pl-[22px]">
+          <div className="flex h-14 w-full items-center justify-start pl-6">
             <img
               src="/logo-24.png"
               alt="Backy"
