@@ -73,23 +73,23 @@ describe("logs handlers", () => {
         pageSize: "9999",
       }, ctx);
       expect(r.status).toBe(200);
-      const c = captured as {
-        projectId?: string;
-        excludeProjectIds?: string[];
-        excludeClientIps?: string[];
-        method?: string;
-        statusCode?: number;
-        errorCode?: string;
-        success?: boolean;
-        page: number;
-        pageSize: number;
-      };
-      expect(c.excludeProjectIds).toEqual(["a", "b"]);
-      expect(c.excludeClientIps).toEqual(["1.1.1.1", "2.2.2.2"]);
-      expect(c.statusCode).toBe(200);
-      expect(c.success).toBe(true);
-      expect(c.page).toBe(2);
-      expect(c.pageSize).toBe(100);
+      // Tightened: pin the entire parsed-filter object instead of 5
+      // individual fields. Catches drift in any param the handler
+      // forwards (projectId, method, errorCode), the CSV trim/split
+      // logic, and pageSize clamping (9999 → 100). A typo in any key
+      // name would surface here, where toBe-on-each-key would silently
+      // miss it.
+      expect(captured).toEqual({
+        projectId: "p1",
+        excludeProjectIds: ["a", "b"],
+        excludeClientIps: ["1.1.1.1", "2.2.2.2"],
+        method: "POST",
+        statusCode: 200,
+        errorCode: "auth_invalid",
+        success: true,
+        page: 2,
+        pageSize: 100,
+      });
     });
 
     test("success=false maps to false", async () => {
