@@ -130,6 +130,7 @@ function* iterateCases(src: string): Generator<{
 }
 
 let total = 0;
+const SHOW_BODIES = process.argv.includes("--debug");
 for (const file of files) {
   let src: string;
   try {
@@ -156,6 +157,7 @@ for (const file of files) {
       counts.noExpect++;
       total++;
       weakInFile++;
+      if (SHOW_BODIES) console.error(`noExpect in ${file}\n--- BODY ---\n${body.slice(0, 300)}\n---`);
       continue;
     }
     // Check whether *every* expect line is a trivial existence/typeof matcher

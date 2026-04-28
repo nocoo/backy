@@ -343,10 +343,12 @@ describe("worker routes — input shaping", () => {
 describe("worker scheduled()", () => {
   test("succeeds with valid CRON_SECRET", async () => {
     const env = makeEnv();
-    await worker.scheduled(
-      { scheduledTime: Date.now(), cron: "0 * * * *" } as unknown as ScheduledEvent,
-      env as unknown as Bindings,
-    );
+    await expect(
+      worker.scheduled(
+        { scheduledTime: Date.now(), cron: "0 * * * *" } as unknown as ScheduledEvent,
+        env as unknown as Bindings,
+      ),
+    ).resolves.toBeUndefined();
   });
 
   test("throws when CRON_SECRET missing", async () => {
