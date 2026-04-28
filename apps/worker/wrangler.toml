@@ -39,32 +39,16 @@ not_found_handling = "single-page-application"
 [triggers]
 crons = ["0 * * * *"]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Test environment (local wrangler dev only, never deployed)
+# ─────────────────────────────────────────────────────────────────────────────
+
 [env.test]
-name = "backy-test"
-# No custom domain in test env; rely on the default workers.dev hostname
-# (https://backy-test.<account>.workers.dev). Keep `routes = []` so the
-# top-level `routes` declaration above doesn't get inherited and steal
-# backy.hexly.ai from prod.
-routes = []
-
-[env.test.vars]
-ENVIRONMENT = "test"
-E2E_SKIP_AUTH = "true"
-CF_ACCESS_TEAM_DOMAIN = "nocoo.cloudflareaccess.com"
-CF_ACCESS_AUD = "677c4df5d98c379b766a18f6cff5d3a1162ae2e6c56aee835aa810a795e0d3d5"
-R2_ACCOUNT_ID = "d51a8fde361e4be31db17d8c56737c1f"
-R2_BUCKET_NAME = "backy-test"
-
-[env.test.assets]
-directory = "./static"
-binding = "ASSETS"
-run_worker_first = ["/api/*"]
-not_found_handling = "single-page-application"
 
 [[env.test.d1_databases]]
 binding = "DB"
 database_name = "backy-db-test"
-database_id = "a5fdd703-b491-43de-94bd-0ea548e17da3"
+database_id = "placeholder-local-sqlite"
 
 [[env.test.r2_buckets]]
 binding = "R2"
