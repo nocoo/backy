@@ -42,7 +42,8 @@ type Kind =
   | "onlyMockCall"
   | "skipped"
   | "empty"
-  | "vacuousTryCatch";
+  | "vacuousTryCatch"
+  | "vacuousKindNarrow";
 const counts: Record<Kind, number> = {
   noExpect: 0,
   trivialExistence: 0,
@@ -50,6 +51,7 @@ const counts: Record<Kind, number> = {
   skipped: 0,
   empty: 0,
   vacuousTryCatch: 0,
+  vacuousKindNarrow: 0,
 };
 const byFile: Array<{ file: string; weak: number }> = [];
 
@@ -274,6 +276,37 @@ for (const file of files) {
         weakInFile++;
         continue;
       }
+    }
+    // Vacuous union-narrow guard: `if (r.kind === "json") { expect(...) }`
+    // (or `if (r.kind === "json") expect(...)`) silently passes when the
+    // impl drifts to a different kind. Flag if the body contains such an
+    // `if`, the if-controlled region has expects, and there's no preceding
+    // `expect(<same>.kind)` assertion outside the if.
+    const kindIfRe =
+      /\bif\s*\(\s*([\w$.]+)\.kind\s*===\s*["'][^"']+["']\s*\)/g;
+    let kindMatch: RegExpExecArray | null;
+    let foundVacuousKind = false;
+    while ((kindMatch = kindIfRe.exec(body)) !== null) {
+      const subject = kindMatch[1];
+      const before = body.slice(0, kindMatch.index);
+      // Region starting at the if. Cheap heuristic: take next ~400 chars,
+      // good enough for typical handler tests where bodies are short.
+      const after = body.slice(kindMatch.index, kindMatch.index + 600);
+      const ifHasExpect = /\bexpect\s*\(/.test(after);
+      const guardRe = new RegExp(
+        `\\bexpect\\s*\\(\\s*${subject.replace(/[.$]/g, "\\$&")}\\.kind\\s*\\)`,
+      );
+      const beforeHasGuard = guardRe.test(before);
+      if (ifHasExpect && !beforeHasGuard) {
+        foundVacuousKind = true;
+        break;
+      }
+    }
+    if (foundVacuousKind) {
+      counts.vacuousKindNarrow++;
+      total++;
+      weakInFile++;
+      continue;
     }
   }
   if (weakInFile > 0) byFile.push({ file, weak: weakInFile });
