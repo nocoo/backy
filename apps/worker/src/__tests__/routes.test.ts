@@ -93,15 +93,27 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(res.status).toBe(401);
   });
 
-  test("GET /api/ip-info returns 200", async () => {
-    const res = await fetchWith(
-      "/api/ip-info?ip=8.8.8.8",
-      undefined,
-      { ECHO_API_URL: "https://echo.example/api/ip" },
-    );
-    // ipInfo with no real ECHO upstream just returns whatever the
-    // fetcher gave it; we just want to confirm routing works.
-    expect([200, 500, 502]).toContain(res.status);
+  test("GET /api/ip-info returns 503 when ECHO_API_URL is unset", async () => {
+    // Deterministic: with no echo upstream configured the handler short-
+    // circuits to 503. Previously this test set ECHO_API_URL to an
+    // unreachable .example host and asserted `[200, 500, 502]` — which
+    // smuggled a real DNS lookup into the suite (~14ms + flake risk when
+    // the network resolver is slow or offline).
+    const res = await fetchWith("/api/ip-info?ip=8.8.8.8", undefined, {
+      ECHO_API_URL: undefined,
+    });
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/not configured/i);
+  });
+
+  test("GET /api/ip-info returns 400 when ip query is missing", async () => {
+    const res = await fetchWith("/api/ip-info", undefined, {
+      ECHO_API_URL: "https://echo.example/api/ip",
+    });
+    // No ?ip query and the synthetic Request has no client-ip header,
+    // so the handler’s missing-ip guard fires.
+    expect(res.status).toBe(400);
   });
 
   test("GET /api/me without E2E_SKIP_AUTH returns 401", async () => {
