@@ -545,6 +545,17 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: pin the full preview body shape. 200-only would mask
+      // a regression that returned the raw text instead of parsed JSON,
+      // dropped any of the metadata fields, or surfaced extra fields.
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        backup_id: "b1",
+        project_id: "p1",
+        project_name: "P1",
+        json_key: "j",
+        content: { a: 1 },
+      });
     });
 
     test("500 on download error", async () => {
