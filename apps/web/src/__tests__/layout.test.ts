@@ -1,37 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { AppShell } from "../components/layout/app-shell";
-import {
-  Sidebar,
-  getAvatarColor,
-} from "../components/layout/sidebar";
-import {
-  SidebarProvider,
-  useSidebar,
-} from "../components/layout/sidebar-context";
-import { Breadcrumbs } from "../components/layout/breadcrumbs";
-import { ThemeToggle } from "../components/layout/theme-toggle";
-import { LoadingScreen } from "../components/loading-screen";
-import { useIsMobile } from "../hooks/use-mobile";
+import { getAvatarColor } from "../components/layout/sidebar";
 import { APP_VERSION } from "../lib/version";
 
-describe("layout component surface", () => {
-  test("AppShell + Sidebar + Breadcrumbs + ThemeToggle are functions", () => {
-    expect(typeof AppShell).toBe("function");
-    expect(typeof Sidebar).toBe("function");
-    expect(typeof Breadcrumbs).toBe("function");
-    expect(typeof ThemeToggle).toBe("function");
-    expect(typeof LoadingScreen).toBe("function");
-  });
-
-  test("SidebarProvider + useSidebar are functions", () => {
-    expect(typeof SidebarProvider).toBe("function");
-    expect(typeof useSidebar).toBe("function");
-  });
-
-  test("useIsMobile is a function", () => {
-    expect(typeof useIsMobile).toBe("function");
-  });
-});
+// Surface "X is a function component" assertions removed: TS already
+// enforces export shape; the imports of AppShell / Sidebar / Breadcrumbs
+// / ThemeToggle / LoadingScreen / SidebarProvider / useSidebar /
+// useIsMobile dragged in radix-ui + lucide for zero behavioral coverage.
+// Layout rendering belongs in L3 (BDD/Playwright).
 
 describe("getAvatarColor", () => {
   test("returns a stable color for the same name", () => {
