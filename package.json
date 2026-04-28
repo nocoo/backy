@@ -11,6 +11,8 @@
     "typecheck": "bun --cwd apps/web typecheck && bun --cwd packages/api typecheck && bun --cwd apps/worker typecheck && bun --cwd apps/cli typecheck",
     "test": "bun --cwd apps/web test && bun --cwd packages/api test && bun --cwd apps/worker test && bun --cwd apps/cli test",
     "test:coverage": "bun --cwd packages/api test:coverage && bun --cwd apps/worker test:coverage && bun --cwd apps/web test:coverage && bun --cwd apps/cli test:coverage",
+    "test:e2e": "bun run scripts/run-e2e.ts",
+    "test:e2e:api": "bun run scripts/run-e2e.ts",
     "gate:security": "bun run scripts/gate-security.ts",
     "release": "bun run scripts/release.ts",
     "web:dev": "bun --cwd apps/web dev",
