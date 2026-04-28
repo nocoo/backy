@@ -611,9 +611,12 @@ describe("backups handlers", () => {
       expect(r.kind).toBe("json");
       if (r.kind === "json") {
         const body = r.body as { command: string };
-        expect(body.command).toContain("Bearer tok");
-        expect(body.command).toContain("/api/restore/b1");
-        expect(body.command).toContain("https://example.com");
+        // Tightened: pin the exact string. Three toContain checks miss
+        // ordering / escape / extra-arg regressions; a full equality
+        // check catches all of them.
+        expect(body.command).toBe(
+          `curl https://example.com/api/restore/b1 \\\n  -H "Authorization: Bearer tok"`,
+        );
       }
     });
 
