@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import {
   generateTimestamp,
   generateBackupKey,
@@ -22,19 +22,18 @@ describe("generateTimestamp", () => {
   });
 
   test("defaults to current time", () => {
-    const before = Date.now();
-    const ts = generateTimestamp();
-    const after = Date.now();
-    // Parse back and verify it's within the time window
-    const parsed = Date.parse(ts.replace(/-/g, (m, offset: number) => {
-      // Restore ISO format: keep first two dashes (date), convert rest back
-      if (offset === 4 || offset === 7) return m;
-      if (offset === 13 || offset === 16) return ":";
-      if (offset === 19) return ".";
-      return m;
-    }));
-    expect(parsed).toBeGreaterThanOrEqual(before);
-    expect(parsed).toBeLessThanOrEqual(after + 1);
+    // Pin Date.now() with fake timers so the assertion compares an exact
+    // value instead of a ±1ms time-window. Previously this used
+    // Date.now()-bracket logic which is very low risk but technically
+    // flaky if the clock jitters between the three Date.now() calls.
+    const fixed = Date.UTC(2026, 2, 2, 10, 30, 0); // 2026-03-02T10:30:00.000Z
+    vi.useFakeTimers();
+    vi.setSystemTime(fixed);
+    try {
+      expect(generateTimestamp()).toBe("2026-03-02T10-30-00-000Z");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
