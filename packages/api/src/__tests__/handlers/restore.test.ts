@@ -173,6 +173,7 @@ describe("restore handler", () => {
     }, ctx);
     expect(r.status).toBe(200);
     expect(calledKey).toBe("k1");
+    expect(r.kind).toBe("json");
     if (r.kind === "json") {
       const body = r.body as Record<string, unknown>;
       expect(body.url).toBe("https://signed.example.com/k1");

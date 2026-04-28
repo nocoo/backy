@@ -177,6 +177,7 @@ describe("webhookHeadHandler", () => {
       userAgent: "ua",
     });
     expect(r.status).toBe(200);
+    expect(r.kind).toBe("empty");
     if (r.kind === "empty") {
       expect(r.headers?.["X-Project-Name"]).toBe("Test Project");
     }
@@ -273,6 +274,7 @@ describe("webhookGetHandler", () => {
       userAgent: null,
     });
     expect(r.status).toBe(200);
+    expect(r.kind).toBe("json");
     if (r.kind === "json") {
       const body = r.body as Record<string, unknown>;
       expect(body.project_name).toBe("Test Project");
@@ -308,6 +310,7 @@ describe("webhookGetHandler", () => {
     });
     expect(r.status).toBe(200);
     expect(captured?.environment).toBe("staging");
+    expect(r.kind).toBe("json");
     if (r.kind === "json") {
       expect((r.body as Record<string, unknown>).environment).toBe("staging");
     }
@@ -576,6 +579,7 @@ describe("webhookPostHandler", () => {
       },
     });
     expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
     if (r.kind === "json") {
       const body = r.body as Record<string, unknown>;
       expect(body.error).toBe("Internal server error");

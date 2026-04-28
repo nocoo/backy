@@ -608,6 +608,7 @@ describe("backups handlers", () => {
       });
       const r = await restoreCommandHandler({ id: "b1", baseUrl });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json") {
         const body = r.body as { command: string };
         expect(body.command).toContain("Bearer tok");

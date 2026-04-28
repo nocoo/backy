@@ -217,6 +217,7 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json") {
         expect((r.body as { triggered: number }).triggered).toBe(1);
       }
@@ -241,6 +242,7 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json") {
         expect((r.body as { failed: number }).failed).toBe(1);
       }
@@ -296,6 +298,7 @@ describe("cron handlers", () => {
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json")
         expect((r.body as { status: string }).status).toBe("failed");
     });
@@ -312,6 +315,7 @@ describe("cron handlers", () => {
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json")
         expect((r.body as { status: string }).status).toBe("failed");
     });
@@ -328,6 +332,7 @@ describe("cron handlers", () => {
       globalThis.fetch = mockFetch(async () => new Response("ok"));
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json")
         expect((r.body as { status: string }).status).toBe("success");
     });
@@ -344,6 +349,7 @@ describe("cron handlers", () => {
       );
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json")
         expect((r.body as { status: string }).status).toBe("failed");
     });
