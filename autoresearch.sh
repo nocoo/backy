@@ -27,7 +27,7 @@ for i in $(seq 1 "$N"); do
   ms=$(( (end - start) / 1000000 ))
   times+=("$ms")
   # Sum all "Tests  N passed" lines from the four workspaces.
-  last_test_count=$(echo "$out" | awk '/Tests +[0-9]+ passed/ { for(i=1;i<=NF;i++) if($i=="passed") { gsub(/[()]/, "", $(i+1)); s+=$(i+1) } } END { print s+0 }')
+  last_test_count=$(echo "$out" | awk '/Tests +[0-9]+ passed/ { for(i=1;i<=NF;i++) if($i=="passed") s+=$(i-1)+0 } END { print s+0 }')
 done
 
 if [ "${#times[@]}" -lt 3 ]; then

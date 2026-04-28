@@ -11,7 +11,7 @@ if ! cov_out=$(bun run test:coverage 2>&1); then
 fi
 
 # Echo coverage summary lines for visibility (kept short).
-echo "$cov_out" | grep -E "Coverage summary|Lines +:|Branches +:|Functions +:|Statements +:" | head -40
+echo "$cov_out" | grep -E "Coverage summary|Lines +:|Branches +:|Functions +:|Statements +:" | head -40 || true
 
 if ! tc_out=$(bun run typecheck 2>&1); then
   echo "$tc_out" | tail -40

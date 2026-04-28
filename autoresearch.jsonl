@@ -1,0 +1,1 @@
+{"type":"config","name":"UT 质量优化（保覆盖率，提升意义/性能/稳定性）","metricName":"total_ms","metricUnit":"ms","bestDirection":"lower"}
