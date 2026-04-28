@@ -38,7 +38,7 @@ let mockDownloadFromR2: (k: string) => Promise<any> = async () => ({
   contentType: undefined,
   contentLength: undefined,
 });
-let mockCreatePresignedDownloadUrl: (k: string) => Promise<string> = async () =>
+let mockCreatePresignedDownloadUrl: (k: string, ttl: number) => Promise<string> = async () =>
   "https://example.com/presigned";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUpdateBackup: (...args: any[]) => Promise<any> = async () => ({});
@@ -71,7 +71,7 @@ const ctx = makeMockCtx({
       mockUploadToR2(key, body, opts?.contentType),
     delete: async (key) => mockDeleteFromR2(key),
     get: async (key) => mockDownloadFromR2(key),
-    presignDownload: async (key) => mockCreatePresignedDownloadUrl(key),
+    presignDownload: async (key, ttl) => mockCreatePresignedDownloadUrl(key, ttl),
   }),
 });
 const listBackupsHandler = (input: Parameters<typeof backupsHandlers.listBackupsHandler>[0]) =>
@@ -441,9 +441,24 @@ describe("backups handlers", () => {
         file_key: "k",
         file_size: 100,
       });
-      mockCreatePresignedDownloadUrl = async () => "https://signed.example/x";
+      let presignArgs: [string, number] | undefined;
+      mockCreatePresignedDownloadUrl = async (key: string, ttl: number) => {
+        presignArgs = [key, ttl];
+        return "https://signed.example/x";
+      };
       const r = await downloadBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: status-only would mask url/file_key/file_size/
+      // expires_in drift in the response body, AND would let a regression
+      // pass that hard-coded the wrong key or TTL into the presigner call.
+      expect(presignArgs).toEqual(["k", 900]);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        url: "https://signed.example/x",
+        file_key: "k",
+        file_size: 100,
+        expires_in: 900,
+      });
     });
 
     test("404 when missing", async () => {
