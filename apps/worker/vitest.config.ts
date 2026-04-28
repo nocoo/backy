@@ -8,6 +8,7 @@ export default defineConfig({
     pool: "threads",
     maxWorkers: 1,
     isolate: false,
+    setupFiles: ["./src/__tests__/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
