@@ -1,28 +1,7 @@
-import { describe, expect, test, beforeEach, afterEach, vi } from "vitest";
+import { describe, expect, test, beforeEach, afterEach } from "vitest";
 
-// Stub node:dns/promises so the SSRF resolver tests don't depend on real
-// DNS (eliminates ~100ms latency + flakiness when network/DNS is unreachable).
-vi.mock("node:dns/promises", () => {
-  const NXDOMAIN = (host: string) => {
-    const e = new Error(`getaddrinfo ENOTFOUND ${host}`);
-    (e as Error & { code: string }).code = "ENOTFOUND";
-    throw e;
-  };
-  return {
-    resolve4: async (host: string) => {
-      // Treat *.example as NXDOMAIN, localhost as 127.0.0.1, anything else
-      // as a public IP so the unit tests stay deterministic.
-      if (host === "localhost") return ["127.0.0.1"];
-      if (host.endsWith(".example") || host.includes("does-not-exist")) NXDOMAIN(host);
-      return ["93.184.216.34"]; // example.com public IP
-    },
-    resolve6: async (host: string) => {
-      if (host === "localhost") return ["::1"];
-      if (host.endsWith(".example") || host.includes("does-not-exist")) NXDOMAIN(host);
-      return ["2606:2800:220:1:248:1893:25c8:1946"];
-    },
-  };
-});
+// node:dns/promises is stubbed at the suite level (see ./setup.ts) to keep
+// the SSRF resolver tests network-free under `isolate: false`.
 
 import {
   isUrlSafe as rawIsUrlSafe,
