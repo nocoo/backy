@@ -159,7 +159,11 @@ describe("projects handlers", () => {
     });
 
     test("clears allowed_ips when null or empty string", async () => {
-      mockUpdateProject = async () => makeProject();
+      const updates: unknown[] = [];
+      mockUpdateProject = async (...args: unknown[]) => {
+        updates.push(args[1]);
+        return makeProject();
+      };
       const r1 = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: null },
@@ -170,6 +174,13 @@ describe("projects handlers", () => {
         body: { allowed_ips: "  " },
       }, ctx);
       expect(r2.status).toBe(200);
+      // Tightened: positively verify both branches forward null (not
+      // "" or "  ") to updateProject. Status-only would let a regression
+      // pass that forwarded the empty string verbatim.
+      expect(updates).toEqual([
+        { allowed_ips: null },
+        { allowed_ips: null },
+      ]);
     });
 
     test("validates allowed_ips and returns 400 on bad CIDR", async () => {
@@ -181,12 +192,19 @@ describe("projects handlers", () => {
     });
 
     test("normalizes valid allowed_ips", async () => {
-      mockUpdateProject = async () => makeProject();
+      let captured: unknown;
+      mockUpdateProject = async (...args: unknown[]) => {
+        captured = args[1];
+        return makeProject();
+      };
       const r = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: "10.0.0.0/8" },
       }, ctx);
       expect(r.status).toBe(200);
+      // Tightened: verify the normalized CIDR is forwarded verbatim
+      // (no surrounding whitespace, no IP-form drift).
+      expect(captured).toEqual({ allowed_ips: "10.0.0.0/8" });
     });
 
     test("returns 400 for unsafe webhook URL", async () => {
@@ -207,7 +225,11 @@ describe("projects handlers", () => {
     });
 
     test("forwards auto_backup_* fields", async () => {
-      mockUpdateProject = async () => makeProject();
+      let captured: unknown;
+      mockUpdateProject = async (...args: unknown[]) => {
+        captured = args[1];
+        return makeProject();
+      };
       const r = await updateProjectHandler({
         id: "p1",
         body: {
@@ -219,6 +241,16 @@ describe("projects handlers", () => {
         },
       }, ctx);
       expect(r.status).toBe(200);
+      // Tightened: pin the exact patch object forwarded to updateProject.
+      // Catches typos / dropped fields / extra fields the old
+      // status-only assertion silently allowed.
+      expect(captured).toEqual({
+        auto_backup_enabled: 1,
+        auto_backup_interval: 12,
+        auto_backup_header_key: "X-K",
+        auto_backup_header_value: "V",
+        category_id: "cat1",
+      });
     });
 
     test("returns 400 on schema violation", async () => {
