@@ -42,8 +42,10 @@ describe("sanitizeProject", () => {
     expect(safe.auto_backup_enabled).toBe(1);
     expect(safe.auto_backup_interval).toBe(12);
     expect(safe.auto_backup_webhook).toBe("https://example.com/backup");
-    expect(safe.created_at).toBeDefined();
-    expect(safe.updated_at).toBeDefined();
+    // sanitizeProject must preserve timestamps verbatim from the source row
+    // (no rounding / regeneration). makeProject pins them to a fixed value.
+    expect(safe.created_at).toBe("2026-01-01T00:00:00.000Z");
+    expect(safe.updated_at).toBe("2026-01-01T00:00:00.000Z");
   });
 
   test("does not mutate the original object", () => {

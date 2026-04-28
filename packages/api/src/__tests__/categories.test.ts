@@ -114,9 +114,12 @@ describe("categories", () => {
       expect(result.color).toBe("#f59e0b");
       expect(result.icon).toBe("wrench");
       expect(result.sort_order).toBe(3);
-      expect(result.id).toBeDefined();
-      expect(result.created_at).toBeDefined();
-      expect(result.updated_at).toBeDefined();
+      // Tightened: match real shape rather than just truthy.
+      // id is a 21-char nanoid; timestamps are ISO-8601 and identical
+      // because createCategory derives both from a single `new Date()`.
+      expect(result.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
+      expect(result.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(result.updated_at).toBe(result.created_at);
 
       const body = JSON.parse(capturedBody);
       expect(body.sql).toContain("INSERT INTO categories");
