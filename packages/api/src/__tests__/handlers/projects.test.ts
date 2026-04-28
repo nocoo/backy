@@ -93,9 +93,19 @@ describe("projects handlers", () => {
 
   describe("createProjectHandler", () => {
     test("returns 201 on valid input", async () => {
-      mockCreateProject = async () => makeProject();
+      const created = makeProject();
+      mockCreateProject = async () => created;
       const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
       expect(r.status).toBe(201);
+      // Tightened: createProjectHandler intentionally returns the raw
+      // project (webhook_token included) so the client sees the token
+      // exactly once. Pin both kind and the presence of webhook_token
+      // — a regression that adds sanitization here would break the
+      // first-issue token UX.
+      expect(r.kind).toBe("json");
+      const body = (r as { body: Record<string, unknown> }).body;
+      expect(body.id).toBe(created.id);
+      expect(body.webhook_token).toBe(created.webhook_token);
     });
 
     test("returns 400 on invalid input", async () => {
@@ -114,9 +124,15 @@ describe("projects handlers", () => {
 
   describe("getProjectHandler", () => {
     test("returns 200 when found", async () => {
-      mockGetProject = async () => makeProject();
+      const project = makeProject();
+      mockGetProject = async () => project;
       const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(200);
+      // Tightened: verify sanitization on the get path too.
+      expect(r.kind).toBe("json");
+      const body = (r as { body: Record<string, unknown> }).body;
+      expect(body).not.toHaveProperty("webhook_token");
+      expect(body.id).toBe(project.id);
     });
 
     test("returns 404 when not found", async () => {
