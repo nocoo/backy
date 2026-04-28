@@ -76,9 +76,12 @@ describe("generateBackupKey", () => {
 
   test("auto-generates timestamp when not provided", () => {
     const key = generateBackupKey("proj1", "json", "data.json");
-    expect(key.startsWith("backups/proj1/")).toBe(true);
-    expect(key.endsWith(".json")).toBe(true);
-    expect(key.length).toBeGreaterThan("backups/proj1/.json".length);
+    // Tightened: assert the full shape with a regex instead of a length
+    // sanity check. timestamp segment matches generateTimestamp's output
+    // (dashes everywhere, ms precision, trailing Z).
+    expect(key).toMatch(
+      /^backups\/proj1\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/,
+    );
   });
 });
 
