@@ -18,9 +18,18 @@ function fetchWith(
 }
 
 describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
-  test("GET /api/live", async () => {
+  test("GET /api/live returns 200 with both dependencies up", async () => {
     const res = await fetchWith("/api/live");
-    expect([200, 503]).toContain(res.status);
+    // fakeD1.query and fakeR2.ping both succeed, so both dependencies
+    // report `up` and the handler picks the 200 branch deterministically.
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      status: string;
+      dependencies: { d1: { status: string }; r2: { status: string } };
+    };
+    expect(body.status).toBe("ok");
+    expect(body.dependencies.d1.status).toBe("up");
+    expect(body.dependencies.r2.status).toBe("up");
   });
 
   test("GET /api/me with E2E_SKIP_AUTH returns dev email", async () => {
