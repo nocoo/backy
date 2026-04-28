@@ -292,14 +292,17 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect([200, 204, 400]).toContain(res.status);
   });
 
-  test("POST /api/db/init 200", async () => {
+  test("POST /api/db/init returns 200 with the schema-initialized payload", async () => {
     const res = await fetchWith("/api/db/init", { method: "POST" });
-    expect([200, 500]).toContain(res.status);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; message: string };
+    expect(body.ok).toBe(true);
+    expect(body.message).toMatch(/Schema initialized/i);
   });
 
-  test("POST /api/db/seed-test-project 200 with E2E_SKIP_AUTH", async () => {
+  test("POST /api/db/seed-test-project returns 200 with E2E_SKIP_AUTH", async () => {
     const res = await fetchWith("/api/db/seed-test-project", { method: "POST" });
-    expect([200, 500]).toContain(res.status);
+    expect(res.status).toBe(200);
   });
 
   test("GET /api/db/init/marker returns marker status", async () => {
