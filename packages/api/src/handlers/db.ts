@@ -8,10 +8,26 @@ export async function dbInitHandler(
 ): Promise<HandlerResponse> {
   try {
     await initializeSchema(ctx.db);
-    return json(200, { success: true, message: "Schema initialized" });
+    return json(200, { ok: true, message: "Schema initialized" });
   } catch (error) {
     console.error("Schema initialization failed:", error);
     return json(500, { error: "Schema initialization failed" });
+  }
+}
+
+export async function getTestMarkerHandler(
+  ctx: RuntimeContext,
+): Promise<HandlerResponse> {
+  try {
+    const { results } = await ctx.db.query<{ id: string }>(
+      "SELECT id FROM _test_marker LIMIT 1",
+    );
+    return json(200, { marker: results[0]?.id ?? null });
+  } catch (error) {
+    return json(200, {
+      marker: null,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 

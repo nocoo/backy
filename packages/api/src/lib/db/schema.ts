@@ -77,6 +77,11 @@ CREATE INDEX IF NOT EXISTS idx_webhook_logs_status_code ON webhook_logs(status_c
 CREATE INDEX IF NOT EXISTS idx_cron_logs_project_id ON cron_logs(project_id);
 CREATE INDEX IF NOT EXISTS idx_cron_logs_triggered_at ON cron_logs(triggered_at);
 CREATE INDEX IF NOT EXISTS idx_cron_logs_status ON cron_logs(status);
+
+CREATE TABLE IF NOT EXISTS _test_marker (
+  id TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 /**
@@ -129,4 +134,9 @@ export async function initializeSchema(db: D1Adapter): Promise<void> {
   for (const sql of postMigrationIndexes) {
     await db.query(sql);
   }
+
+  // Insert test marker (E2E safety: verify bound D1 is the test database)
+  await db.query(
+    "INSERT OR IGNORE INTO _test_marker(id, created_at) VALUES ('e2e-test-db', datetime('now'))",
+  );
 }

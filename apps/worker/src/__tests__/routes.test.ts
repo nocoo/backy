@@ -264,6 +264,13 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect([200, 500]).toContain(res.status);
   });
 
+  test("GET /api/db/init/marker returns marker status", async () => {
+    const res = await fetchWith("/api/db/init/marker");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { marker: string | null };
+    expect(body).toHaveProperty("marker");
+  });
+
   test("HEAD /api/webhook/:projectId 404", async () => {
     const res = await fetchWith("/api/webhook/missing", { method: "HEAD" });
     expect([401, 404]).toContain(res.status);

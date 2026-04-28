@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { makeMockCtx, makeMockD1, makeMockR2 } from "../helpers";
-import { dbInitHandler, seedTestProjectHandler } from "../../handlers/db";
+import {
+  dbInitHandler,
+  getTestMarkerHandler,
+  seedTestProjectHandler,
+} from "../../handlers/db";
 
 describe("db handlers", () => {
   let db: ReturnType<typeof makeMockD1>;
@@ -144,5 +148,29 @@ describe("db handlers", () => {
     );
     expect(r.status).toBe(200);
     expect((r as { body: { action: string } }).body.action).toBe("reset");
+  });
+
+  test("getTestMarker returns marker when present", async () => {
+    db = makeMockD1(async () => ({ results: [{ id: "e2e-test-db" }] }));
+    const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(200);
+    expect((r as { body: { marker: string } }).body.marker).toBe("e2e-test-db");
+  });
+
+  test("getTestMarker returns null when not present", async () => {
+    db = makeMockD1(async () => ({ results: [] }));
+    const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(200);
+    expect((r as { body: { marker: null } }).body.marker).toBeNull();
+  });
+
+  test("getTestMarker returns error info on failure", async () => {
+    db = makeMockD1(async () => {
+      throw new Error("table not found");
+    });
+    const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(200);
+    expect((r as { body: { marker: null; error: string } }).body.marker).toBeNull();
+    expect((r as { body: { error: string } }).body.error).toBe("table not found");
   });
 });
