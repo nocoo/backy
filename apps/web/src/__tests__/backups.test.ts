@@ -19,27 +19,17 @@ describe("generatePageNumbers", () => {
   });
 
   test("collapses tail when current is near start", () => {
-    const r = generatePageNumbers(2, 10);
-    expect(r[0]).toBe(1);
-    expect(r[r.length - 1]).toBe(10);
-    expect(r).toContain("...");
+    // Tightened: pin the full array shape. generatePageNumbers is fully
+    // deterministic for (current, total), so equality catches anchor /
+    // ellipsis-position regressions that toContain("...") would miss.
+    expect(generatePageNumbers(2, 10)).toEqual([1, 2, 3, "...", 10]);
   });
 
   test("collapses head when current is near end", () => {
-    const r = generatePageNumbers(9, 10);
-    expect(r[0]).toBe(1);
-    expect(r[r.length - 1]).toBe(10);
-    expect(r).toContain("...");
+    expect(generatePageNumbers(9, 10)).toEqual([1, "...", 8, 9, 10]);
   });
 
   test("two ellipses for current in the middle", () => {
-    const r = generatePageNumbers(5, 10);
-    const ellipses = r.filter((p) => p === "...").length;
-    expect(ellipses).toBe(2);
-    expect(r[0]).toBe(1);
-    expect(r[r.length - 1]).toBe(10);
-    expect(r).toContain(4);
-    expect(r).toContain(5);
-    expect(r).toContain(6);
+    expect(generatePageNumbers(5, 10)).toEqual([1, "...", 4, 5, 6, "...", 10]);
   });
 });
