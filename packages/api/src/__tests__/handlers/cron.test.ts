@@ -404,6 +404,16 @@ describe("cron handlers", () => {
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      // Tightened: pin the body shape so a regression that surfaces a
+      // generic 'failed' or wrong message would fail loudly. fetch-throw
+      // path has no responseCode (only error+durationMs).
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          status: "failed",
+          error: "net",
+          durationMs: expect.any(Number),
+        });
     });
   });
 });
