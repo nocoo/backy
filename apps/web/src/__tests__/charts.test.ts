@@ -1,22 +1,15 @@
 import { describe, expect, test } from "vitest";
-import { DailyBackupsChart } from "../components/charts/activity-chart";
-import { CronActivityChart } from "../components/charts/cron-chart";
 import {
-  BackupsByProjectChart,
-  StorageByProjectChart,
   formatBytes,
   truncateProjectName,
   getChartColor,
 } from "../components/charts/project-charts";
 
-describe("chart component surface", () => {
-  test("all chart components are functions", () => {
-    expect(typeof DailyBackupsChart).toBe("function");
-    expect(typeof CronActivityChart).toBe("function");
-    expect(typeof BackupsByProjectChart).toBe("function");
-    expect(typeof StorageByProjectChart).toBe("function");
-  });
-});
+// Recharts surface assertions for `DailyBackupsChart` / `CronActivityChart`
+// / `BackupsByProjectChart` / `StorageByProjectChart` were removed: TS
+// already enforces the export shape, and the imports dragged in recharts
+// + d3-scale for zero behavioral coverage. Chart rendering belongs in
+// L3 (BDD/Playwright) where SVG output can actually be inspected.
 
 describe("formatBytes", () => {
   test("0 bytes", () => {
@@ -67,6 +60,7 @@ describe("getChartColor", () => {
 
   test("negative wraps to a palette entry", () => {
     // index % length for negatives can be negative; default branch covers it
-    expect(typeof getChartColor(-1)).toBe("string");
+    const c = getChartColor(-1);
+    expect(c).toMatch(/^hsl\(var\(--chart-\d+\)\)$/);
   });
 });
