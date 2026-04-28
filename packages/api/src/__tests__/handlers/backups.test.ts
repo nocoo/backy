@@ -198,12 +198,24 @@ describe("backups handlers", () => {
 
   describe("batchDeleteBackupsHandler", () => {
     test("200 deletes successfully", async () => {
+      const deletes: string[] = [];
+      mockDeleteFromR2 = async (key: string) => {
+        deletes.push(key);
+      };
       mockDeleteBackups = async () => [
         { fileKey: "k1", jsonKey: "j1" },
         { fileKey: "k2", jsonKey: null },
       ];
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a", "b"] } });
       expect(r.status).toBe(200);
+      // Tightened: positively verify R2 cleanup deleted both backup
+      // file_keys + only the present json_keys (jsonKey:null must NOT
+      // produce a stray r2.delete(null) call). Also pin the response
+      // body's `deleted` count.
+      expect(deletes).toEqual(["k1", "j1", "k2"]);
+      expect(r.kind).toBe("json");
+      const body = (r as { body: Record<string, unknown> }).body;
+      expect(body).toEqual({ success: true, deleted: 2 });
     });
 
     test("400 on empty array", async () => {
