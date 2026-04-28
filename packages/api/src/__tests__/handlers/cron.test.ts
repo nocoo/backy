@@ -316,8 +316,13 @@ describe("cron handlers", () => {
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
+      // Tightened: also pin the surfaced error message so a regression
+      // that returned a generic 'failed' / wrong reason would fail loudly.
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("failed");
+        expect(r.body).toEqual({
+          status: "failed",
+          error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
+        });
     });
 
     test("200 failed when DNS check fails", async () => {
@@ -334,7 +339,10 @@ describe("cron handlers", () => {
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("failed");
+        expect(r.body).toEqual({
+          status: "failed",
+          error: "Webhook URL blocked: private",
+        });
     });
 
     test("200 success when fetch ok", async () => {
