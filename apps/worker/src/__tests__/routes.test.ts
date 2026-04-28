@@ -56,9 +56,15 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
   test("GET /api/backups returns paginated payload", async () => {
     const res = await fetchWith("/api/backups");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as Record<string, unknown>;
-    expect(body).toHaveProperty("environments");
-    expect(body).toHaveProperty("projects");
+    expect(await res.json()).toEqual({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+      totalPages: 0,
+      environments: [],
+      projects: [],
+    });
   });
 
   test("GET /api/stats/totals returns zeroed totals on empty DB", async () => {
@@ -81,21 +87,35 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
   test("GET /api/stats/charts returns the expected sub-fields", async () => {
     const res = await fetchWith("/api/stats/charts");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as Record<string, unknown>;
-    // Don't pin exact shape (fakeD1 returns nothing), just verify the
-    // handler responds with an object — catches 500/null regressions.
-    expect(typeof body).toBe("object");
-    expect(body).not.toBeNull();
+    expect(await res.json()).toEqual({
+      projectStats: [],
+      dailyBackups: [],
+      cronStats: [],
+    });
   });
 
   test("GET /api/logs/webhook returns paginated payload", async () => {
     const res = await fetchWith("/api/logs/webhook");
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 50,
+      totalPages: 0,
+    });
   });
 
   test("GET /api/logs/cron returns paginated payload", async () => {
     const res = await fetchWith("/api/logs/cron");
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 50,
+      totalPages: 0,
+    });
   });
 
   test("POST /api/cron/trigger with correct CRON_SECRET", async () => {
