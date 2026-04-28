@@ -34,6 +34,9 @@ packages/
 scripts/
   gate-security.ts         # G2 security gate (osv-scanner + gitleaks)
   release.ts               # Version bump + CHANGELOG + GitHub release
+  run-e2e.ts               # L2 E2E runner (wrangler dev --env test lifecycle)
+e2e/
+  api/                     # L2 API E2E tests (bun test against local wrangler)
 osv-scanner.toml           # G2 osv-scanner config
 .gitleaks.toml             # G2 gitleaks config
 ```
@@ -100,7 +103,7 @@ packages/api/
 | Layer | Tool | Script | Trigger | Requirement |
 |---|---|---|---|---|
 | L1 Unit | bun test | `bun run test:coverage` | pre-commit | 90%+ coverage on `src/lib/**` |
-| L2 Integration/API | (legacy only) | `bun run legacy:test:e2e:api` | on-demand | 146 tests, returns to root with Wave B' |
+| L2 Integration/API | bun test + wrangler dev | `bun run test:e2e:api` | pre-push | 8 tests (local SQLite) |
 | L3 System/E2E | Playwright (legacy only) | `bun run legacy:test:e2e:bdd` | on-demand | 5 specs, returns with Wave B' |
 | G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings (`--max-warnings 0`) |
 | G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
@@ -110,8 +113,8 @@ packages/api/
 | Hook | Budget | Runs |
 |---|---|---|
 | pre-commit | <30s | G1 → L1 (sequential) |
-| pre-push | <30s | G2 |
-| on-demand | — | legacy L2 / L3 |
+| pre-push | <60s | L2 + G2 (parallel) |
+| on-demand | — | legacy L3 |
 
 ### Port Convention
 
@@ -119,6 +122,7 @@ packages/api/
 |---|---|
 | Vite dev server | 7019 |
 | Wrangler dev (worker) | 7018 |
+| L2 API E2E (wrangler --env test) | 17018 |
 | Legacy Next.js dev | 7017 |
 | Legacy L2 API E2E | 17017 |
 | Legacy L3 BDD E2E | 27017 |
@@ -139,27 +143,28 @@ bun run build              # vite build → apps/worker/static/
 bun run worker:deploy      # wrangler deploy
 bun test                   # all workspaces (web + worker + api + cli)
 bun run test:coverage      # web + worker + api with 90% gate
+bun run test:e2e:api       # L2 API E2E (local SQLite, port 17018)
 bun run typecheck          # tsc --noEmit across all workspaces
 bun run lint               # ESLint across all workspaces
 bun run lint:staged        # ESLint on staged files (per-workspace lint-staged)
 bun run gate:security      # osv-scanner + gitleaks (root configs)
 bun run release            # bump version + CHANGELOG + GitHub release
 bun run legacy:dev         # legacy Next.js (port 7017) — deletion pending
-bun run legacy:test:e2e:api  # legacy L2 (port 17017) — until Wave B' rebuilds on worker
+bun run legacy:test:e2e:api  # legacy L2 (port 17017) — superseded by test:e2e:api
 ```
 
 ## Test Resource Isolation
 
-E2E tests (legacy L2 + L3) use **dedicated Cloudflare D1 + R2** to prevent production data corruption.
+L2 E2E tests use **local SQLite** via `wrangler dev --env test` — no remote D1/R2 deployment needed.
 
-| Resource | Production | Test |
+| Resource | Production | Test (local) |
 |---|---|---|
-| D1 database | `backy-db` | `backy-db-test` |
-| R2 bucket | `backy` | `backy-test` |
+| D1 database | `backy-db` (remote) | `.wrangler/state/` (local SQLite) |
+| R2 bucket | `backy` (remote) | `.wrangler/state/` (local) |
 
-**Mechanism (legacy):** `apps/web_legacy/.env.test` overrides `D1_DATABASE_ID` and `R2_BUCKET_NAME`. E2E runners load this file via `apps/web_legacy/scripts/load-env-test.ts` (three-layer safety: file exists → required keys present → values ≠ production) and pass the merged env to child dev servers.
+**Mechanism:** `apps/worker/wrangler.toml` `[env.test]` declares separate D1/R2 bindings with placeholder IDs (never deployed). `scripts/run-e2e.ts` spawns `wrangler dev --env test --port 17018`, waits for `/api/live`, initializes schema via `POST /api/db/init`, verifies `_test_marker` (safety check), runs tests, then kills the server.
 
-**Mechanism (worker):** `apps/worker/wrangler.toml` `[env.test]` declares separate D1/R2 bindings + `E2E_SKIP_AUTH = "true"`; `accessAuth` middleware short-circuits when that env is set and injects `accessEmail = "e2e@local.test"`.
+**Safety:** The `_test_marker` table with value `e2e-test-db` is inserted during schema init. The E2E runner refuses to proceed if this marker is missing or wrong — prevents accidentally running tests against production D1.
 
 **Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state. Gated by `E2E_SKIP_AUTH`.
 
