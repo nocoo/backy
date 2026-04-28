@@ -354,6 +354,11 @@ describe("backups handlers", () => {
     });
 
     test("201 uploads non-JSON as-is", async () => {
+      const uploads: Array<{ key: string; size: number; type: string | undefined }> = [];
+      mockUploadToR2 = async (key: string, body: ArrayBuffer | Uint8Array, type?: string) => {
+        const u8 = body instanceof Uint8Array ? body : new Uint8Array(body);
+        uploads.push({ key, size: u8.byteLength, type });
+      };
       const file = new File([new Uint8Array([1, 2, 3])], "x.zip", {
         type: "application/zip",
       });
@@ -366,9 +371,24 @@ describe("backups handlers", () => {
         }),
       });
       expect(r.status).toBe(201);
+      // Tightened: verify the non-JSON path uploads the bytes verbatim
+      // (3 bytes, content-type preserved) and does NOT create a preview.
+      // 201-only would mask a regression that re-encoded the body or
+      // accidentally generated a preview for binaries.
+      expect(uploads).toHaveLength(1);
+      expect(uploads[0]).toMatchObject({
+        size: 3,
+        type: "application/zip",
+      });
+      expect(uploads[0]!.key).toMatch(/^backups\/p1\//);
     });
 
     test("201 zips JSON and stores preview", async () => {
+      const uploads: Array<{ key: string; size: number; type: string | undefined }> = [];
+      mockUploadToR2 = async (key: string, body: ArrayBuffer | Uint8Array, type?: string) => {
+        const u8 = body instanceof Uint8Array ? body : new Uint8Array(body);
+        uploads.push({ key, size: u8.byteLength, type });
+      };
       const file = new File([new TextEncoder().encode('{"a":1}')], "x.json", {
         type: "application/json",
       });
@@ -376,6 +396,16 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file }),
       });
       expect(r.status).toBe(201);
+      // Tightened: verify the JSON path uploads BOTH a gzipped backup
+      // and a JSON preview (two distinct R2 keys). 201-only would mask
+      // a regression that skipped preview generation or stored the raw
+      // JSON instead of compressing.
+      expect(uploads).toHaveLength(2);
+      const backup = uploads.find((u) => u.key.startsWith("backups/"));
+      const preview = uploads.find((u) => u.key.startsWith("previews/"));
+      expect(backup).toBeDefined();
+      expect(preview).toBeDefined();
+      expect(preview!.type).toBe("application/json");
     });
 
     test("500 on createBackup error", async () => {
