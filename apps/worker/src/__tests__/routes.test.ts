@@ -331,8 +331,10 @@ describe("worker routes — webhook POST hits the streaming path", () => {
       method: "POST",
       body: fd,
     });
-    // 401 (bad token) or 404 (missing project) — either proves routing.
-    expect([401, 404]).toContain(res.status);
+    // No bearer/token → webhook auth runs before project lookup, so 401
+    // wins deterministically. Previous OR-of-[401,404] hid any regression
+    // that flipped the auth-vs-lookup precedence.
+    expect(res.status).toBe(401);
   });
 });
 
@@ -365,7 +367,8 @@ describe("worker routes — input shaping", () => {
       method: "HEAD",
       headers: { "x-forwarded-for": "9.9.9.9" },
     });
-    expect([401, 404]).toContain(res.status);
+    // Same auth-precedence as above: missing token → 401 deterministic.
+    expect(res.status).toBe(401);
   });
 
   test("ctx env passes ALLOWED_HOSTS through to baseUrl logic", async () => {
