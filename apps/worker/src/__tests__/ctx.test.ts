@@ -84,7 +84,14 @@ describe("ctxMiddleware", () => {
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { url: string };
-    expect(body.url).toContain("r2.cloudflarestorage.com");
-    expect(body.url).toContain("X-Amz-Signature=");
+    // Tightened: pin the full URL shape via regex. Only X-Amz-Date and
+    // X-Amz-Signature are non-deterministic; everything else (host
+    // bucket.<account>.r2.cloudflarestorage.com, key, all SigV4 query
+    // params with their fixed values) must match exactly. Catches
+    // host/key/SigV4-param drift that the prior 2 toContain checks
+    // would have missed.
+    expect(body.url).toMatch(
+      /^https:\/\/bucket\.acct\.r2\.cloudflarestorage\.com\/k\?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=id%2F\d{8}%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=\d{8}T\d{6}Z&X-Amz-Expires=60&X-Amz-Signature=[0-9a-f]{64}&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject$/,
+    );
   });
 });
