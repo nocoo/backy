@@ -328,8 +328,9 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
   test("GET /api/db/init/marker returns marker status", async () => {
     const res = await fetchWith("/api/db/init/marker");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { marker: string | null };
-    expect(body).toHaveProperty("marker");
+    // fakeD1 returns no rows for the marker query, so the handler must
+    // resolve to {marker:null}. Pin the exact shape (was toHaveProperty).
+    expect(await res.json()).toEqual({ marker: null });
   });
 
   test("HEAD /api/webhook/:projectId without token returns 401 (auth runs before lookup)", async () => {
