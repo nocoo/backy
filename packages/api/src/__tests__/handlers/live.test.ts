@@ -14,7 +14,20 @@ describe("live handler", () => {
   test("returns 200 when both up", async () => {
     const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect((r as { body: { status: string } }).body.status).toBe("ok");
+    // Tightened: pin the body shape, allowing only timestamp +
+    // dependency latency_ms to be flexible (timing-dependent). Catches
+    // a regression that drops version/uptime_s or relabels status.
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({
+      status: "ok",
+      version: expect.any(String),
+      timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      uptime_s: expect.any(Number),
+      dependencies: {
+        d1: { status: "up", latency_ms: expect.any(Number) },
+        r2: { status: "up", latency_ms: expect.any(Number) },
+      },
+    });
   });
 
   test("returns 503 when D1 throws", async () => {
@@ -24,6 +37,16 @@ describe("live handler", () => {
 
     const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(503);
+    // Tightened: status='error' AND d1.status='down' AND r2.status='up'.
+    // Catches a regression that flips r2 to down too on a d1-only failure.
+    expect(r.kind).toBe("json");
+    expect((r as { body: { status: string; dependencies: { d1: { status: string }; r2: { status: string } } } }).body).toMatchObject({
+      status: "error",
+      dependencies: {
+        d1: { status: "down" },
+        r2: { status: "up" },
+      },
+    });
   });
 
   test("returns 503 when R2 throws", async () => {
