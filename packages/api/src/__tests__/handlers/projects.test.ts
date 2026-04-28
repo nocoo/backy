@@ -275,8 +275,11 @@ describe("projects handlers", () => {
         baseUrl: "https://x.example.com",
       }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
-      expect(prompt).toContain("Active");
-      expect(prompt).toContain("X-K");
+      // Tightened: pin the exact "(Active)" badge that appears in the Pull
+      // table row when auto-backup is enabled, plus the auth-header line
+      // that prints the supplied header key with masked value.
+      expect(prompt).toContain("**(Active)**");
+      expect(prompt).toContain("**Auth header**: `X-K: \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022`");
     });
 
     test("notes auto-backup not enabled when disabled", async () => {
@@ -286,7 +289,10 @@ describe("projects handlers", () => {
         baseUrl: "https://x.example.com",
       }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
-      expect(prompt).toContain("not yet enabled");
+      // Tightened: pin the exact 'not yet enabled' phrase + project name
+      // interpolation rather than a bare substring that could match
+      // anywhere in the markdown.
+      expect(prompt).toContain('is **not yet enabled** for "Test Project"');
     });
 
     test("returns 404 when project missing", async () => {
