@@ -200,22 +200,22 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(res.status).toBe(400);
   });
 
-  test("PUT /api/projects/:id with empty body → 400 or 404", async () => {
+  test("PUT /api/projects/:id with empty body returns 404 (project missing wins over validator)", async () => {
     const res = await fetchWith("/api/projects/missing", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: "{}",
     });
-    expect([400, 404]).toContain(res.status);
+    expect(res.status).toBe(404);
   });
 
-  test("PUT /api/categories/:id with empty body → 400 or 404", async () => {
+  test("PUT /api/categories/:id with empty body returns 404", async () => {
     const res = await fetchWith("/api/categories/missing", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: "{}",
     });
-    expect([400, 404]).toContain(res.status);
+    expect(res.status).toBe(404);
   });
 
   test("POST /api/projects/:id/token 404 when missing", async () => {
@@ -240,9 +240,9 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(res.status).toBe(404);
   });
 
-  test("GET /api/backups/:id/extract → 405 (POST-only)", async () => {
+  test("GET /api/backups/:id/extract returns 404 when missing (GET hits the not-found branch first)", async () => {
     const res = await fetchWith("/api/backups/missing/extract");
-    expect([404, 405]).toContain(res.status);
+    expect(res.status).toBe(404);
   });
 
   test("POST /api/backups/:id/extract 404 when missing", async () => {
@@ -255,22 +255,22 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(res.status).toBe(404);
   });
 
-  test("POST /api/backups/upload with empty form → 400", async () => {
+  test("POST /api/backups/upload with empty form returns 400", async () => {
     const fd = new FormData();
     const res = await fetchWith("/api/backups/upload", {
       method: "POST",
       body: fd,
     });
-    expect([400, 422, 500]).toContain(res.status);
+    expect(res.status).toBe(400);
   });
 
-  test("DELETE /api/backups with bad body → 400", async () => {
+  test("DELETE /api/backups with empty body returns 400", async () => {
     const res = await fetchWith("/api/backups", {
       method: "DELETE",
       headers: { "content-type": "application/json" },
       body: "{}",
     });
-    expect([400, 422]).toContain(res.status);
+    expect(res.status).toBe(400);
   });
 
   test("POST /api/cron/trigger/:projectId returns 404 when project missing", async () => {
@@ -312,14 +312,14 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(body).toHaveProperty("marker");
   });
 
-  test("HEAD /api/webhook/:projectId 404", async () => {
+  test("HEAD /api/webhook/:projectId without token returns 401 (auth runs before lookup)", async () => {
     const res = await fetchWith("/api/webhook/missing", { method: "HEAD" });
-    expect([401, 404]).toContain(res.status);
+    expect(res.status).toBe(401);
   });
 
-  test("GET /api/webhook/:projectId 404", async () => {
+  test("GET /api/webhook/:projectId without token returns 401", async () => {
     const res = await fetchWith("/api/webhook/missing");
-    expect([401, 404]).toContain(res.status);
+    expect(res.status).toBe(401);
   });
 });
 

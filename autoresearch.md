@@ -58,6 +58,64 @@
 - 不能新增运行时依赖（dev-deps 谨慎，需要在 commit 说明里写明原因）。
 
 ## What's Been Tried
-（每次 keep 后追加要点）
 
-baseline: 见首次 init。
+### Big wins (kept)
+1. **Parallelize 4 workspaces** via `& wait` in root `bun run test`. 2241→
+   1234 ms (-45%). Stddev 258→12. Trivially safe.
+2. **Vitest 4 pool config**: `pool: "threads", maxWorkers: 1, isolate: false`
+   in all three vitest configs. 1234→900 ms. Note: vitest 4 removed
+   `poolOptions`; the v3 keys produced a deprecation warning but were silently
+   ignored, so `singleThread + isolate:false` had no effect until migrated
+   to top-level `maxWorkers:1`.
+3. **Delete `scaffold.test.ts`** — single "App is a function" test that took
+   302 ms loading every page transitively for one TS-trivially-checked
+   assertion. 900→857 ms.
+4. **Sweep "X is a function component" surface tests** in web/__tests__
+   (projects, layout, backups, logs, dashboard, charts, auth, ui). Each
+   imported heavy radix/recharts/lucide modules just to assert exports were
+   functions. Replaced with real behavioural assertions or deleted. 857→730
+   ms; weak_tests 23→0.
+5. **Hoist node:dns mock to vitest setupFiles** in api workspace. Per-file
+   `vi.mock` lost to module-cache races under `isolate:false` (sibling test
+   imported `lib/url` -> `node:dns` first, caching the real impl). Setup
+   file pins the stub at suite load time. Fixes ~100 ms of phantom DNS
+   latency + flake risk.
+6. **Auth-render `loading shim` test was order-fragile** — it relied on the
+   real SWR cache being undefined-on-first-render. Made deterministic via
+   `vi.doMock("../lib/useMe", () => ({ useMe: () => ({ isLoading: true })}))`.
+   This is what unlocked the projects.test.ts deletion.
+7. **Tighten OR-of-statuses smoke tests** in routes.test.ts. Several tests
+   used `expect([200, 500]).toContain(res.status)` to mask real network/D1
+   dependency. Replaced with deterministic 200/404/503 + body-shape checks
+   using fakeD1+fakeR2. Routes covered so far: stats/totals, stats/charts,
+   live, db/init, db/seed-test-project, ip-info, cron/trigger/:id,
+   DELETE /api/logs/{webhook,cron}.
+8. **Webhook-logs fire-and-forget tests**: replaced bare
+   `expect(consoleSpy).toHaveBeenCalled()` with `await expect(...).resolves
+   .toBeUndefined()` + assert exact `Error.message` logged.
+
+### Dead ends (discarded)
+- `@vitejs/plugin-react` removal: no perf delta; transform was already cheap.
+- api `maxWorkers: 4`: workers contended with the parallel web vitest CPU
+  budget, and lost the `isolate:false` module-cache benefit when split.
+- web default env=node + opt-in happy-dom for lib-coverage: vitest still
+  spawns a separate worker for the differing-env file, costing more than
+  the env-init it saved (727→816 ms regression).
+- `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
+
+### Current state
+- **total_ms median: 727 ms** (baseline 2241 ms, -67.6%)
+- **stddev_ms: ~8 ms** (baseline 258 ms, -97%)
+- **test_count: 626** (baseline 648, -3.4% — only surface tests removed)
+- **weak_tests: 0** (baseline 3, but improved heuristic exposed 23 hidden)
+- **coverage gates: PASS** (api lines 92.6%, worker 95.6%, web 98.5%)
+
+### Where to go next (all in autoresearch.ideas.md)
+- handler-test boilerplate consolidation in api/handlers/* (maintainability,
+  not perf)
+- lib-coverage's @testing-library/react DOM mount could be replaced with
+  a direct effect-runner if RequireAuth is refactored (off-limits per
+  prod-code constraint)
+- 7 remaining 401/404 OR assertions in routes.test.ts could be split into
+  two tests each with explicit auth headers
+
