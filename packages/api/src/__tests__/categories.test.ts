@@ -40,9 +40,10 @@ describe("categories", () => {
       });
 
       const result = await listCategories(makeDb());
-      expect(result).toHaveLength(2);
-      expect(result[0]!.id).toBe("cat-1");
-      expect(result[1]!.id).toBe("cat-2");
+      // Tightened: pin the full result array. listCategories should
+      // pass through every column verbatim from D1; toHaveLength + 2
+      // id-checks missed body / color / sort_order regressions.
+      expect(result).toEqual(mockData);
 
       const body = JSON.parse(capturedBody);
       expect(body.sql).toContain("SELECT * FROM categories ORDER BY sort_order ASC, name ASC");
