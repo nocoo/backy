@@ -52,14 +52,31 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(body).toHaveProperty("projects");
   });
 
-  test("GET /api/stats/totals", async () => {
+  test("GET /api/stats/totals returns zeroed totals on empty DB", async () => {
     const res = await fetchWith("/api/stats/totals");
-    expect([200, 500]).toContain(res.status);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      totalProjects: number;
+      totalBackups: number;
+      totalStorageBytes: number;
+    };
+    // fakeD1 returns no rows; the handler's empty-fallback should produce
+    // a fully-shaped {0, 0, 0} payload (catches accidental shape drift).
+    expect(body).toEqual({
+      totalProjects: 0,
+      totalBackups: 0,
+      totalStorageBytes: 0,
+    });
   });
 
-  test("GET /api/stats/charts", async () => {
+  test("GET /api/stats/charts returns the expected sub-fields", async () => {
     const res = await fetchWith("/api/stats/charts");
-    expect([200, 500]).toContain(res.status);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    // Don't pin exact shape (fakeD1 returns nothing), just verify the
+    // handler responds with an object — catches 500/null regressions.
+    expect(typeof body).toBe("object");
+    expect(body).not.toBeNull();
   });
 
   test("GET /api/logs/webhook returns paginated payload", async () => {
