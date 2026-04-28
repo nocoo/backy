@@ -281,10 +281,20 @@ describe("webhookGetHandler", () => {
       expect(body.environment).toBeNull();
       expect(body.total_backups).toBe(7);
       const recent = body.recent_backups as Record<string, unknown>[];
-      expect(recent).toHaveLength(1);
-      expect(recent[0]).not.toHaveProperty("file_key");
-      expect(recent[0]).not.toHaveProperty("sender_ip");
-      expect(recent[0]?.id).toBe("b1");
+      // Tightened: pin the full sanitized shape. The previous combo of
+      // toHaveLength(1) + 2 not.toHaveProperty + 1 id-equality didn't
+      // verify that the public fields (tag/environment/file_size/...)
+      // pass through. toEqual catches both leaks AND missing fields.
+      expect(recent).toEqual([
+        {
+          id: "b1",
+          tag: "daily",
+          environment: "prod",
+          file_size: 1024,
+          is_single_json: 1,
+          created_at: "2026-01-15T00:00:00Z",
+        },
+      ]);
     }
   });
 
