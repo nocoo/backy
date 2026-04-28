@@ -52,12 +52,35 @@ describe("projects handlers", () => {
 
   describe("listProjectsHandler", () => {
     test("returns 200 with sanitized list", async () => {
-      mockListProjects = async () => [makeProject({ webhook_token: "secret" })];
+      const project = makeProject({
+        webhook_token: "secret",
+        auto_backup_header_key: "X-K",
+        auto_backup_header_value: "v",
+      });
+      mockListProjects = async () => [project];
       const r = await listProjectsHandler(ctx);
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
-      const body = (r as { body: { webhook_token?: string }[] }).body;
-      expect(body[0]?.webhook_token).toBeUndefined();
+      // Tightened: pin the entire sanitized payload by its full literal
+      // shape (was just one missing-field check). Catches new sensitive
+      // fields being leaked AND missing pass-through fields. Inlined on
+      // purpose: importing sanitizeProject() to compute the expected
+      // would be tautological (the handler already calls it).
+      expect((r as { body: unknown }).body).toEqual([
+        {
+          id: "proj-test",
+          name: "Test Project",
+          description: null,
+          allowed_ips: null,
+          category_id: null,
+          auto_backup_enabled: 1,
+          auto_backup_interval: 1,
+          auto_backup_webhook: "https://saas.example.com/trigger-backup",
+          auto_backup_headers_configured: true,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+        },
+      ]);
     });
 
     test("returns 500 on db error", async () => {
