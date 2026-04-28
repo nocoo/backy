@@ -49,6 +49,11 @@ const byFile: Array<{ file: string; weak: number }> = [];
 const TRIVIAL_RE = /\.(toBeDefined|toBeTruthy|not\.toBeUndefined|not\.toBeNull|toBeFalsy)\b/;
 const MOCK_CALL_RE = /\.(toHaveBeenCalled|toHaveBeenCalledTimes|toHaveBeenCalledWith)\b/;
 const ANY_EXPECT_RE = /\bexpect\s*\(/g;
+// `expect(typeof X).toBe("function")` / `expect(X).toBe(<some module>)` etc.
+// Specifically catches the "X is a function component" surface tests that
+// only verify exports exist and resolve to a callable — no behavior asserted.
+const SURFACE_TYPE_RE =
+  /expect\s*\(\s*typeof\s+[\w.[\]]+\s*\)\s*\.toBe\s*\(\s*["'](function|object|string|number|boolean)["']\s*\)/;
 
 // Match a single it/test block, capturing its body. We balance braces manually.
 function* iterateCases(src: string): Generator<{
@@ -153,10 +158,19 @@ for (const file of files) {
       weakInFile++;
       continue;
     }
-    // Check whether *every* expect line uses only trivial-existence matchers
+    // Check whether *every* expect line is a trivial existence/typeof matcher
     const expectLines = body.split(/\n/).filter((l) => /\bexpect\s*\(/.test(l));
     const allTrivial =
-      expectLines.length > 0 && expectLines.every((l) => TRIVIAL_RE.test(l) && !/\.(toBe|toEqual|toMatch|toContain|toThrow|toStrictEqual|toHaveProperty|toHaveLength)\b/.test(l));
+      expectLines.length > 0 &&
+      expectLines.every(
+        (l) =>
+          (TRIVIAL_RE.test(l) || SURFACE_TYPE_RE.test(l)) &&
+          !/\.(toEqual|toMatch|toContain|toThrow|toStrictEqual|toHaveProperty|toHaveLength)\b/.test(
+            l,
+          ) &&
+          // toBe is fine *unless* it's the surface typeof pattern — handled above.
+          !/\.toBe\s*\(/.test(l.replace(SURFACE_TYPE_RE, "")),
+      );
     if (allTrivial) {
       counts.trivialExistence++;
       total++;
