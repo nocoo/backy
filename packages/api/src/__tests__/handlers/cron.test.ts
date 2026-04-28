@@ -299,12 +299,22 @@ describe("cron handlers", () => {
     test("404 when project missing", async () => {
       const r = await cronTriggerOneHandler({ projectId: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      // Tightened: pin the error body so a regression that returns a
+      // generic 404 page or different copy would surface.
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("400 when no webhook configured", async () => {
       mockGetProject = async () => ({ id: "p1", auto_backup_webhook: null });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "No webhook URL configured for auto-backup",
+        });
     });
 
     test("200 failed when SSRF blocked", async () => {
