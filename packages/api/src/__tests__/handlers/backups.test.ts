@@ -134,6 +134,11 @@ describe("backups handlers", () => {
     });
 
     test("200 with all filters", async () => {
+      let captured: unknown;
+      mockListBackups = async (...args: unknown[]) => {
+        captured = args[0];
+        return { rows: [], total: 0 };
+      };
       const r = await listBackupsHandler({
         projectId: "p1",
         search: "x",
@@ -144,16 +149,43 @@ describe("backups handlers", () => {
         pageSize: "10",
       });
       expect(r.status).toBe(200);
+      // Tightened: pin the entire filter object the handler forwards to
+      // listBackups(). 200-only would mask any drift in projectId /
+      // search / environment / sortOrder / pagination math.
+      expect(captured).toEqual({
+        projectId: "p1",
+        search: "x",
+        environment: "prod",
+        sortBy: "file_size",
+        sortOrder: "asc",
+        page: 2,
+        pageSize: 10,
+      });
     });
 
     test("clamps pageSize > 100", async () => {
+      let captured: { pageSize?: number } = {};
+      mockListBackups = async (input: { pageSize?: number }) => {
+        captured = input;
+        return { rows: [], total: 0 };
+      };
       const r = await listBackupsHandler({ pageSize: "9999" });
       expect(r.status).toBe(200);
+      // Tightened: positively assert the clamp produced 100, not just
+      // that the call succeeded with garbage input.
+      expect(captured.pageSize).toBe(100);
     });
 
     test("invalid sortBy falls back to created_at", async () => {
+      let captured: { sortBy?: string } = {};
+      mockListBackups = async (input: { sortBy?: string }) => {
+        captured = input;
+        return { rows: [], total: 0 };
+      };
       const r = await listBackupsHandler({ sortBy: "junk" });
       expect(r.status).toBe(200);
+      // Tightened: positively assert the fallback value, not just 200.
+      expect(captured.sortBy).toBe("created_at");
     });
 
     test("500 on db error", async () => {
