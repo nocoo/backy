@@ -10,7 +10,7 @@ import {
 let mockGetBackup: (id: string) => Promise<any> = async () => undefined;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProject: (id: string) => Promise<any> = async () => undefined;
-let mockCreatePresignedDownloadUrl: (key: string) => Promise<string> =
+let mockCreatePresignedDownloadUrl: (key: string, ttl: number) => Promise<string> =
   async () => "https://mock.example.com/signed";
 
 vi.doMock("../../lib/db/backups", () => ({
@@ -27,7 +27,7 @@ const { restoreHandler } = await import("../../handlers/restore");
 
 const ctx = makeMockCtx({
   r2: makeMockR2({
-    presignDownload: async (key) => mockCreatePresignedDownloadUrl(key),
+    presignDownload: async (key, ttl) => mockCreatePresignedDownloadUrl(key, ttl),
   }),
 });
 
@@ -160,9 +160,9 @@ describe("restore handler", () => {
       webhook_token: "t",
       allowed_ips: null,
     });
-    let calledKey: string | undefined;
-    mockCreatePresignedDownloadUrl = async (key) => {
-      calledKey = key;
+    let calledArgs: [string, number] | undefined;
+    mockCreatePresignedDownloadUrl = async (key, ttl) => {
+      calledArgs = [key, ttl];
       return "https://signed.example.com/k1";
     };
     const r = await restoreHandler({
@@ -172,7 +172,10 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(200);
-    expect(calledKey).toBe("k1");
+    // Tightened: positively verify both forwarded args (key + 900s ttl)
+    // instead of just the key. Catches a regression that hard-codes a
+    // different TTL into the restore handler.
+    expect(calledArgs).toEqual(["k1", 900]);
     expect(r.kind).toBe("json");
     if (r.kind === "json") {
       const body = r.body as Record<string, unknown>;
