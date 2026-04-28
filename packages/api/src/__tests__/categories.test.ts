@@ -175,7 +175,9 @@ describe("categories", () => {
 
       const result = await createCategory(makeDb(), { name: "Complete" });
       expect(typeof result.id).toBe("string");
-      expect(result.id.length).toBeGreaterThan(0);
+      // generateId() returns a 21-char URL-safe nanoid — lock the exact
+      // shape so accidental id-shape regressions surface here.
+      expect(result.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
       expect(result.name).toBe("Complete");
       expect(result.color).toBe("#6b7280");
       expect(result.icon).toBe("folder");
