@@ -104,23 +104,30 @@
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
 ### Current state
-- **total_ms median: ~730–770 ms** (baseline 2241 ms, **−~67%**)
+- **total_ms median: ~730–810 ms** (baseline 2241 ms, **−~66%**)
   - quiet system: **725 ms** all-time best
-  - under modest concurrent load: **~770 ms**
-- **stddev_ms: ~5–20 ms** (baseline 258 ms, −~95%); 5-sample bench shows
-  raw 720–810 ms across runs.
-- **test_count: 629** (baseline 648, −2.9% — only meaningless surface
-  tests removed; net +3 from new deterministic route assertions).
-- **weak_tests: 0** (baseline 3 by original heuristic; improved heuristic
-  exposed 23 hidden + caught 1 vacuous-try/catch real bug).
+  - typical: **~750 ms**
+- **stddev_ms: ~3–20 ms** typical (system-load spikes can hit 100+).
+- **test_count: 626** (baseline 648, −3.4%).
+- **weak_tests: 0** by 7-heuristic scanner (noExpect, trivialExistence,
+  onlyMockCall, skipped, empty, vacuousTryCatch, vacuousKindNarrow).
 - **coverage gates: PASS** (api lines 92.6%, worker 95.6%, web 98.5%).
-- **OR-of-statuses smoke tests in routes.test.ts: 0** (was 17).
-- **real-network deps: 0** — DNS stubbed via setupFiles in api+worker;
-  loud-failing fetch net guard installed in api+worker beforeEach.
-- **time-window assertions: 0** — storage 'defaults to current time' uses
-  vi.setSystemTime + exact equality.
-- **vacuous try/catch: 0** — api.test.ts ApiError branches now use
-  `await expect(...).rejects.toMatchObject(...)`.
+- **OR-of-statuses smoke tests: 0** in routes.test.ts (was 17).
+- **vacuous union-narrow tests: 0** — 11 spots across handler tests now
+  guard `if (r.kind === "json")` with a preceding `expect(r.kind)`
+  assertion.
+- **adapter-mock arg drops: 2 fixed** (presignDownload was dropping ttl in
+  backups.test + restore.test). webhook.test no longer substitutes a
+  default contentType.
+- **partial-shape → full-shape**: 20+ tests rewritten from
+  toContain / toHaveProperty / toHaveLength / single-key assertions to
+  toEqual on the full response body, captured filter object, or R2 side
+  effect array. Catches drift in fields the prior assertion silently
+  ignored.
+- **real-network deps: 0** — DNS stubbed via setupFiles in api; loud
+  fetch net guard in api+worker beforeEach.
+- **time-window assertions: 0**.
+- **vacuous try/catch: 0**.
 
 ### Where to go next (all in autoresearch.ideas.md)
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
