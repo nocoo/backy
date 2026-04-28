@@ -96,13 +96,13 @@ describe("cron-logs", () => {
       });
 
       const result = await listCronLogs();
-      expect(result.total).toBe(1);
-      expect(result.page).toBe(1);
-      expect(result.pageSize).toBe(50);
-      expect(result.totalPages).toBe(1);
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0]!.id).toBe("clog-1");
-      expect(result.items[0]!.project_name).toBe("Test Project");
+      expect(result).toEqual({
+        total: 1,
+        page: 1,
+        pageSize: 50,
+        totalPages: 1,
+        items: mockLogs,
+      });
     });
 
     test("filters by projectId", async () => {

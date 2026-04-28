@@ -163,13 +163,16 @@ describe("webhook-logs", () => {
       });
 
       const result = await listWebhookLogs();
-      expect(result.total).toBe(1);
-      expect(result.page).toBe(1);
-      expect(result.pageSize).toBe(50);
-      expect(result.totalPages).toBe(1);
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0]!.id).toBe("log-1");
-      expect(result.items[0]!.project_name).toBe("My Project");
+      // Tightened: pin the entire response shape including the rehydrated
+      // log row. Previously the assertions only checked length + 2 fields,
+      // missing field rename / metadata-parse / pagination drift.
+      expect(result).toEqual({
+        total: 1,
+        page: 1,
+        pageSize: 50,
+        totalPages: 1,
+        items: mockLogs,
+      });
     });
 
     test("filters by projectId", async () => {
