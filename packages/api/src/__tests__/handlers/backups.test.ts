@@ -582,6 +582,13 @@ describe("backups handlers", () => {
       mockGetBackup = async () => ({ id: "b1", json_key: "existing" });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: pin the no-op response shape (handler short-circuits
+      // when json_key already set; must NOT touch R2 or call updateBackup).
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        message: "JSON already available",
+        json_key: "existing",
+      });
     });
 
     test("400 when already single JSON", async () => {
@@ -671,8 +678,34 @@ describe("backups handlers", () => {
       zip.file("data.json", '{"a":1}');
       const buf = await zip.generateAsync({ type: "uint8array" });
       mockDownloadFromR2 = async () => ({ body: bodyOf(buf) });
+      const uploaded: string[] = [];
+      mockUploadToR2 = async (key: string) => {
+        uploaded.push(key);
+      };
+      let updateArg: unknown;
+      mockUpdateBackup = async (_id: string, patch: unknown) => {
+        updateArg = patch;
+        return {};
+      };
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: positively verify the side effects: (1) the
+      // extracted JSON is uploaded to R2 once, (2) the DB is updated
+      // with the new jsonKey + jsonExtracted:true, (3) the response
+      // body announces the source file and json count from the extractor.
+      expect(uploaded).toHaveLength(1);
+      expect(uploaded[0]).toMatch(/^previews\/p1\//);
+      expect(updateArg).toEqual({
+        jsonKey: uploaded[0],
+        jsonExtracted: true,
+      });
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        message: "JSON extracted successfully",
+        json_key: uploaded[0],
+        source_file: "data.json",
+        json_files_found: 1,
+      });
     });
 
     test("500 on db error", async () => {
