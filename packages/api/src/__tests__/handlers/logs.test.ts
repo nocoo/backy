@@ -150,8 +150,8 @@ describe("logs handlers", () => {
     });
 
     test("200 with valid status", async () => {
-      let captured: { status?: string } = {};
-      mockListCronLogs = async (input: { status?: string }) => {
+      let captured: unknown;
+      mockListCronLogs = async (input: unknown) => {
         captured = input;
         return { items: [] };
       };
@@ -161,7 +161,14 @@ describe("logs handlers", () => {
         page: "3",
         pageSize: "10",
       }, ctx);
-      expect(captured.status).toBe("success");
+      // Tightened: pin the entire parsed-filter object instead of just
+      // status. Catches projectId / page / pageSize forwarding drift.
+      expect(captured).toEqual({
+        projectId: "p1",
+        status: "success",
+        page: 3,
+        pageSize: 10,
+      });
     });
 
     test("invalid status drops to undefined", async () => {
