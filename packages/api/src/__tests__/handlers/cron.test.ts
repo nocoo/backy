@@ -218,8 +218,17 @@ describe("cron handlers", () => {
       });
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
+      // Tightened: pin the entire summary shape (total/triggered/
+      // skipped/failed). Asserting only `triggered` lets a regression
+      // pass that wrongly counted the same project as both triggered
+      // AND failed, or that lost the `total` field entirely.
       if (r.kind === "json") {
-        expect((r.body as { triggered: number }).triggered).toBe(1);
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 1,
+          skipped: 0,
+          failed: 0,
+        });
       }
     });
 
@@ -244,7 +253,15 @@ describe("cron handlers", () => {
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
       if (r.kind === "json") {
-        expect((r.body as { failed: number }).failed).toBe(1);
+        // Tightened: pin the full summary instead of just `failed`.
+        // Catches a regression that double-counts (failed:1, triggered:1)
+        // or counts the failure as 'skipped' instead.
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
       }
     });
 
