@@ -108,9 +108,18 @@ async function runGitleaks(): Promise<ScanResult> {
 }
 
 async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const onlySecrets = args.includes("--secrets");
+  const onlyDeps = args.includes("--deps");
+  const runBoth = !onlySecrets && !onlyDeps;
+
   console.log("🔒 G2 Security Gate\n");
 
-  const results = await Promise.all([runOsvScanner(), runGitleaks()]);
+  const tasks: Array<Promise<ScanResult>> = [];
+  if (runBoth || onlyDeps) tasks.push(runOsvScanner());
+  if (runBoth || onlySecrets) tasks.push(runGitleaks());
+
+  const results = await Promise.all(tasks);
 
   for (const r of results) {
     console.log(r.output);

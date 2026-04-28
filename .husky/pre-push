@@ -1,4 +1,4 @@
-# G2: Security gate (osv-scanner + gitleaks)
+# G2: Security gate (osv-scanner only — secrets are checked in pre-commit)
 #
 # L2 (API E2E) currently lives in apps/web_legacy only. After the
 # Vite + Worker cutover (docs/07 Wave E.1) the legacy E2E is no
@@ -6,4 +6,4 @@
 # step here once Wave B' lands streaming uploads + integration
 # tests on the worker.
 
-bun run gate:security
+bun run gate:deps
