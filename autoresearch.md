@@ -104,14 +104,15 @@
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
 ### Current state
-- **total_ms median: 732 ms** (baseline 2241 ms, -67.3%)
-- **stddev_ms: ~10 ms** (baseline 258 ms, -96%)
+- **total_ms median: 731 ms** (baseline 2241 ms, -67.4%)
+- **stddev_ms: ~1–8 ms** (baseline 258 ms, -97% to -99%)
 - **test_count: 626** (baseline 648, -3.4% — only surface tests removed)
 - **weak_tests: 0** (baseline 3, but improved heuristic exposed 23 hidden
   + a `vacuousTryCatch` detector caught one real test bug in api.test.ts)
 - **coverage gates: PASS** (api lines 92.6%, worker 95.6%, web 98.5%)
 - **OR-of-statuses smoke tests: 0** in routes.test.ts (was 17)
-- **real-network deps: 0** (DNS stubbed via setupFiles in api workspace)
+- **real-network deps: 0** (DNS stubbed via setupFiles in api workspace,
+  loud-failing fetch net guard installed in api beforeEach)
 
 ### Where to go next (all in autoresearch.ideas.md)
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
