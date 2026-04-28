@@ -104,15 +104,23 @@
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
 ### Current state
-- **total_ms median: 731 ms** (baseline 2241 ms, -67.4%)
-- **stddev_ms: ~1–8 ms** (baseline 258 ms, -97% to -99%)
-- **test_count: 626** (baseline 648, -3.4% — only surface tests removed)
-- **weak_tests: 0** (baseline 3, but improved heuristic exposed 23 hidden
-  + a `vacuousTryCatch` detector caught one real test bug in api.test.ts)
-- **coverage gates: PASS** (api lines 92.6%, worker 95.6%, web 98.5%)
-- **OR-of-statuses smoke tests: 0** in routes.test.ts (was 17)
-- **real-network deps: 0** (DNS stubbed via setupFiles in api workspace,
-  loud-failing fetch net guard installed in api beforeEach)
+- **total_ms median: ~730–770 ms** (baseline 2241 ms, **−~67%**)
+  - quiet system: **725 ms** all-time best
+  - under modest concurrent load: **~770 ms**
+- **stddev_ms: ~5–20 ms** (baseline 258 ms, −~95%); 5-sample bench shows
+  raw 720–810 ms across runs.
+- **test_count: 629** (baseline 648, −2.9% — only meaningless surface
+  tests removed; net +3 from new deterministic route assertions).
+- **weak_tests: 0** (baseline 3 by original heuristic; improved heuristic
+  exposed 23 hidden + caught 1 vacuous-try/catch real bug).
+- **coverage gates: PASS** (api lines 92.6%, worker 95.6%, web 98.5%).
+- **OR-of-statuses smoke tests in routes.test.ts: 0** (was 17).
+- **real-network deps: 0** — DNS stubbed via setupFiles in api+worker;
+  loud-failing fetch net guard installed in api+worker beforeEach.
+- **time-window assertions: 0** — storage 'defaults to current time' uses
+  vi.setSystemTime + exact equality.
+- **vacuous try/catch: 0** — api.test.ts ApiError branches now use
+  `await expect(...).rejects.toMatchObject(...)`.
 
 ### Where to go next (all in autoresearch.ideas.md)
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
