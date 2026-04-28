@@ -273,23 +273,23 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect([400, 422]).toContain(res.status);
   });
 
-  test("POST /api/cron/trigger/:projectId 404 when project missing", async () => {
+  test("POST /api/cron/trigger/:projectId returns 404 when project missing", async () => {
     const res = await fetchWith("/api/cron/trigger/missing", { method: "POST" });
-    expect([404, 500]).toContain(res.status);
+    expect(res.status).toBe(404);
   });
 
-  test("DELETE /api/logs/webhook with empty body 200/400", async () => {
+  test("DELETE /api/logs/webhook with empty body returns 200", async () => {
     const res = await fetchWith("/api/logs/webhook", {
       method: "DELETE",
       headers: { "content-type": "application/json" },
       body: "{}",
     });
-    expect([200, 400]).toContain(res.status);
+    expect(res.status).toBe(200);
   });
 
-  test("DELETE /api/logs/cron 200/204/400", async () => {
+  test("DELETE /api/logs/cron returns 204 (no body)", async () => {
     const res = await fetchWith("/api/logs/cron", { method: "DELETE" });
-    expect([200, 204, 400]).toContain(res.status);
+    expect(res.status).toBe(204);
   });
 
   test("POST /api/db/init returns 200 with the schema-initialized payload", async () => {
