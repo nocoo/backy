@@ -36,13 +36,20 @@ for (const root of ROOTS) {
   }
 }
 
-type Kind = "noExpect" | "trivialExistence" | "onlyMockCall" | "skipped" | "empty";
+type Kind =
+  | "noExpect"
+  | "trivialExistence"
+  | "onlyMockCall"
+  | "skipped"
+  | "empty"
+  | "vacuousTryCatch";
 const counts: Record<Kind, number> = {
   noExpect: 0,
   trivialExistence: 0,
   onlyMockCall: 0,
   skipped: 0,
   empty: 0,
+  vacuousTryCatch: 0,
 };
 const byFile: Array<{ file: string; weak: number }> = [];
 
@@ -189,6 +196,30 @@ for (const file of files) {
       total++;
       weakInFile++;
       continue;
+    }
+    // Vacuous try/catch: every expect() inside the catch block, AND no
+    // 'throw' / 'should have thrown' / 'expect.fail' / `await expect(...)
+    // .rejects` guard before the catch. Such a test silently passes if the
+    // tested code resolves instead of rejecting.
+    if (/\btry\s*\{/.test(body)) {
+      const tryBlockMatch = body.match(/\btry\s*\{([\s\S]*?)\}\s*catch/);
+      const catchBlockMatch = body.match(/\bcatch\s*\([^)]*\)\s*\{([\s\S]*?)\}/);
+      const tryBody = tryBlockMatch?.[1] ?? "";
+      const catchBody = catchBlockMatch?.[1] ?? "";
+      const tryHasGuard =
+        /\bthrow\s+/.test(tryBody) ||
+        /should have thrown/i.test(tryBody) ||
+        /expect\.fail/.test(tryBody);
+      const catchHasExpect = /\bexpect\s*\(/.test(catchBody);
+      const tryHasExpectRejects = /\bawait\s+expect\s*\([^)]*\)\s*\.rejects/.test(
+        tryBody,
+      );
+      if (catchHasExpect && !tryHasGuard && !tryHasExpectRejects) {
+        counts.vacuousTryCatch++;
+        total++;
+        weakInFile++;
+        continue;
+      }
     }
   }
   if (weakInFile > 0) byFile.push({ file, weak: weakInFile });
