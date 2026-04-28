@@ -123,13 +123,22 @@ describe("categories", () => {
       expect(result.updated_at).toBe(result.created_at);
 
       const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("INSERT INTO categories");
-      const params = body.params;
-      // params: id, name, color, icon, sort_order, created_at, updated_at
-      expect(params[1]).toBe("DevOps");
-      expect(params[2]).toBe("#f59e0b");
-      expect(params[3]).toBe("wrench");
-      expect(params[4]).toBe(3);
+      // Tightened: pin the full SQL string (catches column-list drift)
+      // and the full params array (id and timestamps come from the
+      // result we already validated above, so we use the validated
+      // values rather than re-asserting their format here).
+      expect(body.sql).toBe(
+        "INSERT INTO categories (id, name, color, icon, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      );
+      expect(body.params).toEqual([
+        result.id,
+        "DevOps",
+        "#f59e0b",
+        "wrench",
+        3,
+        result.created_at,
+        result.updated_at,
+      ]);
     });
 
     test("uses default color (#6b7280) when not provided", async () => {
