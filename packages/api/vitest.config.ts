@@ -6,7 +6,8 @@ export default defineConfig({
     globals: false,
     include: ["src/__tests__/**/*.test.ts"],
     pool: "threads",
-    poolOptions: { threads: { singleThread: true, isolate: false } },
+    maxWorkers: 1,
+    isolate: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
