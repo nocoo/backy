@@ -6,7 +6,7 @@
 // BEFORE url.test.ts runs, the real DNS module is cached and a per-file
 // vi.mock can no longer intercept it. Pinning the stub at the suite level
 // guarantees deterministic, network-free DNS resolution for every test.
-import { vi } from "vitest";
+import { vi, beforeEach } from "vitest";
 
 vi.mock("node:dns/promises", () => {
   const NXDOMAIN = (host: string) => {
@@ -28,4 +28,23 @@ vi.mock("node:dns/promises", () => {
       return ["2606:2800:220:1:248:1893:25c8:1946"];
     },
   };
+});
+
+// Defensive net guard: replace globalThis.fetch with a loud-failing stub
+// before every test. Tests that legitimately need fetch must override
+// `globalThis.fetch` themselves (handler tests already do this with
+// `mockFetch` / direct stubs). Without this guard, an accidentally
+// un-mocked code path could escape onto the real network and silently
+// add latency / flake / cost to the suite.
+const NET_GUARD = ((url: RequestInfo | URL) => {
+  throw new Error(
+    `[unit-test net guard] real fetch() call to ${String(url)} — ` +
+      `every handler under test must inject its own fetcher or mock ` +
+      `globalThis.fetch in beforeEach.`,
+  );
+}) as unknown as typeof fetch;
+(NET_GUARD as typeof fetch & { preconnect: () => void }).preconnect = () => {};
+
+beforeEach(() => {
+  globalThis.fetch = NET_GUARD;
 });
