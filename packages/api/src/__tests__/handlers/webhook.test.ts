@@ -24,7 +24,7 @@ let mockListBackups: (opts: any) => Promise<any> = async () => ({
 let mockUploadToR2: (
   key: string,
   body: Uint8Array,
-  contentType: string,
+  contentType: string | undefined,
 ) => Promise<void> = async () => {};
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateWebhookLog: (entry: any) => Promise<void> = async () => {};
@@ -54,7 +54,7 @@ const webhookHandlers = await import("../../handlers/webhook");
 const ctx = makeMockCtx({
   r2: makeMockR2({
     put: async (key, body, opts) =>
-      mockUploadToR2(key, body as Uint8Array, opts?.contentType ?? "application/octet-stream"),
+      mockUploadToR2(key, body as Uint8Array, opts?.contentType),
   }),
 });
 const webhookHeadHandler = (
@@ -460,7 +460,7 @@ describe("webhookPostHandler", () => {
 
   test("201 success path with json + tag + env, uploads preview", async () => {
     mockGetProjectByToken = async () => baseProject;
-    const uploads: { key: string; type: string }[] = [];
+    const uploads: { key: string; type: string | undefined }[] = [];
     mockUploadToR2 = async (key, _body, contentType) => {
       uploads.push({ key, type: contentType });
     };
