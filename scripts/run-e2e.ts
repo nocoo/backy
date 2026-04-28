@@ -70,9 +70,14 @@ async function waitForServer(): Promise<void> {
       if (response.ok) {
         const body = (await response.json()) as {
           status: string;
-          database?: { connected?: boolean };
+          dependencies?: {
+            d1?: { status: string };
+            r2?: { status: string };
+          };
         };
-        if (body.status === "ok" && body.database?.connected === true) {
+        const d1Up = body.dependencies?.d1?.status === "up";
+        const r2Up = body.dependencies?.r2?.status === "up";
+        if (body.status === "ok" && d1Up && r2Up) {
           console.log(`  Server ready (${Date.now() - start}ms)`);
           return;
         }

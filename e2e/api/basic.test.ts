@@ -10,16 +10,20 @@ import { describe, expect, test } from "bun:test";
 const BASE_URL = "http://localhost:17018";
 
 describe("L2: API health", () => {
-  test("GET /api/live returns ok with database connected", async () => {
+  test("GET /api/live returns ok with dependencies up", async () => {
     const res = await fetch(`${BASE_URL}/api/live`);
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as {
       status: string;
-      database?: { connected?: boolean };
+      dependencies?: {
+        d1?: { status: string };
+        r2?: { status: string };
+      };
     };
     expect(body.status).toBe("ok");
-    expect(body.database?.connected).toBe(true);
+    expect(body.dependencies?.d1?.status).toBe("up");
+    expect(body.dependencies?.r2?.status).toBe("up");
   });
 
   test("GET /api/me returns authenticated user (E2E_SKIP_AUTH)", async () => {

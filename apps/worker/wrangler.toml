@@ -45,6 +45,9 @@ crons = ["0 * * * *"]
 
 [env.test]
 
+[env.test.vars]
+E2E_SKIP_AUTH = "true"
+
 [[env.test.d1_databases]]
 binding = "DB"
 database_name = "backy-db-test"
