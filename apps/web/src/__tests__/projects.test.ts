@@ -5,13 +5,11 @@ import {
   CATEGORY_COLORS,
   getCategoryIcon,
 } from "../lib/category-icons";
-import { ProjectsPage } from "../pages/projects";
-import { ProjectNewPage } from "../pages/project-new";
-import { ProjectDetailPage } from "../pages/project-detail";
-import { CategoryManagement } from "../components/category-management";
-import { ManualUploadDialog } from "../components/manual-upload-dialog";
-import { ProjectWebhookPanel } from "../components/project/project-webhook-panel";
-import { ProjectRecentBackupsCard } from "../components/project/project-recent-backups-card";
+
+// Surface assertions like `typeof ProjectsPage === "function"` were removed:
+// the TypeScript compiler already enforces the export shape, and the heavy
+// page imports added ~40ms of vitest module-load with zero behavioral
+// coverage. Page-level rendering is exercised by L3 (BDD/Playwright).
 
 describe("category-icons", () => {
   test("CATEGORY_ICONS has 20 entries", () => {
@@ -31,37 +29,5 @@ describe("category-icons", () => {
 
   test("getCategoryIcon falls back to Folder for unknown name", () => {
     expect(getCategoryIcon("not-a-real-icon")).toBe(Folder);
-  });
-});
-
-describe("Projects page surface", () => {
-  test("ProjectsPage is a function component", () => {
-    expect(typeof ProjectsPage).toBe("function");
-  });
-
-  test("ProjectNewPage is a function component", () => {
-    expect(typeof ProjectNewPage).toBe("function");
-  });
-
-  test("ProjectDetailPage is a function component", () => {
-    expect(typeof ProjectDetailPage).toBe("function");
-  });
-});
-
-describe("Project sub-components surface", () => {
-  test("CategoryManagement is a function component", () => {
-    expect(typeof CategoryManagement).toBe("function");
-  });
-
-  test("ManualUploadDialog is a function component", () => {
-    expect(typeof ManualUploadDialog).toBe("function");
-  });
-
-  test("ProjectWebhookPanel is a function component", () => {
-    expect(typeof ProjectWebhookPanel).toBe("function");
-  });
-
-  test("ProjectRecentBackupsCard is a function component", () => {
-    expect(typeof ProjectRecentBackupsCard).toBe("function");
   });
 });

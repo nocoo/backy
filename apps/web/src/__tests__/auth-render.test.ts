@@ -37,9 +37,7 @@ afterEach(() => {
 });
 
 const { useMe } = await import("../lib/useMe");
-const { RequireAuth, CF_ACCESS_LOGOUT_URL } = await import(
-  "../lib/RequireAuth"
-);
+const { CF_ACCESS_LOGOUT_URL } = await import("../lib/RequireAuth");
 const { ApiError } = await import("../lib/api");
 
 describe("useMe", () => {
@@ -59,10 +57,24 @@ describe("useMe", () => {
 });
 
 describe("RequireAuth", () => {
-  test("renders the loading shim while session is undetermined", () => {
+  test("renders the loading shim while session is undetermined", async () => {
+    // Mock useMe to a deterministic loading state. Previously this test
+    // relied on the real SWR hook returning isLoading:true on first render,
+    // which is fragile under `isolate:false` (sibling test files can
+    // populate the SWR module state during their own imports).
+    vi.doMock("../lib/useMe", () => ({
+      useMe: () => ({
+        email: null,
+        authenticated: false,
+        isLoading: true,
+        error: undefined,
+        mutate: () => {},
+      }),
+    }));
+    const { RequireAuth: RA } = await import("../lib/RequireAuth");
     const html = renderToStaticMarkup(
       React.createElement(
-        RequireAuth,
+        RA,
         null,
         React.createElement("div", null, "secret"),
       ),
