@@ -62,14 +62,68 @@ const ANY_EXPECT_RE = /\bexpect\s*\(/g;
 const SURFACE_TYPE_RE =
   /expect\s*\(\s*typeof\s+[\w.[\]]+\s*\)\s*\.toBe\s*\(\s*["'](function|object|string|number|boolean)["']\s*\)/;
 
+function stripCommentsAndStrings(src: string): string {
+  // Replace /* ... */, // ... \n, and string literals with spaces of the same
+  // length so subsequent regex offsets still line up. This stops the
+  // test/it scanner from matching English `test` / `it` inside comments
+  // and "it works" / 'test passes'-style assertion-message strings.
+  let out = "";
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    const next = src[i + 1];
+    if (c === "/" && next === "/") {
+      while (i < src.length && src[i] !== "\n") {
+        out += src[i] === "\n" ? "\n" : " ";
+        i++;
+      }
+    } else if (c === "/" && next === "*") {
+      out += "  ";
+      i += 2;
+      while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) {
+        out += src[i] === "\n" ? "\n" : " ";
+        i++;
+      }
+      if (i < src.length) {
+        out += "  ";
+        i += 2;
+      }
+    } else if (c === "'" || c === '"' || c === "`") {
+      const quote = c;
+      out += quote;
+      i++;
+      while (i < src.length && src[i] !== quote) {
+        if (src[i] === "\\") {
+          out += "  ";
+          i += 2;
+          continue;
+        }
+        out += src[i] === "\n" ? "\n" : " ";
+        i++;
+      }
+      if (i < src.length) {
+        out += quote;
+        i++;
+      }
+    } else {
+      out += c;
+      i++;
+    }
+  }
+  return out;
+}
+
 // Match a single it/test block, capturing its body. We balance braces manually.
-function* iterateCases(src: string): Generator<{
+function* iterateCases(srcRaw: string): Generator<{
   header: string;
   body: string;
   isSkipped: boolean;
 }> {
+  // Strip comments + string contents first so the scanner doesn't match
+  // English words like "test" / "it" appearing in comments / messages.
+  const src = stripCommentsAndStrings(srcRaw);
   // Match "it(", "test(", "it.skip(", "it.only(", "it.todo(", "xit(", "xtest("
-  const re = /\b(?:x?it|x?test)(?:\.(skip|only|todo|concurrent|sequential|each))?\s*\(/g;
+  const re = /(?<![\w.])(?:x?it|x?test)(?:\.(skip|only|todo|concurrent|sequential|each))?\s*\(/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
     const headerStart = m.index;
