@@ -71,9 +71,14 @@ describe("db handlers", () => {
       return {
         results: [
           {
-            name: "Backy E2E Test",
-            webhook_token: "e2e_test_webhook_token_do_not_use_in_production",
-            description: "E2E test project — auto-managed, do not delete",
+            // Must match TEST_PROJECT exactly (name='backy-test', etc.)
+            // for the handler to take the 'verified' branch instead of
+            // 'reset'. The previous fixture had "Backy E2E Test", which
+            // silently fell through to 'reset' — the test only checked
+            // status=200, masking the misnamed branch.
+            name: "backy-test",
+            webhook_token: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+            description: "E2E test project — auto-seeded",
             allowed_ips: null,
             category_id: null,
             auto_backup_enabled: 0,
@@ -90,6 +95,14 @@ describe("db handlers", () => {
       makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
     );
     expect(r.status).toBe(200);
+    // Tightened: pin the verified-branch contract: action='verified',
+    // cleanedBackups=0. The previous fixture had a name-drift bug that
+    // hid the verified branch from coverage entirely.
+    expect(r.kind).toBe("json");
+    expect((r as { body: Record<string, unknown> }).body).toMatchObject({
+      action: "verified",
+      cleanedBackups: 0,
+    });
   });
 
   test("seed cleans orphaned backups", async () => {
@@ -108,6 +121,14 @@ describe("db handlers", () => {
     );
     expect(r.status).toBe(200);
     expect(r2.deletes).toEqual(["a", "b"]);
+    // Tightened: also pin the body action='created' (handler creates
+    // the row when the project doesn't exist) and cleanedBackups=1
+    // (the one orphaned backup we set up above).
+    expect(r.kind).toBe("json");
+    expect((r as { body: Record<string, unknown> }).body).toMatchObject({
+      action: "created",
+      cleanedBackups: 1,
+    });
   });
 
   test("seed 500 on db error", async () => {
