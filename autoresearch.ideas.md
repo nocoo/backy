@@ -1,33 +1,37 @@
 # Autoresearch ideas backlog (UT quality)
 
-- **Fix auth-render.test.ts loading-shim fragility**: With `isolate:false` the
-  test "renders the loading shim while session is undetermined" depends on SWR
-  module-init order set up by *another* test file's transitive `useMe` import.
-  Add `vi.doMock("../lib/useMe", () => ({ useMe: () => ({ ..., isLoading:
-  true }) }))` before the test, or clear the SWR cache. Once stable, can
-  delete projects.test.ts's surface tests + heavy imports for ~40ms web speedup
-  and -7 weak tests.
+Most of the original backlog is DONE (auth-render fragility fixed, surface
+tests swept, generatePageNumbers de-duplicated, scanner extended). What's
+left is genuinely deeper work that wasn't tackled this round:
 
-- **Sweep "X is a function component" surface tests** across web/__tests__:
-  `auth.test.ts` (2), `backups.test.ts` (3), `layout.test.ts` (3),
-  `logs.test.ts` (2), `dashboard.test.ts` (1), `charts.test.ts` (1).
-  TypeScript already enforces export shape; these only force heavy module
-  imports. Replace with real behavioral assertions or delete. Blocked on
-  the auth-render fragility above (same root cause: shared module state).
+- **api/handlers/* test boilerplate** (~2900 lines across 11 files) uses
+  the same `let mockX = async () => ...` + `vi.doMock` pattern. Extract a
+  shared `makeStubbedDb<T>()` helper that auto-wires every db function to
+  a re-assignable mock. Maintainability win, not perf.
 
-- **Consolidate duplicated `formatBytes` / `generatePageNumbers` tests**:
-  same function tested in dashboard.test.ts AND charts.test.ts (formatBytes),
-  backups.test.ts AND logs.test.ts (generatePageNumbers). Pick one home.
+- **lib-coverage.test.ts > window.location.reload on ApiError(401)** is the
+  only test that needs happy-dom in apps/web. Refactoring `RequireAuth` to
+  expose a pure `shouldReload(error: unknown): boolean` helper would let
+  this test go straight against the helper (no DOM mount, no
+  @testing-library/react). Saves ~12ms + lets web's vitest env switch to
+  `node` (eliminating happy-dom init entirely, ~85 ms of CPU time, though
+  the wall-clock saving is bounded by the parallel-max). Off-limits in
+  this session because it touches prod code; revisit if/when prod scope
+  opens up.
 
-- **api/handlers/* test boilerplate**: 2886 lines across 11 handler tests
-  with repeated mock setup. Extract a `makeMockCtx()` helper to cut LOC and
-  avoid drift; not a perf win but a meaningfulness/maintainability win.
+- **vitest projects mode at the repo root** would amortize CLI startup
+  across the four workspaces. Requires installing `vitest` as a root
+  devDependency (currently lives only in workspace packages); declined to
+  avoid a new top-level dep.
 
-- **lib-coverage.test.ts > triggers window.location.reload on ApiError(401)**
-  is the slowest single web test (~12ms). Uses `@testing-library/react` to
-  mount a component just to verify `window.location.reload` was called.
-  Replace with a direct unit test of the redirect branch (no DOM mount).
+- **`pages/backups.tsx` duplicates `lib/pagination.ts`'s
+  `generatePageNumbers`** byte-for-byte. The duplicate page-resident
+  export is dead now that backups.test.ts targets the lib version.
+  Deleting the dup would shrink web's bundle and remove one fragility
+  vector \u2014 prod-code change, deferred.
 
-- **scan-weak-tests heuristic**: catch `expect(X).toBeInstanceOf(Function)`
-  and `expect(X).not.toBeNull()` patterns; right now only `typeof toBe(...)`
-  + `toBeDefined/Truthy` are flagged.
+- **Net guard for apps/web vitest setup**. Adding the same beforeEach
+  `globalThis.fetch = NET_GUARD` would require refactoring
+  `auth-render.test.ts` and `api.test.ts` (both capture `realFetch` at
+  module-load time and restore to it). Worthwhile when those two tests
+  get a proper `beforeEach`-based fetch lifecycle.
