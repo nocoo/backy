@@ -1,7 +1,16 @@
 import { describe, expect, test } from "vitest";
-import { JsonTreeViewer } from "../components/json-tree-viewer";
-import { BackupsPage, generatePageNumbers } from "../pages/backups";
-import { BackupDetailPage } from "../pages/backup-detail";
+import { generatePageNumbers } from "../lib/pagination";
+
+// Surface assertions for `BackupsPage` / `BackupDetailPage` / `JsonTreeViewer`
+// were removed (TS already enforces export shape; the imports dragged in the
+// pages module + json-tree-viewer for zero behavioral coverage). Page-level
+// rendering belongs in L3 (BDD/Playwright).
+//
+// Note: pages/backups.tsx ALSO exports a `generatePageNumbers` that is a
+// byte-for-byte duplicate of lib/pagination.ts's. Tests now exercise the
+// canonical lib/ implementation only; the duplicate in pages/backups should
+// be deleted in a follow-up (out of scope here \u2014 production code is
+// off-limits for this autoresearch session).
 
 describe("generatePageNumbers", () => {
   test("returns 1..N for total <= 7", () => {
@@ -32,19 +41,5 @@ describe("generatePageNumbers", () => {
     expect(r).toContain(4);
     expect(r).toContain(5);
     expect(r).toContain(6);
-  });
-});
-
-describe("Backups page surface", () => {
-  test("BackupsPage is a function component", () => {
-    expect(typeof BackupsPage).toBe("function");
-  });
-
-  test("BackupDetailPage is a function component", () => {
-    expect(typeof BackupDetailPage).toBe("function");
-  });
-
-  test("JsonTreeViewer is a function component", () => {
-    expect(typeof JsonTreeViewer).toBe("function");
   });
 });
