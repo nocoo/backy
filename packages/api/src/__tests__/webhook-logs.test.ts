@@ -84,20 +84,26 @@ describe("webhook-logs", () => {
         throw new Error("database locked");
       });
 
-      await createWebhookLog({
-        projectId: null,
-        method: "POST",
-        path: "/api/webhook/test",
-        statusCode: 500,
-        clientIp: "1.2.3.4",
-        userAgent: null,
-        errorCode: "internal_error",
-        errorMessage: "Something broke",
-        durationMs: 100,
-        metadata: null,
-      });
+      await expect(
+        createWebhookLog({
+          projectId: null,
+          method: "POST",
+          path: "/api/webhook/test",
+          statusCode: 500,
+          clientIp: "1.2.3.4",
+          userAgent: null,
+          errorCode: "internal_error",
+          errorMessage: "Something broke",
+          durationMs: 100,
+          metadata: null,
+        }),
+      ).resolves.toBeUndefined();
 
-      expect(consoleSpy).toHaveBeenCalled();
+      // The underlying D1 failure must surface in console.error so it shows
+      // up in worker logs even though the caller treats it as fire-and-forget.
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      const [, err] = consoleSpy.mock.calls[0]!;
+      expect((err as Error).message).toBe("database locked");
       consoleSpy.mockRestore();
     });
 
@@ -107,20 +113,24 @@ describe("webhook-logs", () => {
         throw new Error("Network unreachable");
       });
 
-      await createWebhookLog({
-        projectId: null,
-        method: "POST",
-        path: "/api/webhook/test",
-        statusCode: 500,
-        clientIp: null,
-        userAgent: null,
-        errorCode: "internal_error",
-        errorMessage: "network down",
-        durationMs: 0,
-        metadata: null,
-      });
+      await expect(
+        createWebhookLog({
+          projectId: null,
+          method: "POST",
+          path: "/api/webhook/test",
+          statusCode: 500,
+          clientIp: null,
+          userAgent: null,
+          errorCode: "internal_error",
+          errorMessage: "network down",
+          durationMs: 0,
+          metadata: null,
+        }),
+      ).resolves.toBeUndefined();
 
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      const [, err] = consoleSpy.mock.calls[0]!;
+      expect((err as Error).message).toBe("Network unreachable");
       consoleSpy.mockRestore();
     });
   });
