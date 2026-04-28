@@ -16,7 +16,14 @@ describe("db handlers", () => {
   });
 
   test("dbInit 200 on success", async () => {
-    expect((await dbInitHandler(makeMockCtx({ db, r2 }))).status).toBe(200);
+    const r = await dbInitHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(200);
+    // Tightened: pin the success body shape ({ok:true, message}).
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({
+      ok: true,
+      message: "Schema initialized",
+    });
   });
 
   test("dbInit 500 on error", async () => {
