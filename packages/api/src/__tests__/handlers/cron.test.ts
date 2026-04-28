@@ -359,7 +359,15 @@ describe("cron handlers", () => {
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("success");
+        // Tightened: pin status='success' AND responseCode=200 AND that
+        // durationMs is a number (timing-dependent so any-number, not
+        // an exact value). Verifies the success body includes both the
+        // upstream HTTP code and the duration measurement.
+        expect(r.body).toEqual({
+          status: "success",
+          responseCode: 200,
+          durationMs: expect.any(Number),
+        });
     });
 
     test("200 failed when fetch returns 500", async () => {
@@ -376,7 +384,12 @@ describe("cron handlers", () => {
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("failed");
+        expect(r.body).toEqual({
+          status: "failed",
+          responseCode: 502,
+          error: "oops",
+          durationMs: expect.any(Number),
+        });
     });
 
     test("200 failed when fetch throws", async () => {
