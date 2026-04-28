@@ -11,6 +11,11 @@ N=5
 # Quick syntax sanity (cheap; bails before the real loop wastes time).
 bun --bun -e "1" >/dev/null
 
+# Warm-up run (vitest deps cache, bun module cache) — not timed.
+# Without this, the first sample is consistently 2-3× slower and dominates
+# stddev, masking real performance signal.
+bun run test >/dev/null 2>&1 || true
+
 times=()
 fail_count=0
 last_test_count=""
