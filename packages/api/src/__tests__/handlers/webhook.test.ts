@@ -194,6 +194,10 @@ describe("webhookHeadHandler", () => {
       userAgent: null,
     });
     expect(r.status).toBe(500);
+    // webhookHeadHandler returns 'empty' (no body) for ALL non-200
+    // branches — documenting that contract here. The HEAD method
+    // semantically prohibits a body, so this is by design.
+    expect(r.kind).toBe("empty");
   });
 });
 
@@ -219,6 +223,11 @@ describe("webhookGetHandler", () => {
       userAgent: null,
     });
     expect(r.status).toBe(401);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({
+        error: "Missing or invalid Authorization header",
+      });
   });
 
   test("403 when token invalid", async () => {
@@ -230,6 +239,13 @@ describe("webhookGetHandler", () => {
       userAgent: null,
     });
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // 'Invalid token or project mismatch' — same generic message for
+      // unknown-token AND token-belongs-to-other-project (no info leak).
+      expect(r.body).toEqual({
+        error: "Invalid token or project mismatch",
+      });
   });
 
   test("403 when IP blocked", async () => {
@@ -244,6 +260,11 @@ describe("webhookGetHandler", () => {
       userAgent: null,
     });
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // CIDR mismatch returns the generic 'Forbidden' — same
+      // no-info-leak contract as restoreHandler.
+      expect(r.body).toEqual({ error: "Forbidden" });
   });
 
   test("200 with backup list (no environment)", async () => {
