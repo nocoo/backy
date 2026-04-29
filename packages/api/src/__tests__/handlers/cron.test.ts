@@ -101,11 +101,17 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "CRON_SECRET not configured" });
     });
 
     test("401 when no auth", async () => {
       const r = await cronTriggerHandler({ authorization: null });
       expect(r.status).toBe(401);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Unauthorized" });
     });
 
     test("401 when wrong token", async () => {
@@ -113,6 +119,11 @@ describe("cron handlers", () => {
         authorization: "Bearer wrong",
       });
       expect(r.status).toBe(401);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same generic 'Unauthorized' for both no-auth and wrong-token
+        // (don't leak which one caused the 401).
+        expect(r.body).toEqual({ error: "Unauthorized" });
     });
 
     test("500 when listAutoBackupProjects throws", async () => {
@@ -123,6 +134,9 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to query projects" });
     });
 
     test("200 with empty projects", async () => {
