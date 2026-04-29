@@ -214,12 +214,17 @@ describe("restore handler", () => {
     expect(calledArgs).toEqual(["k1", 900]);
     expect(r.kind).toBe("json");
     if (r.kind === "json") {
-      const body = r.body as Record<string, unknown>;
-      expect(body.url).toBe("https://signed.example.com/k1");
-      expect(body.backup_id).toBe("b1");
-      expect(body.project_id).toBe("p1");
-      expect(body.file_size).toBe(1234);
-      expect(body.expires_in).toBe(900);
+      // Tightened: 5 single-property checks consolidated to one
+      // toEqual pinning the full presign-response envelope. Catches
+      // a regression that adds a field (e.g. token leak via project_token)
+      // or drops one of the 5 surfaced fields.
+      expect(r.body).toEqual({
+        url: "https://signed.example.com/k1",
+        backup_id: "b1",
+        project_id: "p1",
+        file_size: 1234,
+        expires_in: 900,
+      });
     }
   });
 
