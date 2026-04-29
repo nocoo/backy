@@ -34,7 +34,14 @@ describe("db handlers", () => {
       return { results: [] };
     });
 
-    expect((await dbInitHandler(makeMockCtx({ db, r2 }))).status).toBe(500);
+    const r = await dbInitHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Generic 'Schema initialization failed' (no error.message leak
+      // — a regression that exposes 'schema failed' would leak internal
+      // detail to the client).
+      expect(r.body).toEqual({ error: "Schema initialization failed" });
   });
 
   test("seed 403 without E2E_SKIP_AUTH", async () => {
