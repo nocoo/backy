@@ -21,11 +21,7 @@ export default defineConfig({
       ],
       thresholds: {
         lines: 95,
-        // Actual 94.82% — routes are thin adapter shims where each verb
-        // counts as a separate function, so one uncovered verb hurts the
-        // ratio disproportionately. Set 1% below actual; ratchet to 95
-        // when remaining webhook verbs get tests.
-        functions: 93,
+        functions: 95,
         branches: 90,
         statements: 95,
       },

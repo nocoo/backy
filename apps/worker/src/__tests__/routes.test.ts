@@ -560,6 +560,41 @@ describe("worker routes — webhook POST hits the streaming path", () => {
       error: "Missing or invalid Authorization header",
     });
   });
+
+  test("POST /api/webhook/:projectId with valid token but no file → 400 (covers formData thunk)", async () => {
+    // Auth passes → handler calls input.formData() (the lazy thunk in
+    // routes/webhook.ts:45), then finds no 'file' field → 400.
+    // This covers the previously-uncovered `() => c.req.formData()`
+    // function that only runs when webhook auth succeeds.
+    const project = {
+      id: "wp1",
+      name: "Test",
+      webhook_token: "wh-token-1",
+      enabled: 1,
+      created_at: new Date().toISOString(),
+      allowed_ips: null,
+      auto_backup_header_key: null,
+      auto_backup_header_value: null,
+    };
+    const env = makeEnv({
+      DB: fakeD1([project]) as unknown as D1Database,
+    });
+    const fd = new FormData();
+    // No "file" field — formData() IS called, but file check fails
+    const res = await worker.fetch(
+      new Request("http://localhost/api/webhook/wp1", {
+        method: "POST",
+        body: fd,
+        headers: { authorization: "Bearer wh-token-1" },
+      }),
+      env,
+      { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as ExecutionContext,
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "Missing 'file' field in form data",
+    });
+  });
 });
 
 describe("worker routes — input shaping", () => {
