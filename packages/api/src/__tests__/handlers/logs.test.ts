@@ -117,6 +117,26 @@ describe("logs handlers", () => {
       expect(captured.statusCode).toBeUndefined();
     });
 
+    test("all-comma excludeProjectIds yields undefined (covers parts.length === 0 branch)", async () => {
+      // Covers line 26 of handlers/logs.ts: the falsy branch of
+      // `parts.length > 0 ? parts : undefined` in splitCsv. Input
+      // ', , ,' splits/trims/filter(Boolean)s down to [], so the
+      // helper must return undefined (not an empty array). Documents
+      // that the DB layer never sees an empty exclude list.
+      let captured: { excludeProjectIds?: string[] } = {};
+      mockListWebhookLogs = async (input: {
+        excludeProjectIds?: string[];
+      }) => {
+        captured = input;
+        return { items: [] };
+      };
+      await listWebhookLogsHandler(
+        { excludeProjectIds: ", , ," },
+        ctx,
+      );
+      expect(captured.excludeProjectIds).toBeUndefined();
+    });
+
     test("500 on db error", async () => {
       mockListWebhookLogs = async () => {
         throw new Error("db");
