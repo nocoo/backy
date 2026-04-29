@@ -38,13 +38,16 @@ describe("db handlers", () => {
   });
 
   test("seed 403 without E2E_SKIP_AUTH", async () => {
-    expect(
-      (
-        await seedTestProjectHandler(
-          makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "false" } }),
-        )
-      ).status,
-    ).toBe(403);
+    const r = await seedTestProjectHandler(
+      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "false" } }),
+    );
+    expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Pin the no-info-leak 'Forbidden' message (vs more specific
+      // 'E2E_SKIP_AUTH not set' — we deliberately don't leak the gating
+      // mechanism to a denied caller).
+      expect(r.body).toEqual({ error: "Forbidden" });
   });
 
   test("seed creates when not exists", async () => {
