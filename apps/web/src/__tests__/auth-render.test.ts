@@ -86,6 +86,11 @@ describe("RequireAuth", () => {
       ),
     );
     expect(html).toContain("Loading…");
+    // Tightened: also confirm children are NOT rendered during loading.
+    // A regression that always rendered children + loading shell would
+    // pass the toContain above. The 'secret' div is inserted as the
+    // child to detect that leak.
+    expect(html).not.toContain("secret");
   });
 
   test("CF Access logout URL is the canonical one", () => {
