@@ -107,8 +107,14 @@ describe("db handlers", () => {
     // cleanedBackups=0. The previous fixture had a name-drift bug that
     // hid the verified branch from coverage entirely.
     expect(r.kind).toBe("json");
-    expect((r as { body: Record<string, unknown> }).body).toMatchObject({
+    // Tightened: full toEqual pinning the verified-branch envelope incl.
+    // TEST_PROJECT id+token+cleanedBackups. Catches a regression that
+    // drops the projectId/webhookToken from the verified branch (would
+    // break E2E callers that round-trip the token).
+    expect((r as { body: unknown }).body).toEqual({
       action: "verified",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
       cleanedBackups: 0,
     });
   });
@@ -133,8 +139,10 @@ describe("db handlers", () => {
     // the row when the project doesn't exist) and cleanedBackups=1
     // (the one orphaned backup we set up above).
     expect(r.kind).toBe("json");
-    expect((r as { body: Record<string, unknown> }).body).toMatchObject({
+    expect((r as { body: unknown }).body).toEqual({
       action: "created",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
       cleanedBackups: 1,
     });
   });
