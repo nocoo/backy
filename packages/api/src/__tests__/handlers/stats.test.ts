@@ -55,7 +55,11 @@ describe("stats handlers", () => {
       throw new Error("db");
     });
 
-    expect((await statsTotalsHandler(makeMockCtx({ db }))).status).toBe(500);
+    const r = await statsTotalsHandler(makeMockCtx({ db }));
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Failed to fetch stats" });
   });
 
   test("charts 200 with data", async () => {
@@ -75,6 +79,12 @@ describe("stats handlers", () => {
       throw new Error("db");
     });
 
-    expect((await statsChartsHandler(makeMockCtx({ db }))).status).toBe(500);
+    const r = await statsChartsHandler(makeMockCtx({ db }));
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Distinct error message from totals 500 — catches a refactor
+      // that collapses both into a generic 'Failed to fetch'.
+      expect(r.body).toEqual({ error: "Failed to fetch chart data" });
   });
 });
