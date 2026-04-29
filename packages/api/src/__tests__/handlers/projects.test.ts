@@ -284,11 +284,17 @@ describe("projects handlers", () => {
   describe("deleteProjectHandler", () => {
     test("returns 200 when deleted", async () => {
       mockDeleteProject = async () => true;
-      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(200);
+      const r = await deleteProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ success: true });
     });
 
     test("returns 404 when not found", async () => {
-      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(404);
+      const r = await deleteProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
@@ -314,7 +320,10 @@ describe("projects handlers", () => {
     });
 
     test("returns 404 when project missing", async () => {
-      expect((await regenerateTokenHandler({ id: "p1" }, ctx)).status).toBe(404);
+      const r = await regenerateTokenHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
