@@ -341,10 +341,22 @@ describe("webhookGetHandler", () => {
       environment: "staging",
     });
     expect(r.status).toBe(200);
-    expect(captured?.environment).toBe("staging");
+    // Tightened: pin captured options shape (handler should forward
+    // ALL inputs to listBackups, not just environment) AND the body
+    // envelope (no recent_backups field when items=[] — documents
+    // the omit-recent-when-empty contract).
+    expect(captured).toMatchObject({
+      projectId: "p1",
+      environment: "staging",
+    });
     expect(r.kind).toBe("json");
     if (r.kind === "json") {
-      expect((r.body as Record<string, unknown>).environment).toBe("staging");
+      expect(r.body).toEqual({
+        project_name: "Test Project",
+        environment: "staging",
+        total_backups: 0,
+        recent_backups: [],
+      });
     }
   });
 
