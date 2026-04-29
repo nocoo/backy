@@ -174,6 +174,18 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(await res.json()).toEqual({ error: "Unauthorized" });
   });
 
+  test("POST /api/cron/trigger with NO authorization header → 401 (covers ?? null branch)", async () => {
+    // Covers line 14 of apps/worker/src/routes/cron.ts: the
+    // `c.req.header('authorization') ?? null` branch when no auth
+    // header is present. The handler still returns 401 (Unauthorized)
+    // because authorization=null fails the secret check, but the
+    // route-layer ?? null fallback was previously unreached (both
+    // existing tests provided some authorization header).
+    const res = await fetchWith("/api/cron/trigger", { method: "POST" });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
+  });
+
   test("GET /api/restore/:id without bearer → 401", async () => {
     const res = await fetchWith("/api/restore/some-id");
     expect(res.status).toBe(401);
