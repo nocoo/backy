@@ -293,15 +293,17 @@ with:
 
 ### B.6 Atomic Commits
 
-1. `feat(e2e): add Playwright BDD config and fixtures`
-2. `feat(e2e): add dashboard BDD spec (/)`
-3. `feat(e2e): add projects BDD specs (/projects, /projects/new, /projects/:id)`
-4. `feat(e2e): add backups BDD specs (/backups, /backups/:id)`
-5. `feat(e2e): add logs BDD specs (/logs, /cron-logs)`
-6. `feat: add gate:pages static coverage check`
-7. `feat: add test:e2e:bdd runner script`
-8. `chore: wire gate:routes and gate:pages to pre-commit`
-9. `ci: enable L2 and L3 in CI workflow`
+1. ✅ `feat(e2e): add Playwright BDD config and fixtures`
+2. ✅ `feat(e2e): add dashboard BDD spec (/)`
+3. ✅ `feat(e2e): add projects BDD specs (/projects, /projects/new, /projects/:id)`
+4. ✅ `feat(e2e): add backups BDD specs (/backups, /backups/:id)`
+5. ✅ `feat(e2e): add logs BDD specs (/logs, /cron-logs)`
+6. ✅ `feat: add gate:pages static coverage check`
+7. ✅ `feat: add test:e2e:bdd runner script`
+8. ✅ `chore: wire gate:routes and gate:pages to pre-commit`
+9. ✅ `ci: enable L2 and L3 in CI workflow`
+
+**Wave B Status: COMPLETE** (2026-04-30)
 
 ---
 
@@ -420,9 +422,9 @@ Add version read step and verification:
 
 - [x] `bun run gate:routes` passes (39 routes covered)
 - [x] `bun run test:e2e:api` passes locally (40 tests)
-- [ ] `bun run gate:pages` passes (8 pages covered)
+- [x] `bun run gate:pages` passes (8 pages covered)
 - [ ] `bun run test:e2e:bdd` passes locally
-- [ ] CI runs L2 and L3 on PR
+- [x] CI runs L2 and L3 on PR
 - [ ] CD verifies version after deploy
 - [ ] Coverage thresholds at 95%+
 
