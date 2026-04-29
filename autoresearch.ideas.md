@@ -81,3 +81,16 @@ left is genuinely deeper work that wasn't tackled this round:
   `new Response(null, { status: r.status, headers: { ...(r.headers ?? {}) } })`.
   Tests in handler-response.test.ts now pin the buggy behavior — fix
   must update both at once.
+
+- **Security: `isLocalhost` uses startsWith — vulnerable to
+  `localhost.evil.com`**: `apps/worker/src/middleware/is-localhost.ts`
+  uses `host.startsWith("localhost")` and `startsWith("127.0.0.1")`,
+  which means an attacker-controlled `Host: localhost.evil.com` header
+  would be treated as local. The cf-edge check (`c.req.raw.cf`) is the
+  practical mitigation in CF Worker deploys (the `cf` field is only set
+  when traffic actually came through CF). If anyone ever wires this
+  worker behind a non-CF reverse proxy, the bypass becomes
+  exploitable. Fix: change to either exact-match (`host === "localhost"`
+  or `host.startsWith("localhost:")` for port suffix) or use
+  `URL.hostname` parsing. Test currently pins the BUG behavior so a fix
+  forces both updates. Prod-code change, deferred.
