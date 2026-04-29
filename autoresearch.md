@@ -103,15 +103,16 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (205 experiments)
+### Current state (207 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
-- **test_count: 640** (baseline 648, −1.2%; +14 ADDITIVE tests vs 100
-  milestone, including ip-info 503, cron not-due-this-hour, routes
-  /api/backups query-params, routes /api/webhook environment-query,
-  routes /api/categories+/api/projects malformed-JSON — all closing
-  previously-untested code-path coverage gaps).
+- **test_count: 643** (baseline 648, −0.8%; +17 ADDITIVE tests vs 100
+  milestone, including malformed-JSON catch-arrow coverage across
+  every JSON-accepting route).
+- **weak_tests: 0** by 7-heuristic scanner.
+- **coverage gates: PASS** (api 91.59% / web 98.64% / worker 94.08%
+  statements; worker branches 93.83% — up from 91% via this session).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS** (api 91.59% statements / 85.24% branches).
 - **100% body-coverage on every test** + auth-header forwarding +
