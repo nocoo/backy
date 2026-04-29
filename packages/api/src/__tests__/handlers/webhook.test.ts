@@ -491,6 +491,11 @@ describe("webhookPostHandler", () => {
       }),
     });
     expect(r.status).toBe(413);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Same MAX_FILE_SIZE limit string as upload handler. Pin so a
+      // regression that bumps MAX_FILE_SIZE silently surfaces.
+      expect(r.body).toEqual({ error: "File too large. Maximum: 50MB" });
   });
 
   test("400 when environment invalid", async () => {
@@ -503,6 +508,12 @@ describe("webhookPostHandler", () => {
       formData: fd({ environment: "bogus" }),
     });
     expect(r.status).toBe(400);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Same allowlist string as upload handler.
+      expect(r.body).toEqual({
+        error: "Invalid environment. Allowed: dev, prod, staging, test",
+      });
   });
 
   test("201 success path with json + tag + env, uploads preview", async () => {
@@ -601,6 +612,9 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Internal server error" });
   });
 
   test("500 when createBackup throws", async () => {
@@ -616,6 +630,11 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Same generic 'Internal server error' for r2/db/auth throws —
+      // no dependency leak.
+      expect(r.body).toEqual({ error: "Internal server error" });
   });
 
   test("500 when getProjectByToken throws", async () => {
@@ -630,6 +649,9 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Internal server error" });
   });
 
   test("500 when formData() throws (multipart parse failure)", async () => {
