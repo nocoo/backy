@@ -210,6 +210,7 @@ Add to `package.json`:
 11. ✅ `feat(e2e): add webhook E2E tests (3 routes)`
 12. ✅ `refactor(e2e): remove basic.test.ts (superseded)`
 13. ✅ `feat: add gate:routes static coverage check`
+14. ✅ `fix(e2e): align API tests with actual handler contracts`
 
 **Wave A Status: COMPLETE** (2026-04-29)
 
@@ -417,9 +418,9 @@ Add version read step and verification:
 
 ## Verification Checklist
 
-- [ ] `bun run gate:routes` passes (39 routes covered)
+- [x] `bun run gate:routes` passes (39 routes covered)
+- [x] `bun run test:e2e:api` passes locally (40 tests)
 - [ ] `bun run gate:pages` passes (8 pages covered)
-- [ ] `bun run test:e2e:api` passes locally
 - [ ] `bun run test:e2e:bdd` passes locally
 - [ ] CI runs L2 and L3 on PR
 - [ ] CD verifies version after deploy
