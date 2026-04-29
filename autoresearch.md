@@ -103,34 +103,30 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state
+### Current state (100 experiments)
 - **total_ms median: ~740–770 ms** (baseline 2241 ms, **−~67%**)
-  - quiet system: **725 ms** all-time best
-  - typical: **~745 ms**
 - **stddev_ms: ~3–20 ms** typical.
 - **test_count: 626** (baseline 648, −3.4%).
 - **weak_tests: 0** by 7-heuristic scanner.
-- **coverage gates: PASS** (api lines 92.6%, worker 95.6%, web 98.5%).
-- **OR-of-statuses: 0** in routes.test.ts.
-- **vacuous union-narrow: 0** — all `if (r.kind === 'json')` blocks now
-  have a preceding `expect(r.kind)` guard.
-- **adapter-mock arg drops fixed: 2** (presignDownload ttl in backups +
-  restore tests).
+- **coverage gates: PASS**.
+- **status-only handler tests tightened to positive body checks: 60+**
+  across backups (10 handlers × 3-4 status branches), webhook (4),
+  projects (8), restore (8 incl. all auth/IP error branches with
+  no-info-leak contracts), cron (12 across summary + one-shot incl.
+  body+responseCode+durationMs + categorization branches), logs (3),
+  categories (5 incl. SQL+params toEqual), db (init + seed branches),
+  live (envelope), ip-info (4), stats (3), getBackup, deleteBackup
+  (R2 ordering+non-fatal), regenerateToken.
+- **adapter-mock arg drops fixed: 2** (presignDownload ttl).
 - **silent-default mock substitutions removed: 1** (webhook contentType).
-- **status-only tests tightened: 40+** — success/error/sanitization paths
-  across backups (list+upload+delete+preview+extract+download), webhook
-  (recent_backups), projects (list+create+get+update+regenerate),
-  restore (presign+precedence), cron (full {total,triggered,skipped,
-  failed} on 8 summary tests + body+responseCode+durationMs on 5
-  one-shot tests), logs (filter forwarding), categories (full SQL +
-  params), db (init body, seed branch isolation), live (dependency
-  envelope), ip-info (error msg + upstream pass-through), stats
-  (snake→camel mapping).
-- **misnamed/wrongly-fixtured test fixed: 1** (db.test 'verifies clean
-  existing' had a name drift that silently routed to the 'reset' branch
-  for the entire history of the test).
-- **real-network deps: 0**, **time-window assertions: 0**,
-  **vacuous try/catch: 0**.
+- **misnamed/wrongly-fixtured tests fixed: 1** (db.test 'verifies clean
+  existing' — silently ran the 'reset' branch for the entire test history).
+- **vacuous union-narrow guards: 0** (all `if (r.kind === 'json')` blocks
+  now preceded by `expect(r.kind)`).
+- **Zod error-envelope tested**: createProject 400 now pins
+  `{error,details:{fieldErrors:{name:[...]}}}` shape.
+- **OR-of-statuses: 0**, **vacuous try/catch: 0**,
+  **time-window assertions: 0**, **real-network deps: 0**.
 
 ### Where to go next (all in autoresearch.ideas.md)
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
