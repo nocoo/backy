@@ -202,7 +202,11 @@ describe("logs handlers", () => {
       mockListCronLogs = async () => {
         throw new Error("db");
       };
-      expect((await listCronLogsHandler({}, ctx)).status).toBe(500);
+      const r = await listCronLogsHandler({}, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to list cron logs" });
     });
   });
 
@@ -219,13 +223,18 @@ describe("logs handlers", () => {
         status: "failed",
       }, ctx);
       expect(r.status).toBe(204);
+      expect(r.kind).toBe("empty");
     });
 
     test("500 on db error", async () => {
       mockDeleteCronLogs = async () => {
         throw new Error("db");
       };
-      expect((await deleteCronLogsHandler({}, ctx)).status).toBe(500);
+      const r = await deleteCronLogsHandler({}, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to delete cron logs" });
     });
   });
 });
