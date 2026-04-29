@@ -67,6 +67,38 @@ describe("apiFetch", () => {
       body: null,
     });
   });
+
+  test("ApiError returns null when res.text() rejects (covers safeBody text catch branch)", async () => {
+    // Covers the catch branch in safeBody (api.ts:54) where res.text()
+    // throws — e.g. a body stream error. The json path isn't taken
+    // because content-type has no "application/json", so safeBody falls
+    // through to res.text() which rejects.
+    stubFetch(() => {
+      const res = new Response("x", { status: 502 });
+      res.text = () => Promise.reject(new Error("body stream consumed"));
+      return res;
+    });
+    await expect(apiFetch("/api/x")).rejects.toMatchObject({
+      status: 502,
+      body: null,
+    });
+  });
+
+  test("safeBody uses fallback when content-type header is null (covers ?? branch)", async () => {
+    // Covers the nullish branch of `res.headers.get("content-type") ?? ""`
+    // in safeBody (api.ts:43). All other tests create Response objects
+    // that auto-set Content-Type (e.g. new Response("text") → text/plain).
+    // Here we strip the header so get() returns null → ?? fires.
+    stubFetch(() => {
+      const res = new Response("no-ct", { status: 503 });
+      res.headers.delete("content-type");
+      return res;
+    });
+    await expect(apiFetch("/api/x")).rejects.toMatchObject({
+      status: 503,
+      body: "no-ct",
+    });
+  });
 });
 
 describe("apiJson + swrFetcher", () => {

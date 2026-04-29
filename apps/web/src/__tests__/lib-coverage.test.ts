@@ -29,6 +29,21 @@ describe("version fallback", () => {
     // so APP_VERSION resolves through the typeof-guarded fallback path.
     expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
   });
+
+  test("APP_VERSION uses __APP_VERSION__ when defined at global scope", async () => {
+    // Covers the truthy branch of typeof __APP_VERSION__ === "string"
+    // in version.ts. In production Vite replaces the identifier at
+    // build time; here we simulate it via globalThis (Node resolves
+    // bare identifiers through the global scope chain).
+    (globalThis as Record<string, unknown>).__APP_VERSION__ = "9.8.7";
+    vi.resetModules();
+    try {
+      const { APP_VERSION: ver } = await import("../lib/version");
+      expect(ver).toBe("9.8.7");
+    } finally {
+      delete (globalThis as Record<string, unknown>).__APP_VERSION__;
+    }
+  });
 });
 
 describe("RequireAuth — DOM-mounted branch coverage", () => {
