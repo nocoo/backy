@@ -102,8 +102,13 @@ describe("generatePreviewKey", () => {
 
   test("auto-generates timestamp when not provided", () => {
     const key = generatePreviewKey("proj1");
-    expect(key.startsWith("previews/proj1/")).toBe(true);
-    expect(key.endsWith(".json")).toBe(true);
+    // Tightened: pin the full preview-key shape via regex (was 2
+    // separate startsWith/endsWith checks). Catches a regression
+    // that prefixes the project id differently or uses a non-Z
+    // timestamp suffix.
+    expect(key).toMatch(
+      /^previews\/proj1\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/,
+    );
   });
 
   test("always uses .json extension", () => {
