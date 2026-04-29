@@ -111,6 +111,18 @@ describe("projects handlers", () => {
     test("returns 400 on invalid input", async () => {
       const r = await createProjectHandler({ body: { name: "" } }, ctx);
       expect(r.status).toBe(400);
+      // Tightened: pin the error envelope shape including the field-
+      // specific zod fieldErrors. Don't pin the exact zod message string
+      // (zod minor-version bumps can rephrase those).
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toMatchObject({
+        error: "Invalid input",
+        details: {
+          fieldErrors: {
+            name: expect.arrayContaining([expect.any(String)]),
+          },
+        },
+      });
     });
 
     test("returns 500 on db error", async () => {
