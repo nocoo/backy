@@ -327,8 +327,12 @@ describe("cron handlers", () => {
           auto_backup_header_value: null,
         },
       ];
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(
-        async () => new Response("nope", { status: 500 }),
+        async () => {
+          fetchCount++;
+          return new Response("nope", { status: 500 });
+        },
       );
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
@@ -346,6 +350,12 @@ describe("cron handlers", () => {
           failed: 1,
         });
       }
+      // Pin the no-retry contract: 5xx response should be counted as
+      // failed AFTER exactly 1 fetch attempt (no automatic retry on the
+      // server side; clients/cron are expected to retry on next tick).
+      // A regression that adds retry logic would inflate counter and
+      // surface here.
+      expect(fetchCount).toBe(1);
     });
 
     test("counts thrown fetch as failed", async () => {
