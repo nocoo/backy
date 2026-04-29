@@ -106,4 +106,29 @@ describe("ipInfoHandler", () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  test("forwards empty x-api-key header when ECHO_API_KEY is unset (covers ?? '' fallback)", async () => {
+    // Covers the falsy branch of `ctx.env.ECHO_API_KEY ?? ''` on line
+    // 17 of handlers/ip-info.ts. The default makeMockCtx sets
+    // ECHO_API_KEY='test-echo-key', so the existing tests only
+    // exercise the truthy branch. This test clears ECHO_API_KEY and
+    // verifies the handler still proceeds with an empty x-api-key
+    // (echoKey → '' fallback).
+    const baseCtx = makeMockCtx();
+    const noKeyCtx: typeof baseCtx = {
+      ...baseCtx,
+      env: { ...baseCtx.env, ECHO_API_KEY: "" },
+    };
+    let capturedHeaders: Record<string, string> | undefined;
+    const fetcher = async (
+      _url: string,
+      init: { headers: Record<string, string> },
+    ) => {
+      capturedHeaders = init.headers;
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    };
+    const r = await ipInfoHandler({ ip: "1.2.3.4" }, noKeyCtx, fetcher);
+    expect(r.status).toBe(200);
+    expect(capturedHeaders?.["x-api-key"]).toBe("");
+  });
 });
