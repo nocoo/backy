@@ -69,7 +69,12 @@ describe("live handler", () => {
     const body = r as {
       body: { dependencies: { d1: { message?: string } } };
     };
-    expect(body.body.dependencies.d1.message).not.toContain("ok");
+    // Tightened: pin the exact sanitized message. sanitizeMessage()
+    // replaces every word-boundaried 'ok'/'OK' with '***', so 'not ok
+    // message' → 'not *** message'. A regression that drops the gi
+    // flag, replaces with a different mask, or skips the word-boundary
+    // would surface here.
+    expect(body.body.dependencies.d1.message).toBe("not *** message");
   });
 
   test("non-Error throw uses default message", async () => {
