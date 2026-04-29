@@ -309,6 +309,36 @@ describe("categories", () => {
       expect(result!.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
+    test("preserves name when partial update omits it (covers data.name ?? existing.name fallback)", async () => {
+      // Covers line 95 of categories.ts: `const name = data.name ?? existing.name`.
+      // The previous partial-update test ALWAYS provided data.name, so
+      // the ?? fallback was unreached. This test omits name and only
+      // updates color, exercising the fallback to existing.name.
+      const existingCat = {
+        id: "cat-name-keep",
+        name: "Original Name",
+        color: "#000000",
+        icon: "folder",
+        sort_order: 0,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
+      };
+      let callCount = 0;
+      globalThis.fetch = mockFetch(async () => {
+        callCount++;
+        if (callCount === 1) return d1Success([existingCat]);
+        return d1Success();
+      });
+      const result = await updateCategory(makeDb(), "cat-name-keep", {
+        color: "#ff00ff",
+      });
+      expect(result).toMatchObject({
+        id: "cat-name-keep",
+        name: "Original Name", // preserved via ?? fallback
+        color: "#ff00ff", // updated
+      });
+    });
+
     test("returns undefined when category does not exist", async () => {
       globalThis.fetch = mockFetch(async () => d1Success([]));
 
