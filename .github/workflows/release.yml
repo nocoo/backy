@@ -48,19 +48,28 @@ jobs:
           workingDirectory: apps/worker
           command: deploy --env=""
 
+      - name: Read version
+        id: ver
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Expected version: $VERSION"
+
       - name: Verify deployment
         run: |
           set -e
+          EXPECTED="${{ steps.ver.outputs.version }}"
           for i in 1 2 3 4 5 6; do
-            STATUS=$(curl -fsS -o /dev/null -w "%{http_code}" https://backy.hexly.ai/api/live || true)
-            echo "attempt $i: status=$STATUS"
-            if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
-              echo "✅ Worker reachable (status $STATUS)"
+            RESP=$(curl -fsS https://backy.hexly.ai/api/live || echo '{}')
+            ACTUAL=$(echo "$RESP" | jq -r .version)
+            echo "attempt $i: live=$ACTUAL expected=$EXPECTED"
+            if [ "$ACTUAL" = "$EXPECTED" ]; then
+              echo "✅ Live version matches $EXPECTED"
               exit 0
             fi
             sleep 5
           done
-          echo "❌ Deployment verification failed after 30s"
+          echo "❌ /api/live did not report version $EXPECTED after 30s"
           exit 1
 
       - name: Summary
