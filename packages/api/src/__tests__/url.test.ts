@@ -417,7 +417,11 @@ describe("resolveAndValidateUrl", () => {
   test("blocks IP address in private range directly", async () => {
     const result = await resolveAndValidateUrl("https://127.0.0.1/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    // Tightened: pin templated reason — catches a regression that drops
+    // the IP from the message (operators rely on it for debugging).
+    expect((result as { reason: string }).reason).toBe(
+      "Resolved IP 127.0.0.1 is in a private range",
+    );
   });
 
   test("blocks 169.254.169.254 (cloud metadata IP)", async () => {
@@ -428,13 +432,16 @@ describe("resolveAndValidateUrl", () => {
   test("rejects invalid URL", async () => {
     const result = await resolveAndValidateUrl("not-a-url");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("Invalid URL");
+    expect((result as { reason: string }).reason).toBe("Invalid URL");
   });
 
   test("blocks hostname that fails DNS resolution", async () => {
     const result = await resolveAndValidateUrl("https://this-domain-does-not-exist-xyzzy.example/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("DNS resolution failed");
+    // Tightened: pin templated reason with the hostname interpolated.
+    expect((result as { reason: string }).reason).toBe(
+      "DNS resolution failed for this-domain-does-not-exist-xyzzy.example",
+    );
   });
 
   test("allowlist bypasses DNS check", async () => {
@@ -452,18 +459,24 @@ describe("resolveAndValidateUrl", () => {
   test("blocks IPv6 loopback literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[::1]/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    expect((result as { reason: string }).reason).toBe(
+      "IPv6 address [::1] is in a private range",
+    );
   });
 
   test("blocks IPv6 link-local literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[fe80::1]/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    expect((result as { reason: string }).reason).toBe(
+      "IPv6 address [fe80::1] is in a private range",
+    );
   });
 
   test("blocks IPv6 ULA literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[fd00::1]/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    expect((result as { reason: string }).reason).toBe(
+      "IPv6 address [fd00::1] is in a private range",
+    );
   });
 });
