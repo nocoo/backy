@@ -423,12 +423,28 @@ Add version read step and verification:
 
 | Package | stmts | lines | funcs | branches | Notes |
 |---------|-------|-------|-------|----------|-------|
-| packages/api | 95% | 95% | 95% | 90% | All at target |
-| apps/worker | 95% | 95% | 93% | 90% | funcs 1% below actual (94.82%); thin route shims |
-| apps/web | 98% | 98% | 98% | 90% | branches 1% below actual (91.66%); env branches covered by L3 |
+| packages/api | 95% | 95% | 95% | 90% | ✅ At target |
+| apps/worker | 95% | 95% | **93%** | 90% | ⚠️ funcs below 95% target (actual 94.82%) |
+| apps/web | 98% | 98% | 98% | **90%** | ⚠️ branches below 95% target (actual 91.66%) |
 | apps/cli | 90% | 90% | 90% | 80% | Unchanged (not in scope) |
 
-**Wave D Status: COMPLETE** (2026-04-30)
+### D.6 Remaining Ratchet Items
+
+Two thresholds have not reached D.2 targets yet:
+
+1. **apps/worker funcs 93% → 95%**: 3 uncovered webhook route adapter
+   functions (`webhookHeadHandler`, `webhookGetHandler`, `webhookPostHandler`
+   wrappers in `routes/webhook.ts`). Add unit tests for these thin shims to
+   reach 95%.
+
+2. **apps/web branches 90% → 95%**: 3 uncovered branches:
+   - `version.ts:4` — `import.meta.env.VITE_APP_VERSION ?? "dev"` fallback
+   - `api.ts:54` — error response handling branch
+   - `RequireAuth.tsx:21` — unauthenticated redirect branch
+   These require mocking `import.meta.env` or error states at unit level
+   (L3 BDD covers them behaviorally but not in Vitest's branch counter).
+
+**Wave D Status: PARTIAL** — ratchet baseline applied, 2 items remain for final 95%+ target
 
 ---
 
@@ -440,7 +456,7 @@ Add version read step and verification:
 - [x] `bun run test:e2e:bdd` passes locally (9 tests)
 - [x] CI runs L2 and L3 on PR
 - [x] CD verifies version after deploy
-- [x] Coverage thresholds at 95%+ (worker funcs 93%, web branches 90% — see D.5 notes)
+- [ ] Coverage thresholds at 95%+ (2 remaining: worker funcs 93%→95%, web branches 90%→95%)
 
 ## References
 
