@@ -141,11 +141,16 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       headers: { authorization: "Bearer wrong" },
     });
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
   });
 
   test("GET /api/restore/:id without bearer → 401", async () => {
     const res = await fetchWith("/api/restore/some-id");
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      error:
+        "Missing authentication. Provide Authorization: Bearer header or ?token= query param.",
+    });
   });
 
   test("GET /api/ip-info returns 503 when ECHO_API_URL is unset", async () => {
@@ -169,6 +174,7 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     // No ?ip query and the synthetic Request has no client-ip header,
     // so the handler’s missing-ip guard fires.
     expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Missing ip parameter" });
   });
 
   test("GET /api/me without E2E_SKIP_AUTH returns 401", async () => {
@@ -179,21 +185,27 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       {} as unknown as ExecutionContext,
     );
     expect(res.status).toBe(500); // CF Access not configured → 500
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 
   test("GET /api/projects/:id 404 when not found", async () => {
     const res = await fetchWith("/api/projects/missing");
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
   });
 
   test("GET /api/categories/:id 404 when not found", async () => {
     const res = await fetchWith("/api/categories/missing");
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Category not found" });
   });
 
   test("GET /api/backups/:id 404 when not found", async () => {
     const res = await fetchWith("/api/backups/missing");
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Backup not found" });
   });
 
   test("DELETE /api/projects/:id 404", async () => {
