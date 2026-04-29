@@ -430,7 +430,9 @@ Add version read step and verification:
 | apps/web | 98% | 98% | 98% | 95% | 100 / 100 / 100 / 97.22 |
 | apps/cli | 90% | 90% | 90% | 80% | 100 / 100 / 100 / 100 |
 
-All packages at or above 95%+ targets. One remaining uncovered branch:
+D.2 target thresholds met: 95%+ for statements/lines/functions across all
+packages; branch thresholds per-package (api 90%, worker 90%, web 95%,
+cli 80%) with actuals above thresholds. One remaining uncovered branch:
 `RequireAuth.tsx:21` — useEffect `error instanceof ApiError && error.status === 401`
 short-circuit branch (the "error is not ApiError" path inside useEffect). Covered
 behaviorally by the render test but V8 counts the useEffect callback's branch
@@ -448,7 +450,7 @@ separately from the render body's identical check.
 - [x] `bun run test:e2e:bdd` passes locally (9 tests)
 - [x] CI runs L2 and L3 on PR
 - [x] CD verifies version after deploy
-- [x] Coverage thresholds at 95%+ across all packages
+- [x] Coverage: D.2 target thresholds met (95%+ stmts/lines/funcs; branch thresholds per-package)
 
 ## References
 
