@@ -192,7 +192,11 @@ describe("backups handlers", () => {
       mockListBackups = async () => {
         throw new Error("db");
       };
-      expect((await listBackupsHandler({})).status).toBe(500);
+      const r = await listBackupsHandler({});
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to list backups" });
     });
   });
 
@@ -221,11 +225,23 @@ describe("backups handlers", () => {
     test("400 on empty array", async () => {
       const r = await batchDeleteBackupsHandler({ body: { ids: [] } });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Empty array hits the same 'non-empty array of strings' branch
+        // as the non-array / non-string-element cases.
+        expect(r.body).toEqual({
+          error: "ids must be a non-empty array of strings",
+        });
     });
 
     test("400 on non-array", async () => {
       const r = await batchDeleteBackupsHandler({ body: { ids: "x" } });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "ids must be a non-empty array of strings",
+        });
     });
 
     test("400 on >50 ids", async () => {
@@ -233,6 +249,13 @@ describe("backups handlers", () => {
         body: { ids: Array.from({ length: 51 }, (_, i) => String(i)) },
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct error message from the empty/non-array branch —
+        // pinning prevents a refactor from collapsing them.
+        expect(r.body).toEqual({
+          error: "Maximum 50 backups can be deleted at once",
+        });
     });
 
     test("400 when ids contain non-strings", async () => {
