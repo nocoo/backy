@@ -448,7 +448,11 @@ describe("cron handlers", () => {
         auto_backup_header_key: "X-K",
         auto_backup_header_value: "v",
       });
-      globalThis.fetch = mockFetch(async () => new Response("ok"));
+      let capturedHeaders: Headers | undefined;
+      globalThis.fetch = mockFetch(async (_url, init) => {
+        capturedHeaders = new Headers(init?.headers);
+        return new Response("ok");
+      });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
@@ -462,6 +466,10 @@ describe("cron handlers", () => {
           responseCode: 200,
           durationMs: expect.any(Number),
         });
+      // Same auth-header forwarding contract as the cronTriggerHandler
+      // test — a regression that drops headers in the one-shot path
+      // would surface here.
+      expect(capturedHeaders?.get("X-K")).toBe("v");
     });
 
     test("200 failed when fetch returns 500", async () => {
