@@ -71,7 +71,7 @@ describe("extractJson", () => {
     const result = await extractJson(new Uint8Array(), "json");
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("already JSON");
+      expect(result.reason).toBe("File is already JSON, no extraction needed");
     }
   });
 
@@ -79,7 +79,9 @@ describe("extractJson", () => {
     const result = await extractJson(new Uint8Array(), "unknown");
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("Unsupported");
+      expect(result.reason).toBe(
+        "Unsupported file format — cannot extract preview content",
+      );
     }
   });
 });
@@ -113,7 +115,7 @@ describe("extractFromZip", () => {
     const result = await extractFromZip(zip);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("No JSON files");
+      expect(result.reason).toBe("No JSON files found in the ZIP archive");
     }
   });
 
@@ -124,7 +126,10 @@ describe("extractFromZip", () => {
     const result = await extractFromZip(zip);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      // Tightened: pin the templated reason — the impl interpolates
+      // the failing filename so a regression that drops it (or wraps
+      // the entry name) would surface.
+      expect(result.reason).toBe(`File "data.json" is not valid JSON`);
     }
   });
 
@@ -133,7 +138,9 @@ describe("extractFromZip", () => {
     const result = await extractFromZip(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("corrupt");
+      expect(result.reason).toBe(
+        "Failed to parse ZIP archive — file may be corrupt",
+      );
     }
   });
 
@@ -173,7 +180,9 @@ describe("extractFromGz", () => {
     const result = await extractFromGz(gz);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      expect(result.reason).toBe(
+        "Decompressed content is not valid JSON — preview is not available for this file",
+      );
     }
   });
 
@@ -182,7 +191,9 @@ describe("extractFromGz", () => {
     const result = await extractFromGz(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("corrupt");
+      expect(result.reason).toBe(
+        "Failed to decompress GZ file — file may be corrupt",
+      );
     }
   });
 
