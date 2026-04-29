@@ -103,28 +103,40 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (100 experiments)
-- **total_ms median: ~740–770 ms** (baseline 2241 ms, **−~67%**)
+### Current state (134 experiments)
+- **total_ms median: ~735–770 ms** (baseline 2241 ms, **−~67%**)
 - **stddev_ms: ~3–20 ms** typical.
 - **test_count: 626** (baseline 648, −3.4%).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
-- **status-only handler tests tightened to positive body checks: 60+**
-  across backups (10 handlers × 3-4 status branches), webhook (4),
-  projects (8), restore (8 incl. all auth/IP error branches with
-  no-info-leak contracts), cron (12 across summary + one-shot incl.
-  body+responseCode+durationMs + categorization branches), logs (3),
-  categories (5 incl. SQL+params toEqual), db (init + seed branches),
-  live (envelope), ip-info (4), stats (3), getBackup, deleteBackup
-  (R2 ordering+non-fatal), regenerateToken.
+- **status-only handler tests tightened to positive body checks: 100+**
+  across **all** 11 backups handlers (list/upload/get/delete/batchDelete/
+  download/preview/extract/restoreCommand 4xx/5xx fully covered),
+  webhook (4), projects (8), restore (8 incl. all auth/IP no-info-leak
+  contracts), cron (12 across summary + one-shot), logs (10 across all
+  6 endpoints incl. listCron 200/500 + deleteCron 204/500), categories
+  (10 incl. SQL+params toEqual + Zod fieldErrors), db (init + 4 seed
+  branches + getTestMarker), live (sanitizer + envelope), ip-info (4),
+  stats (3), webhook-logs DB layer (10 param order pins), cron-logs DB
+  layer (7 param order pins), url SSRF (6 templated reasons),
+  extractors (10 reason strings + filename interpolation), routes
+  (envelope), ctx (env-key allowlist).
+- **Discoveries logged**: createBackup outer-catch returns 'Internal
+  server error' (NOT inner 'Failed to upload'); previewBackup +
+  extractBackup `if (!r2Response)` null-checks are unreachable in
+  practice (readR2Bytes throws first — dead branches; tracked in
+  ideas.md).
 - **adapter-mock arg drops fixed: 2** (presignDownload ttl).
 - **silent-default mock substitutions removed: 1** (webhook contentType).
-- **misnamed/wrongly-fixtured tests fixed: 1** (db.test 'verifies clean
-  existing' — silently ran the 'reset' branch for the entire test history).
+- **misnamed/wrongly-fixtured tests fixed: 1** (db.test seed-verifies-clean).
 - **vacuous union-narrow guards: 0** (all `if (r.kind === 'json')` blocks
   now preceded by `expect(r.kind)`).
-- **Zod error-envelope tested**: createProject 400 now pins
-  `{error,details:{fieldErrors:{name:[...]}}}` shape.
+- **Zod error-envelopes pinned**: createProject, updateProject,
+  createCategory, updateCategory.
+- **Negative assertions tightened to positive contracts**:
+  storage.timestamp (.not.toContain → regex shape),
+  live.sanitize-ok (.not.toContain('ok') → toBe('not *** message')),
+  lib-coverage pagination indexed-position checks → full toEqual.
 - **OR-of-statuses: 0**, **vacuous try/catch: 0**,
   **time-window assertions: 0**, **real-network deps: 0**.
 
