@@ -114,3 +114,16 @@ left is genuinely deeper work that wasn't tackled this round:
   pattern change), (c) accept the gap (current). Branch coverage on
   access-auth.ts is 90% \u2014 acceptable given the integration nature
   of the missing path.
+
+- **Flake: ~10-25% N=5 fail rate from worker workspace under
+  contention** (introduced ~#214 with vi.mock(jose) in
+  apps/worker/src/__tests__/access-auth.test.ts). 10/10 standalone
+  worker runs pass; only fails when 4 workspaces compete for CPU/IO.
+  Suspicion: the vi.mock(jose) hoisted factory + isolate:false +
+  parallel workspace startup creates a module-cache race where the
+  module replacement is mid-application when first request hits.
+  Options: (a) split out access-auth-jwt-success into its own file
+  with isolate:true; (b) accept the flake (current); (c) investigate
+  further by adding isolate:true to access-auth.test.ts only via
+  inline `// @vitest-environment` comment or test.concurrent off.
+  Coverage gain (access-auth 87.5%→100%) deemed worth it.
