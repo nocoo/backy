@@ -281,4 +281,31 @@ describe("accessAuth — JWT verification", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, email: null });
   });
+
+  test("reuses cached JWKS for same team domain (covers getJWKS cache-hit branch)", async () => {
+    // Covers line 30 of access-auth.ts: the early-return when jwksCache
+    // is populated AND jwksCacheTeamDomain matches. We make 2 sequential
+    // calls without resetting the cache; the 2nd hits the early-return.
+    joseControl.payload = { email: "alice@example.com" };
+    const env = {
+      CF_ACCESS_TEAM_DOMAIN: "cache.cloudflareaccess.com",
+      CF_ACCESS_AUD: "test-aud",
+    } as unknown as AppEnv["Bindings"];
+    const headers = {
+      host: "backy.example.com",
+      "Cf-Access-Jwt-Assertion": "any-string",
+    };
+    // First call — populates the cache.
+    const res1 = await buildApp().request("/api/projects", { headers }, env);
+    expect(res1.status).toBe(200);
+    // Second call WITHOUT __resetJwksCacheForTests — hits the cache.
+    // We bypass the per-test reset by calling the inner request again
+    // before the next beforeEach.
+    const res2 = await buildApp().request("/api/projects", { headers }, env);
+    expect(res2.status).toBe(200);
+    expect(await res2.json()).toEqual({
+      ok: true,
+      email: "alice@example.com",
+    });
+  });
 });
