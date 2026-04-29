@@ -52,32 +52,94 @@ describe("projects handlers", () => {
 
   describe("listProjectsHandler", () => {
     test("returns 200 with sanitized list", async () => {
-      mockListProjects = async () => [makeProject({ webhook_token: "secret" })];
+      const project = makeProject({
+        webhook_token: "secret",
+        auto_backup_header_key: "X-K",
+        auto_backup_header_value: "v",
+      });
+      mockListProjects = async () => [project];
       const r = await listProjectsHandler(ctx);
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
-      const body = (r as { body: { webhook_token?: string }[] }).body;
-      expect(body[0]?.webhook_token).toBeUndefined();
+      // Tightened: pin the entire sanitized payload by its full literal
+      // shape (was just one missing-field check). Catches new sensitive
+      // fields being leaked AND missing pass-through fields. Inlined on
+      // purpose: importing sanitizeProject() to compute the expected
+      // would be tautological (the handler already calls it).
+      expect((r as { body: unknown }).body).toEqual([
+        {
+          id: "proj-test",
+          name: "Test Project",
+          description: null,
+          allowed_ips: null,
+          category_id: null,
+          auto_backup_enabled: 1,
+          auto_backup_interval: 1,
+          auto_backup_webhook: "https://saas.example.com/trigger-backup",
+          auto_backup_headers_configured: true,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+        },
+      ]);
     });
 
     test("returns 500 on db error", async () => {
       mockListProjects = async () => {
         throw new Error("db");
       };
-      expect((await listProjectsHandler(ctx)).status).toBe(500);
+      const r = await listProjectsHandler(ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to list projects" });
     });
   });
 
   describe("createProjectHandler", () => {
     test("returns 201 on valid input", async () => {
-      mockCreateProject = async () => makeProject();
-      const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
+      const created = makeProject();
+      let captured: unknown[] | undefined;
+      mockCreateProject = async (...args: unknown[]) => {
+        captured = args;
+        return created;
+      };
+      const r = await createProjectHandler(
+        { body: { name: "ok", description: "d" } },
+        ctx,
+      );
       expect(r.status).toBe(201);
+      // Tightened: createProjectHandler intentionally returns the raw
+      // project (webhook_token included) so the client sees the token
+      // exactly once. Pin both kind and the presence of webhook_token
+      // — a regression that adds sanitization here would break the
+      // first-issue token UX.
+      expect(r.kind).toBe("json");
+      const body = (r as { body: Record<string, unknown> }).body;
+      expect(body.id).toBe(created.id);
+      expect(body.webhook_token).toBe(created.webhook_token);
+      // Also positively verify createProject is called with the
+      // parsed args POSITIONALLY (name, description). Discovery: the
+      // handler does NOT pass the parsed object verbatim — it spreads
+      // name + description as separate positional args. A regression
+      // that swaps argument order would surface here.
+      expect(captured).toEqual(["ok", "d"]);
     });
 
     test("returns 400 on invalid input", async () => {
       const r = await createProjectHandler({ body: { name: "" } }, ctx);
       expect(r.status).toBe(400);
+      // Tightened: pin the error envelope shape including the field-
+      // specific zod fieldErrors. Don't pin the exact zod message string
+      // (zod minor-version bumps can rephrase those).
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toMatchObject({
+        error: "Invalid input",
+        details: {
+          fieldErrors: {
+            name: expect.arrayContaining([expect.any(String)]),
+          },
+        },
+      });
     });
 
     test("returns 500 on db error", async () => {
@@ -86,26 +148,42 @@ describe("projects handlers", () => {
       };
       const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to create project" });
     });
   });
 
   describe("getProjectHandler", () => {
     test("returns 200 when found", async () => {
-      mockGetProject = async () => makeProject();
+      const project = makeProject();
+      mockGetProject = async () => project;
       const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(200);
+      // Tightened: verify sanitization on the get path too.
+      expect(r.kind).toBe("json");
+      const body = (r as { body: Record<string, unknown> }).body;
+      expect(body).not.toHaveProperty("webhook_token");
+      expect(body.id).toBe(project.id);
     });
 
     test("returns 404 when not found", async () => {
       const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
       mockGetProject = async () => {
         throw new Error("db");
       };
-      expect((await getProjectHandler({ id: "p1" }, ctx)).status).toBe(500);
+      const r = await getProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to get project" });
     });
   });
 
@@ -117,10 +195,27 @@ describe("projects handlers", () => {
         body: { name: "Renamed", description: "d" },
       }, ctx);
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      // Tightened: pin the response is the SANITIZED project (webhook_token
+      // stripped, auto_backup_headers_configured derived). Catches a
+      // regression that returns the raw project (token leak).
+      if (r.kind === "json") {
+        const body = r.body as Record<string, unknown>;
+        expect(body).not.toHaveProperty("webhook_token");
+        expect(body).toMatchObject({
+          id: "proj-test",
+          name: "Test Project",
+          auto_backup_headers_configured: false,
+        });
+      }
     });
 
     test("clears allowed_ips when null or empty string", async () => {
-      mockUpdateProject = async () => makeProject();
+      const updates: unknown[] = [];
+      mockUpdateProject = async (...args: unknown[]) => {
+        updates.push(args[1]);
+        return makeProject();
+      };
       const r1 = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: null },
@@ -131,6 +226,13 @@ describe("projects handlers", () => {
         body: { allowed_ips: "  " },
       }, ctx);
       expect(r2.status).toBe(200);
+      // Tightened: positively verify both branches forward null (not
+      // "" or "  ") to updateProject. Status-only would let a regression
+      // pass that forwarded the empty string verbatim.
+      expect(updates).toEqual([
+        { allowed_ips: null },
+        { allowed_ips: null },
+      ]);
     });
 
     test("validates allowed_ips and returns 400 on bad CIDR", async () => {
@@ -139,15 +241,31 @@ describe("projects handlers", () => {
         body: { allowed_ips: "not-an-ip" },
       }, ctx);
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 'Invalid IP/CIDR format' includes an `invalid:` array of the
+        // bad CIDRs the caller submitted (so a script can identify
+        // which ones to fix). Pin both fields.
+        expect(r.body).toEqual({
+          error: "Invalid IP/CIDR format",
+          invalid: ["not-an-ip"],
+        });
     });
 
     test("normalizes valid allowed_ips", async () => {
-      mockUpdateProject = async () => makeProject();
+      let captured: unknown;
+      mockUpdateProject = async (...args: unknown[]) => {
+        captured = args[1];
+        return makeProject();
+      };
       const r = await updateProjectHandler({
         id: "p1",
         body: { allowed_ips: "10.0.0.0/8" },
       }, ctx);
       expect(r.status).toBe(200);
+      // Tightened: verify the normalized CIDR is forwarded verbatim
+      // (no surrounding whitespace, no IP-form drift).
+      expect(captured).toEqual({ allowed_ips: "10.0.0.0/8" });
     });
 
     test("returns 400 for unsafe webhook URL", async () => {
@@ -156,6 +274,12 @@ describe("projects handlers", () => {
         body: { auto_backup_webhook: "http://10.0.0.1/x" },
       }, ctx);
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same SSRF guard message as cron handler (HTTPS + public hostname).
+        expect(r.body).toEqual({
+          error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
+        });
     });
 
     test("accepts null webhook URL", async () => {
@@ -168,7 +292,11 @@ describe("projects handlers", () => {
     });
 
     test("forwards auto_backup_* fields", async () => {
-      mockUpdateProject = async () => makeProject();
+      let captured: unknown;
+      mockUpdateProject = async (...args: unknown[]) => {
+        captured = args[1];
+        return makeProject();
+      };
       const r = await updateProjectHandler({
         id: "p1",
         body: {
@@ -180,6 +308,16 @@ describe("projects handlers", () => {
         },
       }, ctx);
       expect(r.status).toBe(200);
+      // Tightened: pin the exact patch object forwarded to updateProject.
+      // Catches typos / dropped fields / extra fields the old
+      // status-only assertion silently allowed.
+      expect(captured).toEqual({
+        auto_backup_enabled: 1,
+        auto_backup_interval: 12,
+        auto_backup_header_key: "X-K",
+        auto_backup_header_value: "V",
+        category_id: "cat1",
+      });
     });
 
     test("returns 400 on schema violation", async () => {
@@ -188,6 +326,18 @@ describe("projects handlers", () => {
         body: { auto_backup_interval: 5 },
       }, ctx);
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      // Tightened: pin the error envelope so a regression that returns
+      // raw zod error or omits fieldErrors would surface. The interval
+      // schema disallows 5 (must be one of the allowed cron intervals).
+      expect((r as { body: unknown }).body).toMatchObject({
+        error: "Invalid input",
+        details: {
+          fieldErrors: {
+            auto_backup_interval: expect.arrayContaining([expect.any(String)]),
+          },
+        },
+      });
     });
 
     test("returns 404 when project missing", async () => {
@@ -196,6 +346,9 @@ describe("projects handlers", () => {
         body: { name: "x" },
       }, ctx);
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
@@ -207,24 +360,37 @@ describe("projects handlers", () => {
         body: { name: "x" },
       }, ctx);
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to update project" });
     });
   });
 
   describe("deleteProjectHandler", () => {
     test("returns 200 when deleted", async () => {
       mockDeleteProject = async () => true;
-      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(200);
+      const r = await deleteProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ success: true });
     });
 
     test("returns 404 when not found", async () => {
-      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(404);
+      const r = await deleteProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
       mockDeleteProject = async () => {
         throw new Error("db");
       };
-      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(500);
+      const r = await deleteProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to delete project" });
     });
   });
 
@@ -233,20 +399,31 @@ describe("projects handlers", () => {
       mockRegenerateToken = async () => "new-token";
       const r = await regenerateTokenHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(200);
-      expect((r as { body: { webhook_token: string } }).body.webhook_token).toBe(
-        "new-token",
-      );
+      // Tightened: pin the exact body shape (no extras) so a regression
+      // that wraps the token in a sanitized response or adds a stale
+      // 'project' field would surface.
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        webhook_token: "new-token",
+      });
     });
 
     test("returns 404 when project missing", async () => {
-      expect((await regenerateTokenHandler({ id: "p1" }, ctx)).status).toBe(404);
+      const r = await regenerateTokenHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
       mockRegenerateToken = async () => {
         throw new Error("db");
       };
-      expect((await regenerateTokenHandler({ id: "p1" }, ctx)).status).toBe(500);
+      const r = await regenerateTokenHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to regenerate token" });
     });
   });
 
@@ -258,8 +435,20 @@ describe("projects handlers", () => {
         baseUrl: "https://x.example.com",
       }, ctx);
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       const prompt = (r as { body: { prompt: string } }).body.prompt;
+      // Tightened: positively verify the prompt contains the
+      // INTERPOLATED webhook URL with the test project's id (proj-test
+      // from makeProject), not just a generic webhook substring. Catches
+      // a regression that hard-codes a different project-id pattern.
       expect(prompt).toContain("https://x.example.com/api/webhook/proj-test");
+      // Also positively verify the prompt contains the project name and
+      // the canonical SaaS-agent role description (catches a regression
+      // that drops the project-name interpolation or rewrites the prompt
+      // skeleton).
+      expect(prompt).toContain("Test Project");
+      // The body must be a single 'prompt' field (no extras leaked).
+      expect(Object.keys((r as { body: object }).body)).toEqual(["prompt"]);
     });
 
     test("includes auto-backup section when enabled", async () => {
@@ -275,8 +464,63 @@ describe("projects handlers", () => {
         baseUrl: "https://x.example.com",
       }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
-      expect(prompt).toContain("Active");
-      expect(prompt).toContain("X-K");
+      // Tightened: pin the exact "(Active)" badge that appears in the Pull
+      // table row when auto-backup is enabled, plus the auth-header line
+      // that prints the supplied header key with masked value.
+      expect(prompt).toContain("**(Active)**");
+      expect(prompt).toContain("**Auth header**: `X-K: \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022`");
+    });
+
+    test("pluralizes 'hours' for non-1 interval (covers === 1 false branch)", async () => {
+      // Covers the `auto_backup_interval === 1 ? '' : 's'` branch in
+      // projects-prompt.ts. With interval=12, the prompt must say
+      // 'Every 12 hours' (plural) — not 'Every 12 hour'.
+      mockGetProject = async () =>
+        makeProject({
+          auto_backup_enabled: 1,
+          auto_backup_interval: 12,
+        });
+      const r = await projectPromptHandler(
+        { id: "p1", baseUrl: "https://x.example.com" },
+        ctx,
+      );
+      const prompt = (r as { body: { prompt: string } }).body.prompt;
+      expect(prompt).toContain("Every 12 hours");
+    });
+
+    test("renders '(not set)' when header_key set but header_value missing", async () => {
+      // Covers the `header_value ? mask : '(not set)'` ternary false
+      // branch. The auth-header line should print the key plus
+      // '(not set)' when value is null.
+      mockGetProject = async () =>
+        makeProject({
+          auto_backup_enabled: 1,
+          auto_backup_header_key: "X-Auth",
+          auto_backup_header_value: null,
+        });
+      const r = await projectPromptHandler(
+        { id: "p1", baseUrl: "https://x.example.com" },
+        ctx,
+      );
+      const prompt = (r as { body: { prompt: string } }).body.prompt;
+      expect(prompt).toContain("**Auth header**: `X-Auth: (not set)`");
+    });
+
+    test("renders '(not set)' when auto_backup_webhook is null", async () => {
+      // Covers the `project.auto_backup_webhook ?? '(not set)'` ?? branch.
+      // Pull section's 'Your endpoint' line must print '(not set)' when
+      // the webhook hasn't been configured.
+      mockGetProject = async () =>
+        makeProject({
+          auto_backup_enabled: 1,
+          auto_backup_webhook: null,
+        });
+      const r = await projectPromptHandler(
+        { id: "p1", baseUrl: "https://x.example.com" },
+        ctx,
+      );
+      const prompt = (r as { body: { prompt: string } }).body.prompt;
+      expect(prompt).toContain("**Your endpoint**: `(not set)`");
     });
 
     test("notes auto-backup not enabled when disabled", async () => {
@@ -286,7 +530,10 @@ describe("projects handlers", () => {
         baseUrl: "https://x.example.com",
       }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
-      expect(prompt).toContain("not yet enabled");
+      // Tightened: pin the exact 'not yet enabled' phrase + project name
+      // interpolation rather than a bare substring that could match
+      // anywhere in the markdown.
+      expect(prompt).toContain('is **not yet enabled** for "Test Project"');
     });
 
     test("returns 404 when project missing", async () => {
@@ -295,6 +542,9 @@ describe("projects handlers", () => {
         baseUrl: "https://x",
       }, ctx);
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
@@ -306,6 +556,9 @@ describe("projects handlers", () => {
         baseUrl: "https://x",
       }, ctx);
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to generate prompt" });
     });
   });
 });

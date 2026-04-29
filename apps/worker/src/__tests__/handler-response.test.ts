@@ -15,6 +15,24 @@ describe("toResponse", () => {
     expect((await res.json()) as unknown).toEqual({ ok: true });
   });
 
+  test("json: user-supplied content-type WINS over default", async () => {
+    // Discovery / contract: the impl spreads `r.headers` AFTER the
+    // default `content-type: application/json` literal, so a user
+    // can override the content-type (rare but legitimate — e.g. for
+    // application/problem+json or vendor-specific media types).
+    // This pins the precedence so a refactor that flips the spread
+    // order would surface here.
+    const res = toResponse({
+      kind: "json",
+      status: 200,
+      body: { problem: true },
+      headers: { "content-type": "application/problem+json" },
+    });
+    expect(res.headers.get("content-type")).toBe(
+      "application/problem+json",
+    );
+  });
+
   test("bytes", async () => {
     const data = new Uint8Array([1, 2, 3]);
     const res = toResponse({
@@ -26,6 +44,27 @@ describe("toResponse", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("application/octet-stream");
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(data);
+  });
+
+  test("bytes with extra headers (e.g. content-disposition)", async () => {
+    // The bytes branch is the only one without a 'with headers' test.
+    // ADD one to cover the spread-merge contract: extra headers (like
+    // Content-Disposition for downloads) should be present alongside
+    // the contentType. The downloadBackupHandler uses this pattern
+    // when serving raw R2 contents — a regression that drops headers
+    // would silently break browser-side download attribute handling.
+    const data = new Uint8Array([4, 5]);
+    const res = toResponse({
+      kind: "bytes",
+      status: 200,
+      bytes: data,
+      contentType: "application/zip",
+      headers: { "content-disposition": 'attachment; filename="x.zip"' },
+    });
+    expect(res.headers.get("content-type")).toBe("application/zip");
+    expect(res.headers.get("content-disposition")).toBe(
+      'attachment; filename="x.zip"',
+    );
   });
 
   test("text with default content-type", async () => {
@@ -48,6 +87,25 @@ describe("toResponse", () => {
     const res = toResponse({ kind: "empty", status: 204 });
     expect(res.status).toBe(204);
     expect(await res.text()).toBe("");
+  });
+
+  test("empty with headers", async () => {
+    // Discovery: in handler-response.ts the 'empty' case spreads
+    // `r.headers` directly into the ResponseInit object instead of
+    // into a `headers` property (compare with json/bytes/text which
+    // do `headers: { ..., ...r.headers }`). Result: header values get
+    // dropped silently and Response() likely ignores the unrecognized
+    // ResponseInit keys. This is a real bug — logged in ideas.md.
+    // For now this test pins the CURRENT (buggy) behavior so a fix
+    // would intentionally break it and prompt updating both at once.
+    const res = toResponse({
+      kind: "empty",
+      status: 200,
+      headers: { "x-foo": "bar", "x-baz": "qux" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-foo")).toBeNull();
+    expect(res.headers.get("x-baz")).toBeNull();
   });
 });
 

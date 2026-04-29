@@ -1,7 +1,16 @@
 import { describe, expect, test } from "vitest";
-import { JsonTreeViewer } from "../components/json-tree-viewer";
-import { BackupsPage, generatePageNumbers } from "../pages/backups";
-import { BackupDetailPage } from "../pages/backup-detail";
+import { generatePageNumbers } from "../lib/pagination";
+
+// Surface assertions for `BackupsPage` / `BackupDetailPage` / `JsonTreeViewer`
+// were removed (TS already enforces export shape; the imports dragged in the
+// pages module + json-tree-viewer for zero behavioral coverage). Page-level
+// rendering belongs in L3 (BDD/Playwright).
+//
+// Note: pages/backups.tsx ALSO exports a `generatePageNumbers` that is a
+// byte-for-byte duplicate of lib/pagination.ts's. Tests now exercise the
+// canonical lib/ implementation only; the duplicate in pages/backups should
+// be deleted in a follow-up (out of scope here \u2014 production code is
+// off-limits for this autoresearch session).
 
 describe("generatePageNumbers", () => {
   test("returns 1..N for total <= 7", () => {
@@ -10,41 +19,17 @@ describe("generatePageNumbers", () => {
   });
 
   test("collapses tail when current is near start", () => {
-    const r = generatePageNumbers(2, 10);
-    expect(r[0]).toBe(1);
-    expect(r[r.length - 1]).toBe(10);
-    expect(r).toContain("...");
+    // Tightened: pin the full array shape. generatePageNumbers is fully
+    // deterministic for (current, total), so equality catches anchor /
+    // ellipsis-position regressions that toContain("...") would miss.
+    expect(generatePageNumbers(2, 10)).toEqual([1, 2, 3, "...", 10]);
   });
 
   test("collapses head when current is near end", () => {
-    const r = generatePageNumbers(9, 10);
-    expect(r[0]).toBe(1);
-    expect(r[r.length - 1]).toBe(10);
-    expect(r).toContain("...");
+    expect(generatePageNumbers(9, 10)).toEqual([1, "...", 8, 9, 10]);
   });
 
   test("two ellipses for current in the middle", () => {
-    const r = generatePageNumbers(5, 10);
-    const ellipses = r.filter((p) => p === "...").length;
-    expect(ellipses).toBe(2);
-    expect(r[0]).toBe(1);
-    expect(r[r.length - 1]).toBe(10);
-    expect(r).toContain(4);
-    expect(r).toContain(5);
-    expect(r).toContain(6);
-  });
-});
-
-describe("Backups page surface", () => {
-  test("BackupsPage is a function component", () => {
-    expect(typeof BackupsPage).toBe("function");
-  });
-
-  test("BackupDetailPage is a function component", () => {
-    expect(typeof BackupDetailPage).toBe("function");
-  });
-
-  test("JsonTreeViewer is a function component", () => {
-    expect(typeof JsonTreeViewer).toBe("function");
+    expect(generatePageNumbers(5, 10)).toEqual([1, "...", 4, 5, 6, "...", 10]);
   });
 });

@@ -84,20 +84,30 @@ describe("webhook-logs", () => {
         throw new Error("database locked");
       });
 
-      await createWebhookLog({
-        projectId: null,
-        method: "POST",
-        path: "/api/webhook/test",
-        statusCode: 500,
-        clientIp: "1.2.3.4",
-        userAgent: null,
-        errorCode: "internal_error",
-        errorMessage: "Something broke",
-        durationMs: 100,
-        metadata: null,
-      });
+      await expect(
+        createWebhookLog({
+          projectId: null,
+          method: "POST",
+          path: "/api/webhook/test",
+          statusCode: 500,
+          clientIp: "1.2.3.4",
+          userAgent: null,
+          errorCode: "internal_error",
+          errorMessage: "Something broke",
+          durationMs: 100,
+          metadata: null,
+        }),
+      ).resolves.toBeUndefined();
 
-      expect(consoleSpy).toHaveBeenCalled();
+      // The underlying D1 failure must surface in console.error so it shows
+      // up in worker logs even though the caller treats it as fire-and-forget.
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      const [prefix, err] = consoleSpy.mock.calls[0]!;
+      // Tightened: pin the exact prefix message so a regression that
+      // changes 'Webhook log write failed:' (e.g. logging-format change
+      // that breaks log-aggregation alerts) would surface here.
+      expect(prefix).toBe("Webhook log write failed:");
+      expect((err as Error).message).toBe("database locked");
       consoleSpy.mockRestore();
     });
 
@@ -107,20 +117,25 @@ describe("webhook-logs", () => {
         throw new Error("Network unreachable");
       });
 
-      await createWebhookLog({
-        projectId: null,
-        method: "POST",
-        path: "/api/webhook/test",
-        statusCode: 500,
-        clientIp: null,
-        userAgent: null,
-        errorCode: "internal_error",
-        errorMessage: "network down",
-        durationMs: 0,
-        metadata: null,
-      });
+      await expect(
+        createWebhookLog({
+          projectId: null,
+          method: "POST",
+          path: "/api/webhook/test",
+          statusCode: 500,
+          clientIp: null,
+          userAgent: null,
+          errorCode: "internal_error",
+          errorMessage: "network down",
+          durationMs: 0,
+          metadata: null,
+        }),
+      ).resolves.toBeUndefined();
 
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      const [prefix, err] = consoleSpy.mock.calls[0]!;
+      expect(prefix).toBe("Webhook log write failed:");
+      expect((err as Error).message).toBe("Network unreachable");
       consoleSpy.mockRestore();
     });
   });
@@ -153,13 +168,16 @@ describe("webhook-logs", () => {
       });
 
       const result = await listWebhookLogs();
-      expect(result.total).toBe(1);
-      expect(result.page).toBe(1);
-      expect(result.pageSize).toBe(50);
-      expect(result.totalPages).toBe(1);
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0]!.id).toBe("log-1");
-      expect(result.items[0]!.project_name).toBe("My Project");
+      // Tightened: pin the entire response shape including the rehydrated
+      // log row. Previously the assertions only checked length + 2 fields,
+      // missing field rename / metadata-parse / pagination drift.
+      expect(result).toEqual({
+        total: 1,
+        page: 1,
+        pageSize: 50,
+        totalPages: 1,
+        items: mockLogs,
+      });
     });
 
     test("filters by projectId", async () => {
@@ -168,7 +186,9 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("l.project_id = ?");
-      expect(countQuery?.params).toContain("proj-123");
+      // Tightened: pin params to exact single-element array (catches a
+      // regression that double-binds the projectId or appends silently).
+      expect(countQuery?.params).toEqual(["proj-123"]);
     });
 
     test("filters by method", async () => {
@@ -177,7 +197,8 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("l.method = ?");
-      expect(countQuery?.params).toContain("POST");
+      // Tightened: pin params + that the method is uppercased.
+      expect(countQuery?.params).toEqual(["POST"]);
     });
 
     test("filters by success=true (status < 400)", async () => {
@@ -202,7 +223,18 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("l.status_code = ?");
-      expect(countQuery?.params).toContain(403);
+      expect(countQuery?.params).toEqual([403]);
+    });
+
+    test("filters by errorCode", async () => {
+      // Covers the errorCode conditional branch in lib/db/webhook-logs.ts
+      // (lines 180-181) which was previously uncovered.
+      db = makeMockD1(async () => ({ results: [] }));
+      await listWebhookLogs({ errorCode: "auth_invalid" });
+
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("l.error_code = ?");
+      expect(countQuery?.params).toEqual(["auth_invalid"]);
     });
 
     test("paginates correctly", async () => {
@@ -221,8 +253,10 @@ describe("webhook-logs", () => {
       expect(result.totalPages).toBe(6);
 
       const selectQuery = db.calls[1];
-      expect(selectQuery?.params).toContain(20);
-      expect(selectQuery?.params).toContain(40);
+      // Tightened: pin params end-of-list to exact [pageSize, offset]
+      // pair (pageSize=20, page=3 ⇒ offset=40). Catches order-flip /
+      // missing-param regressions.
+      expect(selectQuery?.params).toEqual([20, 40]);
     });
   });
 
@@ -233,7 +267,7 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?)");
-      expect(countQuery?.params).toContain("proj-guntest");
+      expect(countQuery?.params).toEqual(["proj-guntest"]);
     });
 
     test("adds exclude condition with multiple IDs", async () => {
@@ -242,8 +276,9 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?, ?)");
-      expect(countQuery?.params).toContain("proj-a");
-      expect(countQuery?.params).toContain("proj-b");
+      // Tightened: pin params order — catches a regression that
+      // reverses the projectIds list before binding.
+      expect(countQuery?.params).toEqual(["proj-a", "proj-b"]);
     });
 
     test("does not add exclude condition when excludeProjectIds is undefined", async () => {
@@ -270,7 +305,7 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?)");
-      expect(countQuery?.params).toContain("::1");
+      expect(countQuery?.params).toEqual(["::1"]);
     });
 
     test("adds exclude condition with multiple IPs", async () => {
@@ -279,8 +314,9 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?, ?)");
-      expect(countQuery?.params).toContain("::1");
-      expect(countQuery?.params).toContain("127.0.0.1");
+      // Tightened: pin params order (catches a regression that reverses
+      // the IP list before binding).
+      expect(countQuery?.params).toEqual(["::1", "127.0.0.1"]);
     });
 
     test("does not add exclude condition when excludeClientIps is empty", async () => {
@@ -301,8 +337,9 @@ describe("webhook-logs", () => {
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("project_id");
       expect(countQuery?.sql).toContain("client_ip");
-      expect(countQuery?.params).toContain("proj-test");
-      expect(countQuery?.params).toContain("::1");
+      // Tightened: pin params order — projectIds bound BEFORE clientIps
+      // (matches the source-order in listWebhookLogs).
+      expect(countQuery?.params).toEqual(["proj-test", "::1"]);
     });
   });
 
@@ -320,7 +357,7 @@ describe("webhook-logs", () => {
 
       const deleteQuery = db.calls[0];
       expect(deleteQuery?.sql).toContain("WHERE project_id = ?");
-      expect(deleteQuery?.params).toContain("proj-123");
+      expect(deleteQuery?.params).toEqual(["proj-123"]);
     });
 
     test("deletes logs filtered by method", async () => {
@@ -328,7 +365,7 @@ describe("webhook-logs", () => {
 
       const deleteQuery = db.calls[0];
       expect(deleteQuery?.sql).toContain("method = ?");
-      expect(deleteQuery?.params).toContain("POST");
+      expect(deleteQuery?.params).toEqual(["POST"]);
     });
 
     test("deletes logs filtered by success=true", async () => {
@@ -356,8 +393,9 @@ describe("webhook-logs", () => {
       expect(deleteQuery?.sql).toContain("project_id = ?");
       expect(deleteQuery?.sql).toContain("method = ?");
       expect(deleteQuery?.sql).toContain("status_code >= 400");
-      expect(deleteQuery?.params).toContain("proj-123");
-      expect(deleteQuery?.params).toContain("HEAD");
+      // Tightened: pin params order — projectId BEFORE method
+      // (success=false adds no param).
+      expect(deleteQuery?.params).toEqual(["proj-123", "HEAD"]);
     });
   });
 });

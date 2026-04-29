@@ -16,7 +16,14 @@ describe("db handlers", () => {
   });
 
   test("dbInit 200 on success", async () => {
-    expect((await dbInitHandler(makeMockCtx({ db, r2 }))).status).toBe(200);
+    const r = await dbInitHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(200);
+    // Tightened: pin the success body shape ({ok:true, message}).
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({
+      ok: true,
+      message: "Schema initialized",
+    });
   });
 
   test("dbInit 500 on error", async () => {
@@ -27,17 +34,27 @@ describe("db handlers", () => {
       return { results: [] };
     });
 
-    expect((await dbInitHandler(makeMockCtx({ db, r2 }))).status).toBe(500);
+    const r = await dbInitHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Generic 'Schema initialization failed' (no error.message leak
+      // — a regression that exposes 'schema failed' would leak internal
+      // detail to the client).
+      expect(r.body).toEqual({ error: "Schema initialization failed" });
   });
 
   test("seed 403 without E2E_SKIP_AUTH", async () => {
-    expect(
-      (
-        await seedTestProjectHandler(
-          makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "false" } }),
-        )
-      ).status,
-    ).toBe(403);
+    const r = await seedTestProjectHandler(
+      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "false" } }),
+    );
+    expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Pin the no-info-leak 'Forbidden' message (vs more specific
+      // 'E2E_SKIP_AUTH not set' — we deliberately don't leak the gating
+      // mechanism to a denied caller).
+      expect(r.body).toEqual({ error: "Forbidden" });
   });
 
   test("seed creates when not exists", async () => {
@@ -53,7 +70,15 @@ describe("db handlers", () => {
       makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
     );
     expect(r.status).toBe(200);
-    expect((r as { body: { action: string } }).body.action).toBe("created");
+    expect(r.kind).toBe("json");
+    // Tightened: pin the full created-branch shape with TEST_PROJECT id
+    // + token. cleanedBackups=0 because the orphans query returns [].
+    expect((r as { body: unknown }).body).toEqual({
+      action: "created",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      cleanedBackups: 0,
+    });
   });
 
   test("seed verifies clean existing", async () => {
@@ -64,9 +89,14 @@ describe("db handlers", () => {
       return {
         results: [
           {
-            name: "Backy E2E Test",
-            webhook_token: "e2e_test_webhook_token_do_not_use_in_production",
-            description: "E2E test project — auto-managed, do not delete",
+            // Must match TEST_PROJECT exactly (name='backy-test', etc.)
+            // for the handler to take the 'verified' branch instead of
+            // 'reset'. The previous fixture had "Backy E2E Test", which
+            // silently fell through to 'reset' — the test only checked
+            // status=200, masking the misnamed branch.
+            name: "backy-test",
+            webhook_token: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+            description: "E2E test project — auto-seeded",
             allowed_ips: null,
             category_id: null,
             auto_backup_enabled: 0,
@@ -83,6 +113,20 @@ describe("db handlers", () => {
       makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
     );
     expect(r.status).toBe(200);
+    // Tightened: pin the verified-branch contract: action='verified',
+    // cleanedBackups=0. The previous fixture had a name-drift bug that
+    // hid the verified branch from coverage entirely.
+    expect(r.kind).toBe("json");
+    // Tightened: full toEqual pinning the verified-branch envelope incl.
+    // TEST_PROJECT id+token+cleanedBackups. Catches a regression that
+    // drops the projectId/webhookToken from the verified branch (would
+    // break E2E callers that round-trip the token).
+    expect((r as { body: unknown }).body).toEqual({
+      action: "verified",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      cleanedBackups: 0,
+    });
   });
 
   test("seed cleans orphaned backups", async () => {
@@ -101,6 +145,16 @@ describe("db handlers", () => {
     );
     expect(r.status).toBe(200);
     expect(r2.deletes).toEqual(["a", "b"]);
+    // Tightened: also pin the body action='created' (handler creates
+    // the row when the project doesn't exist) and cleanedBackups=1
+    // (the one orphaned backup we set up above).
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({
+      action: "created",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      cleanedBackups: 1,
+    });
   });
 
   test("seed 500 on db error", async () => {
@@ -108,13 +162,14 @@ describe("db handlers", () => {
       throw new Error("db");
     });
 
-    expect(
-      (
-        await seedTestProjectHandler(
-          makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
-        )
-      ).status,
-    ).toBe(500);
+    const r = await seedTestProjectHandler(
+      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
+    );
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    // Tightened: handler surfaces the raw error message via String(err).
+    // 'Error: db' is the toString of `new Error('db')`.
+    expect((r as { body: unknown }).body).toEqual({ error: "Error: db" });
   });
 
   test("seed resets dirty existing", async () => {
@@ -147,21 +202,32 @@ describe("db handlers", () => {
       makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
     );
     expect(r.status).toBe(200);
-    expect((r as { body: { action: string } }).body.action).toBe("reset");
+    expect(r.kind).toBe("json");
+    // Tightened: pin the full reset-branch envelope. cleanedBackups=0
+    // because orphans query returns []. projectId+webhookToken come
+    // from TEST_PROJECT (the handler resets the row to canonical state).
+    expect((r as { body: unknown }).body).toEqual({
+      action: "reset",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      cleanedBackups: 0,
+    });
   });
 
   test("getTestMarker returns marker when present", async () => {
     db = makeMockD1(async () => ({ results: [{ id: "e2e-test-db" }] }));
     const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect((r as { body: { marker: string } }).body.marker).toBe("e2e-test-db");
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ marker: "e2e-test-db" });
   });
 
   test("getTestMarker returns null when not present", async () => {
     db = makeMockD1(async () => ({ results: [] }));
     const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect((r as { body: { marker: null } }).body.marker).toBeNull();
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ marker: null });
   });
 
   test("getTestMarker returns error info on failure", async () => {
@@ -170,7 +236,14 @@ describe("db handlers", () => {
     });
     const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect((r as { body: { marker: null; error: string } }).body.marker).toBeNull();
-    expect((r as { body: { error: string } }).body.error).toBe("table not found");
+    expect(r.kind).toBe("json");
+    // Tightened: pin full envelope so a regression that drops 'marker'
+    // or wraps the error in another field would surface. Returns 200
+    // (not 500) so the caller can distinguish 'no marker / not seeded'
+    // from 'auth/network failure'.
+    expect((r as { body: unknown }).body).toEqual({
+      marker: null,
+      error: "table not found",
+    });
   });
 });

@@ -27,9 +27,14 @@ describe("stats handlers", () => {
 
     const r = await statsTotalsHandler(makeMockCtx({ db }));
     expect(r.status).toBe(200);
-    expect((r as { body: { totalProjects: number } }).body.totalProjects).toBe(
-      2,
-    );
+    // Tightened: pin the entire snake_case → camelCase mapping. Catches
+    // a regression where the handler swapped column names or dropped the
+    // total_size → totalStorageBytes rename.
+    expect((r as { body: unknown }).body).toEqual({
+      totalProjects: 2,
+      totalBackups: 5,
+      totalStorageBytes: 100,
+    });
   });
 
   test("totals 200 with empty rows defaults to 0", async () => {
@@ -37,7 +42,12 @@ describe("stats handlers", () => {
 
     const r = await statsTotalsHandler(makeMockCtx({ db }));
     expect(r.status).toBe(200);
-    expect((r as { body: { totalBackups: number } }).body.totalBackups).toBe(0);
+    // Tightened: pin all 3 zeroed defaults instead of just totalBackups.
+    expect((r as { body: unknown }).body).toEqual({
+      totalProjects: 0,
+      totalBackups: 0,
+      totalStorageBytes: 0,
+    });
   });
 
   test("totals 500 on db error", async () => {
@@ -45,12 +55,23 @@ describe("stats handlers", () => {
       throw new Error("db");
     });
 
-    expect((await statsTotalsHandler(makeMockCtx({ db }))).status).toBe(500);
+    const r = await statsTotalsHandler(makeMockCtx({ db }));
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Failed to fetch stats" });
   });
 
   test("charts 200 with data", async () => {
     const r = await statsChartsHandler(makeMockCtx({ db }));
     expect(r.status).toBe(200);
+    // Tightened: with the default empty mock results, the handler must
+    // produce 3 empty arrays (no extra fields, no nulls).
+    expect((r as { body: unknown }).body).toEqual({
+      projectStats: [],
+      dailyBackups: [],
+      cronStats: [],
+    });
   });
 
   test("charts 500 on db error", async () => {
@@ -58,6 +79,12 @@ describe("stats handlers", () => {
       throw new Error("db");
     });
 
-    expect((await statsChartsHandler(makeMockCtx({ db }))).status).toBe(500);
+    const r = await statsChartsHandler(makeMockCtx({ db }));
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Distinct error message from totals 500 — catches a refactor
+      // that collapses both into a generic 'Failed to fetch'.
+      expect(r.body).toEqual({ error: "Failed to fetch chart data" });
   });
 });

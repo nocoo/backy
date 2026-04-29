@@ -37,9 +37,7 @@ afterEach(() => {
 });
 
 const { useMe } = await import("../lib/useMe");
-const { RequireAuth, CF_ACCESS_LOGOUT_URL } = await import(
-  "../lib/RequireAuth"
-);
+const { CF_ACCESS_LOGOUT_URL } = await import("../lib/RequireAuth");
 const { ApiError } = await import("../lib/api");
 
 describe("useMe", () => {
@@ -51,23 +49,48 @@ describe("useMe", () => {
     }
     renderToStaticMarkup(React.createElement(Probe));
     expect(snapshot).not.toBeNull();
-    expect(snapshot!.email).toBeNull();
-    expect(snapshot!.authenticated).toBe(false);
-    expect(typeof snapshot!.mutate).toBe("function");
-    expect(snapshot!.isLoading).toBe(true);
+    // Tightened: consolidate 4 single-property checks into one
+    // toMatchObject pinning the full default useMe() shape (when SWR
+    // hasn't fetched yet). Catches a missing field (mutate) or a
+    // changed default value (e.g. authenticated:undefined vs false).
+    expect(snapshot).toMatchObject({
+      email: null,
+      authenticated: false,
+      isLoading: true,
+      mutate: expect.any(Function),
+    });
   });
 });
 
 describe("RequireAuth", () => {
-  test("renders the loading shim while session is undetermined", () => {
+  test("renders the loading shim while session is undetermined", async () => {
+    // Mock useMe to a deterministic loading state. Previously this test
+    // relied on the real SWR hook returning isLoading:true on first render,
+    // which is fragile under `isolate:false` (sibling test files can
+    // populate the SWR module state during their own imports).
+    vi.doMock("../lib/useMe", () => ({
+      useMe: () => ({
+        email: null,
+        authenticated: false,
+        isLoading: true,
+        error: undefined,
+        mutate: () => {},
+      }),
+    }));
+    const { RequireAuth: RA } = await import("../lib/RequireAuth");
     const html = renderToStaticMarkup(
       React.createElement(
-        RequireAuth,
+        RA,
         null,
         React.createElement("div", null, "secret"),
       ),
     );
-    expect(html.toLowerCase()).toContain("loading");
+    expect(html).toContain("Loading…");
+    // Tightened: also confirm children are NOT rendered during loading.
+    // A regression that always rendered children + loading shell would
+    // pass the toContain above. The 'secret' div is inserted as the
+    // child to detect that leak.
+    expect(html).not.toContain("secret");
   });
 
   test("CF Access logout URL is the canonical one", () => {
@@ -98,7 +121,7 @@ describe("RequireAuth", () => {
     const html = renderToStaticMarkup(
       React.createElement(RA, null, React.createElement("div", null, "x")),
     );
-    expect(html.toLowerCase()).toContain("redirecting to login");
+    expect(html).toContain("Redirecting to login…");
   });
 
   test("renders the 401 redirect branch when ApiError(401) surfaces", async () => {
@@ -116,7 +139,7 @@ describe("RequireAuth", () => {
     const html = renderToStaticMarkup(
       React.createElement(RA, null, React.createElement("div", null, "x")),
     );
-    expect(html.toLowerCase()).toContain("redirecting to login");
+    expect(html).toContain("Redirecting to login…");
   });
 
   test("renders the generic error branch for non-401 errors", async () => {
@@ -133,8 +156,10 @@ describe("RequireAuth", () => {
     const html = renderToStaticMarkup(
       React.createElement(RA, null, React.createElement("div", null, "x")),
     );
-    expect(html.toLowerCase()).toContain("failed to load session");
-    expect(html).toContain("boom");
+    // Tightened: exact visible-text match including the ellipsis-free
+    // 'Failed to load session: boom' line. Catches a regression that
+    // changes case, drops the prefix, or omits the message.
+    expect(html).toContain("Failed to load session: boom");
   });
 
   test("renders children when session has an email", async () => {
@@ -156,5 +181,13 @@ describe("RequireAuth", () => {
       ),
     );
     expect(html).toContain("secret-payload");
+    // Tightened: when email is present, RequireAuth must render ONLY
+    // the children — NOT a wrapper around them. A regression that
+    // accidentally rendered children INSIDE the loading/error/redirect
+    // shell would still pass the toContain check above. These
+    // negative assertions confirm the bare-children branch was taken.
+    expect(html).not.toContain("Loading…");
+    expect(html).not.toContain("Redirecting to login…");
+    expect(html).not.toContain("Failed to load session");
   });
 });

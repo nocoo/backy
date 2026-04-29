@@ -5,6 +5,10 @@ export default defineConfig({
     environment: "node",
     globals: false,
     include: ["src/__tests__/**/*.test.ts"],
+    pool: "threads",
+    maxWorkers: 1,
+    isolate: false,
+    setupFiles: ["./src/__tests__/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],

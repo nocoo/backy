@@ -7,22 +7,26 @@ describe("@backy/cli placeholder", () => {
   });
 
   test("main returns version stamp on --version", () => {
-    expect(main(["--version"])).toContain("@backy/cli");
+    expect(main(["--version"])).toBe("@backy/cli (placeholder)");
   });
 
   test("main returns version stamp on -v", () => {
-    expect(main(["-v"])).toContain("@backy/cli");
+    expect(main(["-v"])).toBe("@backy/cli (placeholder)");
   });
 
   test("main returns not-implemented notice without flags", () => {
-    expect(main([])).toContain("not yet implemented");
+    expect(main([])).toBe(
+      "@backy/cli — not yet implemented. Coming in the next wave.",
+    );
   });
 
   test("main with no args reads from process.argv", () => {
     const original = process.argv;
     process.argv = ["bun", "cli"];
     try {
-      expect(main()).toContain("not yet implemented");
+      expect(main()).toBe(
+        "@backy/cli — not yet implemented. Coming in the next wave.",
+      );
     } finally {
       process.argv = original;
     }

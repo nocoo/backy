@@ -24,6 +24,30 @@ describe("isLocalhost", () => {
     expect((await res.json()) as unknown).toEqual({ local: true });
   });
 
+  test("BUG: 'localhost.evil.com' attacker-controlled host is treated as local", async () => {
+    // Discovery: isLocalhost uses startsWith("localhost") and
+    // startsWith("127.0.0.1"), so a malicious Host header like
+    // 'localhost.evil.com' (or '127.0.0.1.evil.com') would bypass
+    // CF Access. The cf-edge check (`c.req.raw.cf`) protects against
+    // this on the CF edge in practice, but if a non-CF deploy ever
+    // routes traffic to this worker, the bypass is open. This test
+    // pins the CURRENT (vulnerable) behavior so a fix to use exact-
+    // match-or-colon-suffix would intentionally break it. Logged in
+    // ideas.md.
+    const res = await appThatProbes().request("/probe", {
+      headers: { host: "localhost.evil.com" },
+    });
+    expect((await res.json()) as unknown).toEqual({ local: true });
+  });
+
+  test("BUG: '127.0.0.1.evil.com' attacker-controlled host is treated as local", async () => {
+    // Same startsWith vulnerability for the IPv4-form prefix.
+    const res = await appThatProbes().request("/probe", {
+      headers: { host: "127.0.0.1.evil.com" },
+    });
+    expect((await res.json()) as unknown).toEqual({ local: true });
+  });
+
   test("false for production host", async () => {
     const res = await appThatProbes().request("/probe", {
       headers: { host: "backy.example.com" },

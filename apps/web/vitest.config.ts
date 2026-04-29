@@ -13,6 +13,9 @@ export default defineConfig({
     environment: "happy-dom",
     globals: false,
     include: ["src/__tests__/**/*.test.{ts,tsx}"],
+    pool: "threads",
+    maxWorkers: 1,
+    isolate: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],

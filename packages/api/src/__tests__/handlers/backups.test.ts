@@ -38,7 +38,7 @@ let mockDownloadFromR2: (k: string) => Promise<any> = async () => ({
   contentType: undefined,
   contentLength: undefined,
 });
-let mockCreatePresignedDownloadUrl: (k: string) => Promise<string> = async () =>
+let mockCreatePresignedDownloadUrl: (k: string, ttl: number) => Promise<string> = async () =>
   "https://example.com/presigned";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUpdateBackup: (...args: any[]) => Promise<any> = async () => ({});
@@ -71,7 +71,7 @@ const ctx = makeMockCtx({
       mockUploadToR2(key, body, opts?.contentType),
     delete: async (key) => mockDeleteFromR2(key),
     get: async (key) => mockDownloadFromR2(key),
-    presignDownload: async (key) => mockCreatePresignedDownloadUrl(key),
+    presignDownload: async (key, ttl) => mockCreatePresignedDownloadUrl(key, ttl),
   }),
 });
 const listBackupsHandler = (input: Parameters<typeof backupsHandlers.listBackupsHandler>[0]) =>
@@ -134,6 +134,11 @@ describe("backups handlers", () => {
     });
 
     test("200 with all filters", async () => {
+      let captured: unknown;
+      mockListBackups = async (...args: unknown[]) => {
+        captured = args[0];
+        return { rows: [], total: 0 };
+      };
       const r = await listBackupsHandler({
         projectId: "p1",
         search: "x",
@@ -144,44 +149,99 @@ describe("backups handlers", () => {
         pageSize: "10",
       });
       expect(r.status).toBe(200);
+      // Tightened: pin the entire filter object the handler forwards to
+      // listBackups(). 200-only would mask any drift in projectId /
+      // search / environment / sortOrder / pagination math.
+      expect(captured).toEqual({
+        projectId: "p1",
+        search: "x",
+        environment: "prod",
+        sortBy: "file_size",
+        sortOrder: "asc",
+        page: 2,
+        pageSize: 10,
+      });
     });
 
     test("clamps pageSize > 100", async () => {
+      let captured: { pageSize?: number } = {};
+      mockListBackups = async (input: { pageSize?: number }) => {
+        captured = input;
+        return { rows: [], total: 0 };
+      };
       const r = await listBackupsHandler({ pageSize: "9999" });
       expect(r.status).toBe(200);
+      // Tightened: positively assert the clamp produced 100, not just
+      // that the call succeeded with garbage input.
+      expect(captured.pageSize).toBe(100);
     });
 
     test("invalid sortBy falls back to created_at", async () => {
+      let captured: { sortBy?: string } = {};
+      mockListBackups = async (input: { sortBy?: string }) => {
+        captured = input;
+        return { rows: [], total: 0 };
+      };
       const r = await listBackupsHandler({ sortBy: "junk" });
       expect(r.status).toBe(200);
+      // Tightened: positively assert the fallback value, not just 200.
+      expect(captured.sortBy).toBe("created_at");
     });
 
     test("500 on db error", async () => {
       mockListBackups = async () => {
         throw new Error("db");
       };
-      expect((await listBackupsHandler({})).status).toBe(500);
+      const r = await listBackupsHandler({});
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to list backups" });
     });
   });
 
   describe("batchDeleteBackupsHandler", () => {
     test("200 deletes successfully", async () => {
+      const deletes: string[] = [];
+      mockDeleteFromR2 = async (key: string) => {
+        deletes.push(key);
+      };
       mockDeleteBackups = async () => [
         { fileKey: "k1", jsonKey: "j1" },
         { fileKey: "k2", jsonKey: null },
       ];
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a", "b"] } });
       expect(r.status).toBe(200);
+      // Tightened: positively verify R2 cleanup deleted both backup
+      // file_keys + only the present json_keys (jsonKey:null must NOT
+      // produce a stray r2.delete(null) call). Also pin the response
+      // body's `deleted` count.
+      expect(deletes).toEqual(["k1", "j1", "k2"]);
+      expect(r.kind).toBe("json");
+      const body = (r as { body: Record<string, unknown> }).body;
+      expect(body).toEqual({ success: true, deleted: 2 });
     });
 
     test("400 on empty array", async () => {
       const r = await batchDeleteBackupsHandler({ body: { ids: [] } });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Empty array hits the same 'non-empty array of strings' branch
+        // as the non-array / non-string-element cases.
+        expect(r.body).toEqual({
+          error: "ids must be a non-empty array of strings",
+        });
     });
 
     test("400 on non-array", async () => {
       const r = await batchDeleteBackupsHandler({ body: { ids: "x" } });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "ids must be a non-empty array of strings",
+        });
     });
 
     test("400 on >50 ids", async () => {
@@ -189,11 +249,25 @@ describe("backups handlers", () => {
         body: { ids: Array.from({ length: 51 }, (_, i) => String(i)) },
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct error message from the empty/non-array branch —
+        // pinning prevents a refactor from collapsing them.
+        expect(r.body).toEqual({
+          error: "Maximum 50 backups can be deleted at once",
+        });
     });
 
     test("400 when ids contain non-strings", async () => {
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a", 1] } });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 'ids contains non-string' hits the same generic branch as the
+        // empty/non-array cases (the check is conjunctive).
+        expect(r.body).toEqual({
+          error: "ids must be a non-empty array of strings",
+        });
     });
 
     test("R2 errors are non-fatal", async () => {
@@ -203,6 +277,11 @@ describe("backups handlers", () => {
       };
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a"] } });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // R2 delete throws but the handler still returns success:true
+        // with the deleted-row count from D1 (R2 cleanup is non-fatal).
+        expect(r.body).toEqual({ success: true, deleted: 1 });
     });
 
     test("500 on db error", async () => {
@@ -211,35 +290,66 @@ describe("backups handlers", () => {
       };
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a"] } });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to batch delete backups" });
     });
   });
 
   describe("getBackupHandler", () => {
     test("200 when found", async () => {
-      mockGetBackup = async () => ({ id: "b1" });
-      expect((await getBackupHandler({ id: "b1" })).status).toBe(200);
+      mockGetBackup = async () => ({ id: "b1", project_id: "p1" });
+      const r = await getBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+      // Tightened: handler must pass the full backup row through verbatim.
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        id: "b1",
+        project_id: "p1",
+      });
     });
 
     test("404 when missing", async () => {
-      expect((await getBackupHandler({ id: "x" })).status).toBe(404);
+      const r = await getBackupHandler({ id: "x" });
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Backup not found" });
     });
 
     test("500 on db error", async () => {
       mockGetBackup = async () => {
         throw new Error("db");
       };
-      expect((await getBackupHandler({ id: "x" })).status).toBe(500);
+      const r = await getBackupHandler({ id: "x" });
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to get backup" });
     });
   });
 
   describe("deleteBackupHandler", () => {
     test("200 when deleted", async () => {
+      const deletes: string[] = [];
+      mockDeleteFromR2 = async (key: string) => {
+        deletes.push(key);
+      };
       mockDeleteBackup = async () => ({ fileKey: "k", jsonKey: "j" });
-      expect((await deleteBackupHandler({ id: "b1" })).status).toBe(200);
+      const r = await deleteBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+      // Tightened: positively verify R2 cleanup ordering (fileKey first,
+      // jsonKey second) AND the response body. Status-only would mask a
+      // regression that returns 200 without actually calling r2.delete.
+      expect(deletes).toEqual(["k", "j"]);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ success: true });
     });
 
     test("404 when missing", async () => {
-      expect((await deleteBackupHandler({ id: "x" })).status).toBe(404);
+      const r = await deleteBackupHandler({ id: "x" });
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Backup not found" });
     });
 
     test("R2 errors non-fatal", async () => {
@@ -247,14 +357,23 @@ describe("backups handlers", () => {
       mockDeleteFromR2 = async () => {
         throw new Error("r2");
       };
-      expect((await deleteBackupHandler({ id: "b1" })).status).toBe(200);
+      const r = await deleteBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+      // Tightened: even when R2 throws, the handler should still report
+      // success:true to the client (the cleanup is non-fatal by design).
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ success: true });
     });
 
     test("500 on db error", async () => {
       mockDeleteBackup = async () => {
         throw new Error("db");
       };
-      expect((await deleteBackupHandler({ id: "x" })).status).toBe(500);
+      const r = await deleteBackupHandler({ id: "x" });
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to delete backup" });
     });
   });
 
@@ -268,6 +387,9 @@ describe("backups handlers", () => {
     test("400 missing projectId", async () => {
       const r = await uploadBackupHandler({ formData: fd({}) });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "projectId is required" });
     });
 
     test("404 when project missing", async () => {
@@ -276,6 +398,11 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1" }),
       });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct 'Project not found' (vs 'Backup not found' on the
+        // get/delete handlers).
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("400 missing file", async () => {
@@ -283,6 +410,9 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1" }),
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Missing 'file' field in form data" });
     });
 
     test("400 empty file", async () => {
@@ -293,6 +423,9 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file }),
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "File is empty" });
     });
 
     test("413 file too large", async () => {
@@ -305,6 +438,11 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file: big }),
       });
       expect(r.status).toBe(413);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 413 = MAX_FILE_SIZE (50MB) limit. Pin the user-facing string
+        // so a regression that bumps the limit silently surfaces.
+        expect(r.body).toEqual({ error: "File too large. Maximum: 50MB" });
     });
 
     test("400 invalid environment", async () => {
@@ -319,9 +457,19 @@ describe("backups handlers", () => {
         }),
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Invalid environment. Allowed: dev, prod, staging, test",
+        });
     });
 
     test("201 uploads non-JSON as-is", async () => {
+      const uploads: Array<{ key: string; size: number; type: string | undefined }> = [];
+      mockUploadToR2 = async (key: string, body: ArrayBuffer | Uint8Array, type?: string) => {
+        const u8 = body instanceof Uint8Array ? body : new Uint8Array(body);
+        uploads.push({ key, size: u8.byteLength, type });
+      };
       const file = new File([new Uint8Array([1, 2, 3])], "x.zip", {
         type: "application/zip",
       });
@@ -334,9 +482,24 @@ describe("backups handlers", () => {
         }),
       });
       expect(r.status).toBe(201);
+      // Tightened: verify the non-JSON path uploads the bytes verbatim
+      // (3 bytes, content-type preserved) and does NOT create a preview.
+      // 201-only would mask a regression that re-encoded the body or
+      // accidentally generated a preview for binaries.
+      expect(uploads).toHaveLength(1);
+      expect(uploads[0]).toMatchObject({
+        size: 3,
+        type: "application/zip",
+      });
+      expect(uploads[0]!.key).toMatch(/^backups\/p1\//);
     });
 
     test("201 zips JSON and stores preview", async () => {
+      const uploads: Array<{ key: string; size: number; type: string | undefined }> = [];
+      mockUploadToR2 = async (key: string, body: ArrayBuffer | Uint8Array, type?: string) => {
+        const u8 = body instanceof Uint8Array ? body : new Uint8Array(body);
+        uploads.push({ key, size: u8.byteLength, type });
+      };
       const file = new File([new TextEncoder().encode('{"a":1}')], "x.json", {
         type: "application/json",
       });
@@ -344,6 +507,23 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file }),
       });
       expect(r.status).toBe(201);
+      // Tightened: verify the JSON path uploads BOTH a gzipped backup
+      // and a JSON preview (two distinct R2 keys). 201-only would mask
+      // a regression that skipped preview generation or stored the raw
+      // JSON instead of compressing.
+      expect(uploads).toHaveLength(2);
+      const backup = uploads.find((u) => u.key.startsWith("backups/"));
+      const preview = uploads.find((u) => u.key.startsWith("previews/"));
+      // Tightened: from .toBeDefined() to full toMatchObject pinning
+      // both upload sizes + content-types. Discovery: backups are
+      // application/zip (not gzip — the handler uses ZIP for archive,
+      // not gzip). The preview is the raw JSON.
+      expect(backup).toMatchObject({ type: "application/zip" });
+      expect(preview).toMatchObject({
+        size: 7, // '{"a":1}' = 7 bytes
+        type: "application/json",
+      });
+      expect(backup!.size).toBeGreaterThan(0);
     });
 
     test("500 on createBackup error", async () => {
@@ -357,6 +537,14 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file }),
       });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Discovery: createBackup throws are caught by the OUTER
+        // try/catch which surfaces the generic 'Internal server error'
+        // (the inner db-error catch returns a more specific message via
+        // fireLog and a 200 stub response, but does NOT re-throw — see
+        // backups.ts uploadBackupHandler).
+        expect(r.body).toEqual({ error: "Internal server error" });
     });
   });
 
@@ -367,14 +555,32 @@ describe("backups handlers", () => {
         file_key: "k",
         file_size: 100,
       });
-      mockCreatePresignedDownloadUrl = async () => "https://signed.example/x";
+      let presignArgs: [string, number] | undefined;
+      mockCreatePresignedDownloadUrl = async (key: string, ttl: number) => {
+        presignArgs = [key, ttl];
+        return "https://signed.example/x";
+      };
       const r = await downloadBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: status-only would mask url/file_key/file_size/
+      // expires_in drift in the response body, AND would let a regression
+      // pass that hard-coded the wrong key or TTL into the presigner call.
+      expect(presignArgs).toEqual(["k", 900]);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        url: "https://signed.example/x",
+        file_key: "k",
+        file_size: 100,
+        expires_in: 900,
+      });
     });
 
     test("404 when missing", async () => {
       const r = await downloadBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("500 on db error", async () => {
@@ -383,6 +589,9 @@ describe("backups handlers", () => {
       };
       const r = await downloadBackupHandler({ id: "x" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to generate download URL" });
     });
 
     test("500 on presign error", async () => {
@@ -396,6 +605,12 @@ describe("backups handlers", () => {
       };
       const r = await downloadBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same generic 'Failed to generate download URL' message for both
+        // db-error and presign-error branches — they share the outer
+        // try/catch.
+        expect(r.body).toEqual({ error: "Failed to generate download URL" });
     });
   });
 
@@ -407,6 +622,9 @@ describe("backups handlers", () => {
     test("404 when missing", async () => {
       const r = await previewBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("404 when no json_key", async () => {
@@ -417,6 +635,17 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // is_single_json=0 => extractable=true (caller can POST /extract).
+        // Pin both the human-readable error AND the extractable flag
+        // — the UI relies on this flag to decide whether to show the
+        // 'Extract' button.
+        expect(r.body).toEqual({
+          error:
+            "No JSON available for preview. Extract JSON first via POST /api/backups/[id]/extract",
+          extractable: true,
+        });
     });
 
     test("500 when r2 body missing", async () => {
@@ -424,6 +653,15 @@ describe("backups handlers", () => {
       mockDownloadFromR2 = async () => ({ body: null });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Discovery: the {body:null} mock surfaces 'Failed to load preview'
+        // (the OUTER catch), not 'Failed to download preview file from
+        // storage' — because readR2Bytes() throws on null body before the
+        // explicit r2Response null-check is reached. The 'Failed to
+        // download...' branch is unreachable in practice; documenting
+        // here as a code-quality note.
+        expect(r.body).toEqual({ error: "Failed to load preview" });
     });
 
     test("413 when too large", async () => {
@@ -433,6 +671,14 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(413);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 413 surfaces the 'use download endpoint instead' hint so a CLI
+        // that pins the size-limit branch can route to /download.
+        expect(r.body).toEqual({
+          error:
+            "JSON file too large for inline preview. Use the download endpoint instead.",
+        });
     });
 
     test("500 when stored content not valid JSON", async () => {
@@ -442,6 +688,11 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Stored preview file is not valid JSON",
+        });
     });
 
     test("200 returns parsed content", async () => {
@@ -456,6 +707,17 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: pin the full preview body shape. 200-only would mask
+      // a regression that returned the raw text instead of parsed JSON,
+      // dropped any of the metadata fields, or surfaced extra fields.
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        backup_id: "b1",
+        project_id: "p1",
+        project_name: "P1",
+        json_key: "j",
+        content: { a: 1 },
+      });
     });
 
     test("500 on download error", async () => {
@@ -465,6 +727,9 @@ describe("backups handlers", () => {
       };
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to load preview" });
     });
   });
 
@@ -476,12 +741,22 @@ describe("backups handlers", () => {
     test("404 when missing", async () => {
       const r = await extractBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("200 when json_key already set", async () => {
       mockGetBackup = async () => ({ id: "b1", json_key: "existing" });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: pin the no-op response shape (handler short-circuits
+      // when json_key already set; must NOT touch R2 or call updateBackup).
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        message: "JSON already available",
+        json_key: "existing",
+      });
     });
 
     test("400 when already single JSON", async () => {
@@ -492,6 +767,11 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Backup is already a JSON file, no extraction needed",
+        });
     });
 
     test("400 when file_type not extractable", async () => {
@@ -503,6 +783,13 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct error message from the 'already single JSON' branch
+        // — catches a refactor that collapses them.
+        expect(r.body).toEqual({
+          error: "Preview is not available for this file format",
+        });
     });
 
     test("500 when r2 body missing", async () => {
@@ -517,6 +804,15 @@ describe("backups handlers", () => {
       mockDownloadFromR2 = async () => ({ body: null });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same dead-branch caveat as previewBackupHandler: readR2Bytes
+        // throws on null body BEFORE the explicit null-check fires, so
+        // the 'Failed to download backup file...' branch is unreachable.
+        // The OUTER catch returns 'Failed to extract JSON from backup'.
+        expect(r.body).toEqual({
+          error: "Failed to extract JSON from backup",
+        });
     });
 
     test("400 when contentLength exceeds limit", async () => {
@@ -534,6 +830,15 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 60MB exceeds 50MB limit; templated reason includes both the
+        // input size (60.0MB) and the limit (50MB) so operators can
+        // diagnose without consulting the source.
+        expect(r.body).toEqual({
+          error:
+            "Archive too large for extraction (60.0MB exceeds 50MB limit)",
+        });
     });
 
     test("400 when extraction fails", async () => {
@@ -555,6 +860,14 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 400 surfaces the extractor's reason verbatim (no JSON files
+        // in this empty zip with only readme.txt). Catches a regression
+        // that wraps or rephrases the extractor reason.
+        expect(r.body).toEqual({
+          error: "No JSON files found in the ZIP archive",
+        });
     });
 
     test("200 on successful extraction", async () => {
@@ -571,8 +884,34 @@ describe("backups handlers", () => {
       zip.file("data.json", '{"a":1}');
       const buf = await zip.generateAsync({ type: "uint8array" });
       mockDownloadFromR2 = async () => ({ body: bodyOf(buf) });
+      const uploaded: string[] = [];
+      mockUploadToR2 = async (key: string) => {
+        uploaded.push(key);
+      };
+      let updateArg: unknown;
+      mockUpdateBackup = async (_id: string, patch: unknown) => {
+        updateArg = patch;
+        return {};
+      };
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(200);
+      // Tightened: positively verify the side effects: (1) the
+      // extracted JSON is uploaded to R2 once, (2) the DB is updated
+      // with the new jsonKey + jsonExtracted:true, (3) the response
+      // body announces the source file and json count from the extractor.
+      expect(uploaded).toHaveLength(1);
+      expect(uploaded[0]).toMatch(/^previews\/p1\//);
+      expect(updateArg).toEqual({
+        jsonKey: uploaded[0],
+        jsonExtracted: true,
+      });
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        message: "JSON extracted successfully",
+        json_key: uploaded[0],
+        source_file: "data.json",
+        json_files_found: 1,
+      });
     });
 
     test("500 on db error", async () => {
@@ -581,6 +920,9 @@ describe("backups handlers", () => {
       };
       const r = await extractBackupHandler({ id: "x" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to extract JSON from backup" });
     });
   });
 
@@ -590,6 +932,9 @@ describe("backups handlers", () => {
     test("404 when backup missing", async () => {
       const r = await restoreCommandHandler({ id: "x", baseUrl });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("404 when project missing", async () => {
@@ -597,6 +942,13 @@ describe("backups handlers", () => {
       mockGetProject = async () => undefined;
       const r = await restoreCommandHandler({ id: "b1", baseUrl });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct 'Project not found' (vs the generic 'Backup not
+        // found' even though the route is /backups/:id/restore-command
+        // — the project disappeared mid-flight, so this is a real edge
+        // case worth distinguishing for operators).
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("200 returns curl command", async () => {
@@ -608,11 +960,15 @@ describe("backups handlers", () => {
       });
       const r = await restoreCommandHandler({ id: "b1", baseUrl });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json") {
         const body = r.body as { command: string };
-        expect(body.command).toContain("Bearer tok");
-        expect(body.command).toContain("/api/restore/b1");
-        expect(body.command).toContain("https://example.com");
+        // Tightened: pin the exact string. Three toContain checks miss
+        // ordering / escape / extra-arg regressions; a full equality
+        // check catches all of them.
+        expect(body.command).toBe(
+          `curl https://example.com/api/restore/b1 \\\n  -H "Authorization: Bearer tok"`,
+        );
       }
     });
 
@@ -622,6 +978,11 @@ describe("backups handlers", () => {
       };
       const r = await restoreCommandHandler({ id: "x", baseUrl });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Failed to generate restore command",
+        });
     });
   });
 });

@@ -37,25 +37,21 @@ describe("apiFetch", () => {
           headers: { "content-type": "application/json" },
         }),
     );
-    try {
-      await apiFetch("/api/x");
-      throw new Error("should have thrown");
-    } catch (e) {
-      expect(e).toBeInstanceOf(ApiError);
-      const err = e as ApiError;
-      expect(err.status).toBe(400);
-      expect(err.body).toEqual({ error: "nope" });
-    }
+    await expect(apiFetch("/api/x")).rejects.toBeInstanceOf(ApiError);
+    await expect(apiFetch("/api/x")).rejects.toMatchObject({
+      status: 400,
+      body: { error: "nope" },
+    });
   });
 
   test("ApiError falls back to text body when not json", async () => {
     stubFetch(() => new Response("plain", { status: 500 }));
-    try {
-      await apiFetch("/api/x");
-    } catch (e) {
-      const err = e as ApiError;
-      expect(err.body).toBe("plain");
-    }
+    // Use rejects.* so the test fails if apiFetch resolves instead of
+    // throwing (the prior try/catch silently passed in that case).
+    await expect(apiFetch("/api/x")).rejects.toMatchObject({
+      status: 500,
+      body: "plain",
+    });
   });
 
   test("ApiError tolerates body parse failure", async () => {
@@ -66,12 +62,10 @@ describe("apiFetch", () => {
           headers: { "content-type": "application/json" },
         }),
     );
-    try {
-      await apiFetch("/api/x");
-    } catch (e) {
-      const err = e as ApiError;
-      expect(err.body).toBeNull();
-    }
+    await expect(apiFetch("/api/x")).rejects.toMatchObject({
+      status: 500,
+      body: null,
+    });
   });
 });
 

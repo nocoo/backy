@@ -14,7 +14,12 @@ describe("generateId", () => {
 
   test("uses URL-safe characters only", () => {
     const id = generateId();
-    expect(id).toMatch(/^[A-Za-z0-9_-]+$/);
+    // Tightened: pin both length AND URL-safe alphabet in one regex.
+    // Previously the length was tested separately above; combining
+    // ensures a regression that returns the right length but a non-
+    // URL-safe character (e.g. '+', '/' from base64) would surface
+    // even if someone deletes the length-only test.
+    expect(id).toMatch(/^[A-Za-z0-9_-]{21}$/);
   });
 });
 
@@ -33,6 +38,6 @@ describe("generateWebhookToken", () => {
 
   test("uses URL-safe characters only", () => {
     const token = generateWebhookToken();
-    expect(token).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(token).toMatch(/^[A-Za-z0-9_-]{48}$/);
   });
 });

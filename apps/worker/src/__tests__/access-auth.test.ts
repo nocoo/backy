@@ -23,6 +23,11 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    // Tightened: positively verify the request reached the downstream
+    // handler (vs. a 200 response from accessAuth itself). The fake
+    // handler returns {ok:true, email:null} when no accessEmail is set
+    // — this confirms the public-path matcher SKIPPED Access entirely.
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("POST /api/cron/trigger is public", async () => {
@@ -31,6 +36,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("HEAD /api/webhook/:projectId is public", async () => {
@@ -39,6 +45,9 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    // HEAD responses have no body — just confirm the request reached
+    // the downstream (status:200 from fake handler, not 401 from access).
+    expect(await res.text()).toBe("");
   });
 
   test("GET /api/webhook/:projectId is public", async () => {
@@ -46,6 +55,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("POST /api/webhook/:projectId is public", async () => {
@@ -54,6 +64,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("GET /api/restore/:id is public", async () => {
@@ -61,6 +72,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("/api/cron/trigger/:projectId is NOT public (Access-protected)", async () => {
@@ -69,6 +81,9 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(500); // Access not configured → 500
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 
   test("/api/webhook/:projectId/sub is NOT public (only one segment after webhook/)", async () => {
@@ -76,6 +91,12 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(500);
+    // Same misconfig message — confirms the request reached accessAuth
+    // (i.e. the public-path matcher did NOT short-circuit on this path,
+    // proving the matcher requires exactly one segment after webhook/).
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 
   test("/api/restore/:id/sub is NOT public", async () => {
@@ -83,6 +104,9 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 });
 
@@ -104,6 +128,35 @@ describe("accessAuth — short-circuits", () => {
     });
     expect(res.status).toBe(200);
     expect((await res.json()) as unknown).toEqual({ ok: true, email: "dev@local" });
+  });
+
+  test("E2E_SKIP_AUTH=false (string) does NOT bypass", async () => {
+    // Security contract: bypass requires the EXACT literal string "true".
+    // Common misconfig values like "false", "1", or "yes" must NOT
+    // accidentally enable the bypass. Without this test a refactor that
+    // does `if (env.E2E_SKIP_AUTH)` (truthy check) would silently open
+    // a backdoor in production deploys.
+    const res = await buildApp().request(
+      "/api/projects",
+      { headers: { host: "backy.example.com" } },
+      { E2E_SKIP_AUTH: "false" } as unknown as AppEnv["Bindings"],
+    );
+    expect(res.status).toBe(500); // Falls through to access-not-configured
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
+  });
+
+  test("E2E_SKIP_AUTH=1 (string) does NOT bypass", async () => {
+    const res = await buildApp().request(
+      "/api/projects",
+      { headers: { host: "backy.example.com" } },
+      { E2E_SKIP_AUTH: "1" } as unknown as AppEnv["Bindings"],
+    );
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 });
 
@@ -131,6 +184,7 @@ describe("accessAuth — JWT verification", () => {
       } as unknown as AppEnv["Bindings"],
     );
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
   });
 
   test("invalid JWT → 401", async () => {
@@ -149,5 +203,8 @@ describe("accessAuth — JWT verification", () => {
       } as unknown as AppEnv["Bindings"],
     );
     expect(res.status).toBe(401);
+    // Same generic 'Unauthorized' for missing-jwt and invalid-jwt
+    // (no info leak about WHICH check failed).
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
   });
 });

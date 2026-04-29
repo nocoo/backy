@@ -101,11 +101,17 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "CRON_SECRET not configured" });
     });
 
     test("401 when no auth", async () => {
       const r = await cronTriggerHandler({ authorization: null });
       expect(r.status).toBe(401);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Unauthorized" });
     });
 
     test("401 when wrong token", async () => {
@@ -113,6 +119,11 @@ describe("cron handlers", () => {
         authorization: "Bearer wrong",
       });
       expect(r.status).toBe(401);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same generic 'Unauthorized' for both no-auth and wrong-token
+        // (don't leak which one caused the 401).
+        expect(r.body).toEqual({ error: "Unauthorized" });
     });
 
     test("500 when listAutoBackupProjects throws", async () => {
@@ -123,6 +134,9 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to query projects" });
     });
 
     test("200 with empty projects", async () => {
@@ -130,6 +144,24 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json") {
+        // Pinned via toEqual: catches a regression that adds a
+        // `results: []` field when empty (the handler intentionally
+        // OMITS results when 0 projects — documented contract). Routes
+        // integration test in apps/worker/routes.test pins the same.
+        expect(r.body).toEqual({
+          total: 0,
+          triggered: 0,
+          skipped: 0,
+          failed: 0,
+        });
+        // Defense-in-depth: assert key is missing (toEqual already
+        // catches this but explicit doc helps future readers).
+        expect((r.body as Record<string, unknown>)).not.toHaveProperty(
+          "results",
+        );
+      }
     });
 
     test("skips project without webhook URL", async () => {
@@ -140,16 +172,31 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 1,
+          failed: 0,
+        });
     });
 
-    test("skips project not due this hour", async () => {
+    test("skips project with invalid auto_backup_interval (not in [1,12,24])", async () => {
+      // Discovery: this test was previously named 'not due this hour' but
+      // actually tests the INVALID-interval branch (interval=999 is not
+      // in VALID_INTERVALS=[1,12,24], so shouldTrigger returns false
+      // before evaluating the modulo). Renamed to reflect the real
+      // behavior. The 'not due this hour' branch (valid interval but
+      // hours % interval !== 0) would need fake timers and is left
+      // uncovered for now to avoid TZ flakiness.
       mockIsUrlSafe = () => true;
       mockResolveAndValidateUrl = async () => ({ safe: true });
       mockListAutoBackupProjects = async () => [
         {
           id: "p1",
           auto_backup_webhook: "https://hook.example.com",
-          auto_backup_interval: 999, // invalid → never triggers
+          auto_backup_interval: 999, // NOT in VALID_INTERVALS — invalid branch
           auto_backup_header_key: null,
           auto_backup_header_value: null,
         },
@@ -158,6 +205,50 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 1,
+          failed: 0,
+        });
+    });
+
+    test("skips project not due this hour (valid interval but hour mismatch)", async () => {
+      // Covers the actual 'not due this hour' branch (was missing
+      // before — the prior test under that name was hitting the
+      // invalid-interval branch). Uses fake timers to pin UTC hour=1
+      // and interval=12: 1 % 12 = 1 ≠ 0, so shouldTrigger returns false.
+      vi.useFakeTimers();
+      vi.setSystemTime(Date.UTC(2026, 0, 1, 1, 0, 0)); // 2026-01-01T01:00:00Z
+      try {
+        mockIsUrlSafe = () => true;
+        mockResolveAndValidateUrl = async () => ({ safe: true });
+        mockListAutoBackupProjects = async () => [
+          {
+            id: "p1",
+            auto_backup_webhook: "https://hook.example.com",
+            auto_backup_interval: 12, // valid; modulo 12 with hour=1 = 1 ≠ 0
+            auto_backup_header_key: null,
+            auto_backup_header_value: null,
+          },
+        ];
+        const r = await cronTriggerHandler({
+          authorization: "Bearer test-secret",
+        });
+        expect(r.status).toBe(200);
+        expect(r.kind).toBe("json");
+        if (r.kind === "json")
+          expect(r.body).toEqual({
+            total: 1,
+            triggered: 0,
+            skipped: 1,
+            failed: 0,
+          });
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     test("fails project when SSRF static check blocks", async () => {
@@ -175,6 +266,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
     });
 
     test("fails project when DNS check fails", async () => {
@@ -196,6 +295,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
     });
 
     test("triggers successfully when fetch ok", async () => {
@@ -210,16 +317,45 @@ describe("cron handlers", () => {
           auto_backup_header_value: "secret",
         },
       ];
+      let capturedHeaders: Headers | undefined;
+      let capturedUrl: string | undefined;
+      let capturedMethod: string | undefined;
       globalThis.fetch = mockFetch(
-        async () => new Response("ok", { status: 200 }),
+        async (url, init) => {
+          capturedUrl = typeof url === "string" ? url : url.toString();
+          capturedHeaders = new Headers(init?.headers);
+          capturedMethod = init?.method;
+          return new Response("ok", { status: 200 });
+        },
       );
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      // Tightened: pin the entire summary shape (total/triggered/
+      // skipped/failed). Asserting only `triggered` lets a regression
+      // pass that wrongly counted the same project as both triggered
+      // AND failed, or that lost the `total` field entirely.
       if (r.kind === "json") {
-        expect((r.body as { triggered: number }).triggered).toBe(1);
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 1,
+          skipped: 0,
+          failed: 0,
+        });
       }
+      // Also verify the outbound webhook fetch was called with the
+      // configured auth header (X-Key: secret) AND the configured URL.
+      // A regression that forgets to forward auto_backup_header_key/value
+      // OR that hits a hard-coded URL would silently pass the summary-
+      // only assertion above.
+      expect(capturedHeaders?.get("X-Key")).toBe("secret");
+      expect(capturedUrl).toBe("https://hook.example.com");
+      // Pin the method: webhook trigger MUST be POST. A regression that
+      // accidentally used GET would fail to invoke the SaaS-side handler
+      // (which expects POST per the prompt-builder template).
+      expect(capturedMethod).toBe("POST");
     });
 
     test("counts non-2xx as failed", async () => {
@@ -234,16 +370,35 @@ describe("cron handlers", () => {
           auto_backup_header_value: null,
         },
       ];
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(
-        async () => new Response("nope", { status: 500 }),
+        async () => {
+          fetchCount++;
+          return new Response("nope", { status: 500 });
+        },
       );
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json") {
-        expect((r.body as { failed: number }).failed).toBe(1);
+        // Tightened: pin the full summary instead of just `failed`.
+        // Catches a regression that double-counts (failed:1, triggered:1)
+        // or counts the failure as 'skipped' instead.
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
       }
+      // Pin the no-retry contract: 5xx response should be counted as
+      // failed AFTER exactly 1 fetch attempt (no automatic retry on the
+      // server side; clients/cron are expected to retry on next tick).
+      // A regression that adds retry logic would inflate counter and
+      // surface here.
+      expect(fetchCount).toBe(1);
     });
 
     test("counts thrown fetch as failed", async () => {
@@ -258,13 +413,27 @@ describe("cron handlers", () => {
           auto_backup_header_value: null,
         },
       ];
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(async () => {
+        fetchCount++;
         throw new Error("network");
       });
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
+      // Same no-retry contract as the non-2xx test: a thrown fetch
+      // (network failure) should be counted as failed AFTER exactly
+      // 1 attempt.
+      expect(fetchCount).toBe(1);
     });
   });
 
@@ -275,17 +444,30 @@ describe("cron handlers", () => {
       };
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to fetch project" });
     });
 
     test("404 when project missing", async () => {
       const r = await cronTriggerOneHandler({ projectId: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      // Tightened: pin the error body so a regression that returns a
+      // generic 404 page or different copy would surface.
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("400 when no webhook configured", async () => {
       mockGetProject = async () => ({ id: "p1", auto_backup_webhook: null });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "No webhook URL configured for auto-backup",
+        });
     });
 
     test("200 failed when SSRF blocked", async () => {
@@ -296,8 +478,14 @@ describe("cron handlers", () => {
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      // Tightened: also pin the surfaced error message so a regression
+      // that returned a generic 'failed' / wrong reason would fail loudly.
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("failed");
+        expect(r.body).toEqual({
+          status: "failed",
+          error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
+        });
     });
 
     test("200 failed when DNS check fails", async () => {
@@ -312,8 +500,12 @@ describe("cron handlers", () => {
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("failed");
+        expect(r.body).toEqual({
+          status: "failed",
+          error: "Webhook URL blocked: private",
+        });
     });
 
     test("200 success when fetch ok", async () => {
@@ -325,11 +517,34 @@ describe("cron handlers", () => {
         auto_backup_header_key: "X-K",
         auto_backup_header_value: "v",
       });
-      globalThis.fetch = mockFetch(async () => new Response("ok"));
+      let capturedHeaders: Headers | undefined;
+      let capturedUrl: string | undefined;
+      let capturedMethod: string | undefined;
+      globalThis.fetch = mockFetch(async (url, init) => {
+        capturedUrl = typeof url === "string" ? url : url.toString();
+        capturedHeaders = new Headers(init?.headers);
+        capturedMethod = init?.method;
+        return new Response("ok");
+      });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("success");
+        // Tightened: pin status='success' AND responseCode=200 AND that
+        // durationMs is a number (timing-dependent so any-number, not
+        // an exact value). Verifies the success body includes both the
+        // upstream HTTP code and the duration measurement.
+        expect(r.body).toEqual({
+          status: "success",
+          responseCode: 200,
+          durationMs: expect.any(Number),
+        });
+      // Same auth-header AND URL-targeting forwarding contract as the
+      // cronTriggerHandler test — a regression that drops headers OR
+      // hits a hard-coded URL in the one-shot path would surface here.
+      expect(capturedHeaders?.get("X-K")).toBe("v");
+      expect(capturedUrl).toBe("https://hook.example.com");
+      expect(capturedMethod).toBe("POST");
     });
 
     test("200 failed when fetch returns 500", async () => {
@@ -339,13 +554,26 @@ describe("cron handlers", () => {
         id: "p1",
         auto_backup_webhook: "https://hook.example.com",
       });
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(
-        async () => new Response("oops", { status: 502 }),
+        async () => {
+          fetchCount++;
+          return new Response("oops", { status: 502 });
+        },
       );
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       if (r.kind === "json")
-        expect((r.body as { status: string }).status).toBe("failed");
+        expect(r.body).toEqual({
+          status: "failed",
+          responseCode: 502,
+          error: "oops",
+          durationMs: expect.any(Number),
+        });
+      // Same no-retry contract: 5xx response should be counted as
+      // failed AFTER exactly 1 fetch attempt.
+      expect(fetchCount).toBe(1);
     });
 
     test("200 failed when fetch throws", async () => {
@@ -355,11 +583,26 @@ describe("cron handlers", () => {
         id: "p1",
         auto_backup_webhook: "https://hook.example.com",
       });
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(async () => {
+        fetchCount++;
         throw new Error("net");
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
+      // Tightened: pin the body shape so a regression that surfaces a
+      // generic 'failed' or wrong message would fail loudly. fetch-throw
+      // path has no responseCode (only error+durationMs).
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          status: "failed",
+          error: "net",
+          durationMs: expect.any(Number),
+        });
+      // No-retry contract: thrown fetch counted as failed AFTER
+      // exactly 1 attempt.
+      expect(fetchCount).toBe(1);
     });
   });
 });

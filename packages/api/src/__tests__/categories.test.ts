@@ -40,12 +40,19 @@ describe("categories", () => {
       });
 
       const result = await listCategories(makeDb());
-      expect(result).toHaveLength(2);
-      expect(result[0]!.id).toBe("cat-1");
-      expect(result[1]!.id).toBe("cat-2");
+      // Tightened: pin the full result array. listCategories should
+      // pass through every column verbatim from D1; toHaveLength + 2
+      // id-checks missed body / color / sort_order regressions.
+      expect(result).toEqual(mockData);
 
       const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("SELECT * FROM categories ORDER BY sort_order ASC, name ASC");
+      // Tightened: pin exact SQL string (no trailing whitespace, no
+      // extra ORDER BY clauses). The single-arg listCategories takes
+      // no params.
+      expect(body.sql).toBe(
+        "SELECT * FROM categories ORDER BY sort_order ASC, name ASC",
+      );
+      expect(body.params).toEqual([]);
     });
 
     test("returns empty array when no categories exist", async () => {
@@ -76,15 +83,16 @@ describe("categories", () => {
       });
 
       const result = await getCategory(makeDb(), "cat-42");
-      expect(result).toBeDefined();
-      expect(result!.id).toBe("cat-42");
-      expect(result!.name).toBe("Infra");
-      expect(result!.color).toBe("#10b981");
-      expect(result!.icon).toBe("cloud");
+      // Tightened: pin the entire row pass-through (was 4 individual
+      // field checks). Catches sort_order/timestamp drift.
+      expect(result).toEqual(mockCat);
 
       const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("SELECT * FROM categories WHERE id = ?");
-      expect(body.params).toContain("cat-42");
+      // Tightened: pin the full SQL string (was substring check) and
+      // pin params as an exact array (was toContain — would pass even
+      // if extra params were appended).
+      expect(body.sql).toBe("SELECT * FROM categories WHERE id = ?");
+      expect(body.params).toEqual(["cat-42"]);
     });
 
     test("returns undefined when category not found", async () => {
@@ -114,18 +122,30 @@ describe("categories", () => {
       expect(result.color).toBe("#f59e0b");
       expect(result.icon).toBe("wrench");
       expect(result.sort_order).toBe(3);
-      expect(result.id).toBeDefined();
-      expect(result.created_at).toBeDefined();
-      expect(result.updated_at).toBeDefined();
+      // Tightened: match real shape rather than just truthy.
+      // id is a 21-char nanoid; timestamps are ISO-8601 and identical
+      // because createCategory derives both from a single `new Date()`.
+      expect(result.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
+      expect(result.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(result.updated_at).toBe(result.created_at);
 
       const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("INSERT INTO categories");
-      const params = body.params;
-      // params: id, name, color, icon, sort_order, created_at, updated_at
-      expect(params[1]).toBe("DevOps");
-      expect(params[2]).toBe("#f59e0b");
-      expect(params[3]).toBe("wrench");
-      expect(params[4]).toBe(3);
+      // Tightened: pin the full SQL string (catches column-list drift)
+      // and the full params array (id and timestamps come from the
+      // result we already validated above, so we use the validated
+      // values rather than re-asserting their format here).
+      expect(body.sql).toBe(
+        "INSERT INTO categories (id, name, color, icon, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      );
+      expect(body.params).toEqual([
+        result.id,
+        "DevOps",
+        "#f59e0b",
+        "wrench",
+        3,
+        result.created_at,
+        result.updated_at,
+      ]);
     });
 
     test("uses default color (#6b7280) when not provided", async () => {
@@ -175,7 +195,9 @@ describe("categories", () => {
 
       const result = await createCategory(makeDb(), { name: "Complete" });
       expect(typeof result.id).toBe("string");
-      expect(result.id.length).toBeGreaterThan(0);
+      // generateId() returns a 21-char URL-safe nanoid — lock the exact
+      // shape so accidental id-shape regressions surface here.
+      expect(result.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
       expect(result.name).toBe("Complete");
       expect(result.color).toBe("#6b7280");
       expect(result.icon).toBe("folder");
@@ -218,23 +240,36 @@ describe("categories", () => {
         sortOrder: 10,
       });
 
-      expect(result).toBeDefined();
-      expect(result!.name).toBe("New Name");
-      expect(result!.color).toBe("#ff0000");
-      expect(result!.icon).toBe("star");
-      expect(result!.sort_order).toBe(10);
-      expect(result!.id).toBe("cat-up");
-      expect(result!.created_at).toBe("2026-01-01T00:00:00.000Z");
+      // Tightened: removed redundant .toBeDefined() (the .toEqual
+      // below already enforces non-undefined; .toBeDefined could
+      // mask the case where result is null/missing fields).
+      expect(result).toEqual({
+        id: "cat-up",
+        name: "New Name",
+        color: "#ff0000",
+        icon: "star",
+        sort_order: 10,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      });
       expect(result!.updated_at).not.toBe("2026-01-01T00:00:00.000Z");
 
       // Verify UPDATE SQL
       const updateBody = JSON.parse(capturedBodies[1]!);
-      expect(updateBody.sql).toContain("UPDATE categories SET");
-      expect(updateBody.params).toContain("New Name");
-      expect(updateBody.params).toContain("#ff0000");
-      expect(updateBody.params).toContain("star");
-      expect(updateBody.params).toContain(10);
-      expect(updateBody.params).toContain("cat-up");
+      // Tightened: pin full SQL string + params array (was substring +
+      // 5 toContain checks). Catches column-list drift and verifies
+      // updated_at is forwarded as the same value the result carries.
+      expect(updateBody.sql).toBe(
+        "UPDATE categories SET name = ?, color = ?, icon = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+      );
+      expect(updateBody.params).toEqual([
+        "New Name",
+        "#ff0000",
+        "star",
+        10,
+        result!.updated_at,
+        "cat-up",
+      ]);
     });
 
     test("preserves existing fields when partially updating", async () => {
@@ -260,11 +295,48 @@ describe("categories", () => {
         name: "Updated",
       });
 
-      expect(result).toBeDefined();
-      expect(result!.name).toBe("Updated");
-      expect(result!.color).toBe("#123456");   // preserved
-      expect(result!.icon).toBe("heart");      // preserved
-      expect(result!.sort_order).toBe(7);      // preserved
+      // Tightened: 4 single-field checks + .toBeDefined consolidated
+      // into one toMatchObject. Asserts the partial update only changes
+      // the requested field (name) and preserves the rest, AND that
+      // updated_at is refreshed (any new ISO).
+      expect(result).toMatchObject({
+        id: "cat-partial",
+        name: "Updated",
+        color: "#123456",
+        icon: "heart",
+        sort_order: 7,
+      });
+      expect(result!.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    });
+
+    test("preserves name when partial update omits it (covers data.name ?? existing.name fallback)", async () => {
+      // Covers line 95 of categories.ts: `const name = data.name ?? existing.name`.
+      // The previous partial-update test ALWAYS provided data.name, so
+      // the ?? fallback was unreached. This test omits name and only
+      // updates color, exercising the fallback to existing.name.
+      const existingCat = {
+        id: "cat-name-keep",
+        name: "Original Name",
+        color: "#000000",
+        icon: "folder",
+        sort_order: 0,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
+      };
+      let callCount = 0;
+      globalThis.fetch = mockFetch(async () => {
+        callCount++;
+        if (callCount === 1) return d1Success([existingCat]);
+        return d1Success();
+      });
+      const result = await updateCategory(makeDb(), "cat-name-keep", {
+        color: "#ff00ff",
+      });
+      expect(result).toMatchObject({
+        id: "cat-name-keep",
+        name: "Original Name", // preserved via ?? fallback
+        color: "#ff00ff", // updated
+      });
     });
 
     test("returns undefined when category does not exist", async () => {
@@ -302,8 +374,10 @@ describe("categories", () => {
       expect(result).toBe(true);
 
       const body = JSON.parse(capturedDeleteBody);
-      expect(body.sql).toContain("DELETE FROM categories WHERE id = ?");
-      expect(body.params).toContain("cat-del");
+      // Tightened: pin full SQL string + params array (was substring +
+      // toContain). Catches column-spec drift and extra-param appending.
+      expect(body.sql).toBe("DELETE FROM categories WHERE id = ?");
+      expect(body.params).toEqual(["cat-del"]);
     });
 
     test("returns false when category does not exist", async () => {

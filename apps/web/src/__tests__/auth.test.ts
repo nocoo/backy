@@ -1,19 +1,19 @@
 import { describe, expect, test } from "vitest";
-import { useMe } from "../lib/useMe";
-import { RequireAuth, CF_ACCESS_LOGOUT_URL } from "../lib/RequireAuth";
+import { CF_ACCESS_LOGOUT_URL } from "../lib/RequireAuth";
 
-describe("useMe / RequireAuth surface", () => {
-  test("useMe is a function", () => {
-    expect(typeof useMe).toBe("function");
-  });
+// `useMe is a function` and `RequireAuth is a function component` were
+// removed: TS enforces export shape, and behavior is exercised by
+// auth-render.test.ts which actually renders RequireAuth in every branch
+// (loading / no-email / 401 / generic error / authenticated).
 
-  test("RequireAuth is a function component", () => {
-    expect(typeof RequireAuth).toBe("function");
-  });
-
-  test("CF_ACCESS_LOGOUT_URL points at nocoo team", () => {
+describe("CF_ACCESS_LOGOUT_URL", () => {
+  test("points at the nocoo CF Access team", () => {
     expect(CF_ACCESS_LOGOUT_URL).toBe(
       "https://nocoo.cloudflareaccess.com/cdn-cgi/access/logout",
     );
+  });
+
+  test("uses the canonical /cdn-cgi/access/logout path", () => {
+    expect(CF_ACCESS_LOGOUT_URL).toMatch(/\/cdn-cgi\/access\/logout$/);
   });
 });

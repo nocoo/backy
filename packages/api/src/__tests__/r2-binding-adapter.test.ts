@@ -137,7 +137,10 @@ describe("createBindingR2Adapter", () => {
     const adapter = createBindingR2Adapter(bucket, { presignDownload: presign });
     const url = await adapter.presignDownload("file.bin", 120);
     expect(url).toBe("signed:file.bin:120");
-    expect(presign).toHaveBeenCalledTimes(1);
+    // Tightened: assert exact call args (key + ttl) instead of just call
+    // count. Catches a regression where the adapter swaps the args or
+    // forwards stale defaults.
+    expect(presign).toHaveBeenCalledExactlyOnceWith("file.bin", 120);
   });
 
   test("ping issues HEAD on sentinel key", async () => {

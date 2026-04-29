@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import {
   generateTimestamp,
   generateBackupKey,
@@ -15,26 +15,28 @@ describe("generateTimestamp", () => {
     expect(generateTimestamp(date)).toBe("2026-03-02T10-30-00-000Z");
   });
 
-  test("returns a string without colons or dots", () => {
+  test("returns a timestamp matching the dashes-only shape", () => {
+    // Tightened: replaced 2 negative .not.toContain(':') / .not.toContain('.')
+    // checks (which would pass for ANY string with no colons or dots, e.g.
+    // empty string) with a positive regex that pins the full ISO-like
+    // shape with all separators replaced by dashes.
     const ts = generateTimestamp();
-    expect(ts).not.toContain(":");
-    expect(ts).not.toContain(".");
+    expect(ts).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/);
   });
 
   test("defaults to current time", () => {
-    const before = Date.now();
-    const ts = generateTimestamp();
-    const after = Date.now();
-    // Parse back and verify it's within the time window
-    const parsed = Date.parse(ts.replace(/-/g, (m, offset: number) => {
-      // Restore ISO format: keep first two dashes (date), convert rest back
-      if (offset === 4 || offset === 7) return m;
-      if (offset === 13 || offset === 16) return ":";
-      if (offset === 19) return ".";
-      return m;
-    }));
-    expect(parsed).toBeGreaterThanOrEqual(before);
-    expect(parsed).toBeLessThanOrEqual(after + 1);
+    // Pin Date.now() with fake timers so the assertion compares an exact
+    // value instead of a ±1ms time-window. Previously this used
+    // Date.now()-bracket logic which is very low risk but technically
+    // flaky if the clock jitters between the three Date.now() calls.
+    const fixed = Date.UTC(2026, 2, 2, 10, 30, 0); // 2026-03-02T10:30:00.000Z
+    vi.useFakeTimers();
+    vi.setSystemTime(fixed);
+    try {
+      expect(generateTimestamp()).toBe("2026-03-02T10-30-00-000Z");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -77,9 +79,12 @@ describe("generateBackupKey", () => {
 
   test("auto-generates timestamp when not provided", () => {
     const key = generateBackupKey("proj1", "json", "data.json");
-    expect(key.startsWith("backups/proj1/")).toBe(true);
-    expect(key.endsWith(".json")).toBe(true);
-    expect(key.length).toBeGreaterThan("backups/proj1/.json".length);
+    // Tightened: assert the full shape with a regex instead of a length
+    // sanity check. timestamp segment matches generateTimestamp's output
+    // (dashes everywhere, ms precision, trailing Z).
+    expect(key).toMatch(
+      /^backups\/proj1\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/,
+    );
   });
 });
 
@@ -97,8 +102,13 @@ describe("generatePreviewKey", () => {
 
   test("auto-generates timestamp when not provided", () => {
     const key = generatePreviewKey("proj1");
-    expect(key.startsWith("previews/proj1/")).toBe(true);
-    expect(key.endsWith(".json")).toBe(true);
+    // Tightened: pin the full preview-key shape via regex (was 2
+    // separate startsWith/endsWith checks). Catches a regression
+    // that prefixes the project id differently or uses a non-Z
+    // timestamp suffix.
+    expect(key).toMatch(
+      /^previews\/proj1\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/,
+    );
   });
 
   test("always uses .json extension", () => {

@@ -1,4 +1,8 @@
 import { describe, expect, test, beforeEach, afterEach } from "vitest";
+
+// node:dns/promises is stubbed at the suite level (see ./setup.ts) to keep
+// the SSRF resolver tests network-free under `isolate: false`.
+
 import {
   isUrlSafe as rawIsUrlSafe,
   isPrivateIp,
@@ -253,6 +257,26 @@ describe("isUrlSafe", () => {
     // Same origin, different path — should still match (origin-level allowlist)
     expect(isUrlSafe("https://api.example.com/v2/other")).toBe(true);
   });
+
+  test("allowlist returns false when input URL is malformed (covers catch on line 211)", () => {
+    // Covers line 211 of lib/url.ts: the `catch { return false; }` for
+    // an unparseable input URL when an allowlist IS configured.
+    // (Without an allowlist, isUrlSafe returns false earlier; only
+    // the with-allowlist code path reaches this catch.)
+    env.SSRF_ALLOWLIST = "http://localhost:17017";
+    expect(isUrlSafe("::not-a-url::")).toBe(false);
+  });
+
+  test("allowlist gracefully ignores malformed entries (covers catch on line 224)", () => {
+    // Covers line 224 of lib/url.ts: the inner `catch { return false; }`
+    // when an allowlist entry itself fails URL parsing. The malformed
+    // entry should NOT crash; valid entries should still match.
+    env.SSRF_ALLOWLIST = "::garbage::,http://localhost:17017";
+    // The valid entry still matches…
+    expect(isUrlSafe("http://localhost:17017/api")).toBe(true);
+    // … and the malformed entry doesn't accidentally match anything.
+    expect(isUrlSafe("http://other.local/x")).toBe(false);
+  });
 });
 
 describe("isPrivateIp", () => {
@@ -413,7 +437,11 @@ describe("resolveAndValidateUrl", () => {
   test("blocks IP address in private range directly", async () => {
     const result = await resolveAndValidateUrl("https://127.0.0.1/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    // Tightened: pin templated reason — catches a regression that drops
+    // the IP from the message (operators rely on it for debugging).
+    expect((result as { reason: string }).reason).toBe(
+      "Resolved IP 127.0.0.1 is in a private range",
+    );
   });
 
   test("blocks 169.254.169.254 (cloud metadata IP)", async () => {
@@ -424,14 +452,17 @@ describe("resolveAndValidateUrl", () => {
   test("rejects invalid URL", async () => {
     const result = await resolveAndValidateUrl("not-a-url");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("Invalid URL");
+    expect((result as { reason: string }).reason).toBe("Invalid URL");
   });
 
   test("blocks hostname that fails DNS resolution", async () => {
     const result = await resolveAndValidateUrl("https://this-domain-does-not-exist-xyzzy.example/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("DNS resolution failed");
-  }, 15_000);
+    // Tightened: pin templated reason with the hostname interpolated.
+    expect((result as { reason: string }).reason).toBe(
+      "DNS resolution failed for this-domain-does-not-exist-xyzzy.example",
+    );
+  });
 
   test("allowlist bypasses DNS check", async () => {
     env.SSRF_ALLOWLIST = "http://localhost:17017";
@@ -443,23 +474,68 @@ describe("resolveAndValidateUrl", () => {
     // localhost resolves to 127.0.0.1 on most systems
     const result = await resolveAndValidateUrl("https://localhost/hook");
     expect(result.safe).toBe(false);
-  }, 15_000);
+  });
 
   test("blocks IPv6 loopback literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[::1]/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    expect((result as { reason: string }).reason).toBe(
+      "IPv6 address [::1] is in a private range",
+    );
   });
 
   test("blocks IPv6 link-local literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[fe80::1]/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    expect((result as { reason: string }).reason).toBe(
+      "IPv6 address [fe80::1] is in a private range",
+    );
   });
 
   test("blocks IPv6 ULA literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[fd00::1]/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toContain("private");
+    expect((result as { reason: string }).reason).toBe(
+      "IPv6 address [fd00::1] is in a private range",
+    );
+  });
+
+  test("allows public IPv4 literal directly (covers IPv4 literal safe path)", async () => {
+    // Covers line 312 of lib/url.ts: the `return { safe: true }` after
+    // an IPv4 literal that is NOT in a private range. All existing
+    // IPv4-literal tests block private/loopback IPs; none exercised
+    // the safe-IPv4-literal early-return.
+    const result = await resolveAndValidateUrl("https://93.184.216.34/hook");
+    expect(result.safe).toBe(true);
+  });
+
+  test("allows public IPv6 literal directly (covers IPv6 literal safe path)", async () => {
+    // Covers line 320 of lib/url.ts: the `return { safe: true }` after
+    // an IPv6 literal that is NOT in a private range. Symmetric to
+    // the IPv4 case above.
+    const result = await resolveAndValidateUrl(
+      "https://[2606:2800:220:1:248:1893:25c8:1946]/hook",
+    );
+    expect(result.safe).toBe(true);
+  });
+
+  test("blocks hostname when DNS returns no records on both families (covers 'No DNS records found' branch)", async () => {
+    // Covers line 337 of lib/url.ts: the 'No DNS records found' branch
+    // — fires when both v4 and v6 lookups return EMPTY arrays (vs both
+    // rejecting, which yields the 'DNS resolution failed' message).
+    // Documents the differentiation between 'lookup succeeded but
+    // empty' and 'lookup itself failed'.
+    const result = await rawResolveAndValidateUrl(
+      "https://no-records.example/hook",
+      env,
+      {
+        resolve4: async () => [],
+        resolve6: async () => [],
+      },
+    );
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toBe(
+      "No DNS records found for no-records.example",
+    );
   });
 });

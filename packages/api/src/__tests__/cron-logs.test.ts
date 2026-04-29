@@ -96,13 +96,13 @@ describe("cron-logs", () => {
       });
 
       const result = await listCronLogs();
-      expect(result.total).toBe(1);
-      expect(result.page).toBe(1);
-      expect(result.pageSize).toBe(50);
-      expect(result.totalPages).toBe(1);
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0]!.id).toBe("clog-1");
-      expect(result.items[0]!.project_name).toBe("Test Project");
+      expect(result).toEqual({
+        total: 1,
+        page: 1,
+        pageSize: 50,
+        totalPages: 1,
+        items: mockLogs,
+      });
     });
 
     test("filters by projectId", async () => {
@@ -111,7 +111,7 @@ describe("cron-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("c.project_id = ?");
-      expect(countQuery?.params).toContain("proj-123");
+      expect(countQuery?.params).toEqual(["proj-123"]);
     });
 
     test("filters by status", async () => {
@@ -120,7 +120,7 @@ describe("cron-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("c.status = ?");
-      expect(countQuery?.params).toContain("failed");
+      expect(countQuery?.params).toEqual(["failed"]);
     });
 
     test("combines projectId and status filters", async () => {
@@ -130,8 +130,9 @@ describe("cron-logs", () => {
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("c.project_id = ?");
       expect(countQuery?.sql).toContain("c.status = ?");
-      expect(countQuery?.params).toContain("proj-abc");
-      expect(countQuery?.params).toContain("success");
+      // Tightened: pin params order — projectId BEFORE status (matches
+      // source-order in listCronLogs).
+      expect(countQuery?.params).toEqual(["proj-abc", "success"]);
     });
 
     test("paginates correctly", async () => {
@@ -150,8 +151,9 @@ describe("cron-logs", () => {
       expect(result.totalPages).toBe(5);
 
       const selectQuery = db.calls[1];
-      expect(selectQuery?.params).toContain(20);
-      expect(selectQuery?.params).toContain(40);
+      // Tightened: pin LIMIT/OFFSET binding to exact tail (pageSize=20,
+      // page=3 ⇒ offset=40). Catches a regression that swaps the order.
+      expect(selectQuery?.params).toEqual([20, 40]);
     });
 
     test("joins project name in query", async () => {
@@ -186,7 +188,7 @@ describe("cron-logs", () => {
 
       const deleteQuery = db.calls[0];
       expect(deleteQuery?.sql).toContain("WHERE project_id = ?");
-      expect(deleteQuery?.params).toContain("proj-123");
+      expect(deleteQuery?.params).toEqual(["proj-123"]);
     });
 
     test("deletes logs filtered by status", async () => {
@@ -194,7 +196,7 @@ describe("cron-logs", () => {
 
       const deleteQuery = db.calls[0];
       expect(deleteQuery?.sql).toContain("WHERE status = ?");
-      expect(deleteQuery?.params).toContain("failed");
+      expect(deleteQuery?.params).toEqual(["failed"]);
     });
 
     test("combines multiple filters", async () => {
@@ -203,8 +205,8 @@ describe("cron-logs", () => {
       const deleteQuery = db.calls[0];
       expect(deleteQuery?.sql).toContain("project_id = ?");
       expect(deleteQuery?.sql).toContain("status = ?");
-      expect(deleteQuery?.params).toContain("proj-123");
-      expect(deleteQuery?.params).toContain("skipped");
+      // Tightened: pin params order — projectId BEFORE status.
+      expect(deleteQuery?.params).toEqual(["proj-123", "skipped"]);
     });
   });
 });

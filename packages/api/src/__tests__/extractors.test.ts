@@ -71,7 +71,7 @@ describe("extractJson", () => {
     const result = await extractJson(new Uint8Array(), "json");
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("already JSON");
+      expect(result.reason).toBe("File is already JSON, no extraction needed");
     }
   });
 
@@ -79,7 +79,9 @@ describe("extractJson", () => {
     const result = await extractJson(new Uint8Array(), "unknown");
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("Unsupported");
+      expect(result.reason).toBe(
+        "Unsupported file format — cannot extract preview content",
+      );
     }
   });
 });
@@ -113,7 +115,7 @@ describe("extractFromZip", () => {
     const result = await extractFromZip(zip);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("No JSON files");
+      expect(result.reason).toBe("No JSON files found in the ZIP archive");
     }
   });
 
@@ -124,7 +126,10 @@ describe("extractFromZip", () => {
     const result = await extractFromZip(zip);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      // Tightened: pin the templated reason — the impl interpolates
+      // the failing filename so a regression that drops it (or wraps
+      // the entry name) would surface.
+      expect(result.reason).toBe(`File "data.json" is not valid JSON`);
     }
   });
 
@@ -133,7 +138,9 @@ describe("extractFromZip", () => {
     const result = await extractFromZip(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("corrupt");
+      expect(result.reason).toBe(
+        "Failed to parse ZIP archive — file may be corrupt",
+      );
     }
   });
 
@@ -173,7 +180,9 @@ describe("extractFromGz", () => {
     const result = await extractFromGz(gz);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      expect(result.reason).toBe(
+        "Decompressed content is not valid JSON — preview is not available for this file",
+      );
     }
   });
 
@@ -182,7 +191,9 @@ describe("extractFromGz", () => {
     const result = await extractFromGz(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("corrupt");
+      expect(result.reason).toBe(
+        "Failed to decompress GZ file — file may be corrupt",
+      );
     }
   });
 
@@ -226,7 +237,7 @@ describe("extractFromTgz", () => {
     const result = await extractFromTgz(tgz);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("No JSON files");
+      expect(result.reason).toBe("No JSON files found in the TAR.GZ archive");
     }
   });
 
@@ -237,7 +248,9 @@ describe("extractFromTgz", () => {
     const result = await extractFromTgz(tgz);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      // Tightened: pin the templated reason — catches a regression that
+      // drops the failing entry name.
+      expect(result.reason).toBe(`File "bad.json" is not valid JSON`);
     }
   });
 
@@ -246,7 +259,11 @@ describe("extractFromTgz", () => {
     const result = await extractFromTgz(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("corrupt");
+      // 6-byte input fails the gunzip step (not the tar parse), so the
+      // 'decompress TGZ' reason is what surfaces (not 'parse TAR').
+      expect(result.reason).toBe(
+        "Failed to decompress TGZ file — file may be corrupt",
+      );
     }
   });
 
@@ -282,7 +299,12 @@ describe("decompression bomb defense", () => {
     // This should fail because it's not valid JSON, but NOT because of size
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      // Tightened: 'not valid JSON' branch with positive exact reason +
+      // explicit 'not size-limit' check (size-limit branch would mention
+      // 'MB limit', so 'limit' substring negative-check excludes it).
+      expect(result.reason).toBe(
+        "Decompressed content is not valid JSON — preview is not available for this file",
+      );
       expect(result.reason).not.toContain("limit");
     }
   });
@@ -298,5 +320,107 @@ describe("decompression bomb defense", () => {
     const tgz = await createTgzBuffer({ "data.json": '{"ok":true}' });
     const result = await extractFromTgz(tgz);
     expect(result.success).toBe(true);
+  });
+
+  test("ZIP: rejects entry whose declared uncompressedSize exceeds MAX_DECOMPRESSED_SIZE (metadata-bomb defense)", async () => {
+    // Covers lines 152-156 of extractors.ts: the
+    // `declaredSize > MAX_DECOMPRESSED_SIZE` metadata check that
+    // rejects malicious zips claiming a huge uncompressed size BEFORE
+    // calling zipEntry.async() (which would otherwise allocate the
+    // claimed buffer). Catches a refactor that drops the metadata
+    // check.
+    //
+    // We craft a small zip and then surgically rewrite the central
+    // directory's uncompressed-size field so JSZip reports the lie.
+    // The uncompressed-size record lives at offset 24..28 of the
+    // central directory header (signature 0x02014b50). Find that
+    // signature, overwrite the size, and JSZip.loadAsync will believe
+    // it.
+    const zipBuffer = Buffer.from(
+      await createZipBuffer({ "data.json": '{"ok":true}' }),
+    );
+    const CENTRAL_DIR_SIG = Buffer.from([0x50, 0x4b, 0x01, 0x02]);
+    const cdOffset = zipBuffer.indexOf(CENTRAL_DIR_SIG);
+    expect(cdOffset).toBeGreaterThan(-1);
+    // Uncompressed size is at offset +24 from the CD-header signature
+    // (4-byte LE uint32). Write 50MB+1.
+    const liedSize = MAX_DECOMPRESSED_SIZE + 1;
+    zipBuffer.writeUInt32LE(liedSize, cdOffset + 24);
+
+    const result = await extractFromZip(new Uint8Array(zipBuffer));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Pin the bomb-defense reason verbatim. Catches a refactor that
+      // changes the message or weakens the check.
+      expect(result.reason).toBe(
+        `JSON file uncompressed size (${(liedSize / 1024 / 1024).toFixed(1)}MB) exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`,
+      );
+    }
+  });
+
+  test("TGZ: streaming gunzip rejects decompressed output exceeding MAX_DECOMPRESSED_SIZE (decompression bomb)", async () => {
+    // Covers line 72 of extractors.ts: the `streamingGunzip` helper's
+    // incremental-byte-counter overflow check. We craft a tar with a
+    // single entry of MAX_DECOMPRESSED_SIZE+1 bytes of zeros, gzip it
+    // (zeros compress ~1000x so the gz is small), and verify the
+    // streaming gunzip aborts with the bomb-defense error before any
+    // tar entry is parsed. Catches a refactor that drops streaming
+    // and decompresses fully into memory (which would OOM or pass).
+    const pack = tar.pack();
+    const giantSize = MAX_DECOMPRESSED_SIZE + 1;
+    const entryStream = pack.entry({
+      name: "giant.json",
+      size: giantSize,
+    });
+    const ZEROS_CHUNK = Buffer.alloc(64 * 1024);
+    let written = 0;
+    while (written < giantSize) {
+      const remaining = giantSize - written;
+      const chunk = remaining >= ZEROS_CHUNK.length
+        ? ZEROS_CHUNK
+        : ZEROS_CHUNK.subarray(0, remaining);
+      entryStream.write(chunk);
+      written += chunk.length;
+    }
+    entryStream.end();
+    pack.finalize();
+    const chunks: Buffer[] = [];
+    for await (const chunk of pack) {
+      chunks.push(chunk as Buffer);
+    }
+    const tarBuffer = Buffer.concat(chunks);
+    const gzBuffer = await gzipAsync(tarBuffer);
+
+    const result = await extractFromTgz(new Uint8Array(gzBuffer));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Pin the bomb-defense message verbatim. A regression that
+      // weakens or removes the streaming check would change this.
+      expect(result.reason).toBe(
+        `Decompressed output exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit (possible decompression bomb)`,
+      );
+    }
+  }, 30_000);
+
+  test("TGZ: rejects when gunzip succeeds but tar parser errors (covers extract.on('error'))", async () => {
+    // Covers line 389 of extractors.ts: the `extract.on('error')`
+    // handler. We construct a valid gzip wrapping a buffer that is
+    // NOT a valid tar (random non-tar bytes). streamingGunzip
+    // resolves cleanly; tar-stream then errors when it tries to
+    // parse the bytes as a tar header.
+    const garbage = Buffer.from(
+      "this is definitely not a valid tar archive but it gunzips fine".repeat(
+        20,
+      ),
+    );
+    const gz = await gzipAsync(garbage);
+    const result = await extractFromTgz(new Uint8Array(gz));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Generic outer-catch failure surfaces; pin the user-facing
+      // prefix so a refactor of the error-message format is forced to
+      // update the test in tandem.
+      expect(result.reason).toBe("Failed to parse TAR archive — file may be corrupt");
+    }
   });
 });

@@ -21,6 +21,34 @@ describe("sanitizeProject", () => {
     expect("auto_backup_header_value" in safe).toBe(false);
   });
 
+  test("exposes only the allowlist of safe fields (positive contract)", () => {
+    // Adds a positive contract on top of the 3 negative 'strips X'
+    // tests above. The 3 negative tests pass even if other sensitive
+    // fields are added later (toBe(false) only checks one key); this
+    // test pins the EXACT allowlist of exposed keys via sorted toEqual.
+    // A regression that adds a new sensitive field without sanitizing
+    // it would surface here as an unexpected key in the diff.
+    const project = makeProject({
+      webhook_token: "tok",
+      auto_backup_header_key: "X-K",
+      auto_backup_header_value: "V",
+    });
+    const safe = sanitizeProject(project);
+    expect(Object.keys(safe).sort()).toEqual([
+      "allowed_ips",
+      "auto_backup_enabled",
+      "auto_backup_headers_configured",
+      "auto_backup_interval",
+      "auto_backup_webhook",
+      "category_id",
+      "created_at",
+      "description",
+      "id",
+      "name",
+      "updated_at",
+    ]);
+  });
+
   test("preserves non-sensitive fields", () => {
     const project = makeProject({
       id: "proj-1",
@@ -42,8 +70,10 @@ describe("sanitizeProject", () => {
     expect(safe.auto_backup_enabled).toBe(1);
     expect(safe.auto_backup_interval).toBe(12);
     expect(safe.auto_backup_webhook).toBe("https://example.com/backup");
-    expect(safe.created_at).toBeDefined();
-    expect(safe.updated_at).toBeDefined();
+    // sanitizeProject must preserve timestamps verbatim from the source row
+    // (no rounding / regeneration). makeProject pins them to a fixed value.
+    expect(safe.created_at).toBe("2026-01-01T00:00:00.000Z");
+    expect(safe.updated_at).toBe("2026-01-01T00:00:00.000Z");
   });
 
   test("does not mutate the original object", () => {
