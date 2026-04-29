@@ -182,14 +182,21 @@ describe("cron handlers", () => {
         });
     });
 
-    test("skips project not due this hour", async () => {
+    test("skips project with invalid auto_backup_interval (not in [1,12,24])", async () => {
+      // Discovery: this test was previously named 'not due this hour' but
+      // actually tests the INVALID-interval branch (interval=999 is not
+      // in VALID_INTERVALS=[1,12,24], so shouldTrigger returns false
+      // before evaluating the modulo). Renamed to reflect the real
+      // behavior. The 'not due this hour' branch (valid interval but
+      // hours % interval !== 0) would need fake timers and is left
+      // uncovered for now to avoid TZ flakiness.
       mockIsUrlSafe = () => true;
       mockResolveAndValidateUrl = async () => ({ safe: true });
       mockListAutoBackupProjects = async () => [
         {
           id: "p1",
           auto_backup_webhook: "https://hook.example.com",
-          auto_backup_interval: 999,
+          auto_backup_interval: 999, // NOT in VALID_INTERVALS — invalid branch
           auto_backup_header_key: null,
           auto_backup_header_value: null,
         },
