@@ -103,14 +103,15 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (185 experiments)
+### Current state (186 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
-- **test_count: 634** (baseline 648, −2.2%; +6 ADDITIVE tests vs 100
-  milestone).
+- **test_count: 635** (baseline 648, −2.0%; +9 ADDITIVE tests vs 100
+  milestone, including ip-info 503-not-configured which covered a
+  previously-untested code path).
 - **weak_tests: 0** by 7-heuristic scanner.
-- **coverage gates: PASS**.
+- **coverage gates: PASS** (api 91.59% statements / 85.24% branches).
 - **100% body-coverage on every test** + auth-header forwarding
   contracts now pinned for both cronTriggerHandler and
   cronTriggerOneHandler success paths.
