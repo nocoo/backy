@@ -49,10 +49,16 @@ describe("useMe", () => {
     }
     renderToStaticMarkup(React.createElement(Probe));
     expect(snapshot).not.toBeNull();
-    expect(snapshot!.email).toBeNull();
-    expect(snapshot!.authenticated).toBe(false);
-    expect(typeof snapshot!.mutate).toBe("function");
-    expect(snapshot!.isLoading).toBe(true);
+    // Tightened: consolidate 4 single-property checks into one
+    // toMatchObject pinning the full default useMe() shape (when SWR
+    // hasn't fetched yet). Catches a missing field (mutate) or a
+    // changed default value (e.g. authenticated:undefined vs false).
+    expect(snapshot).toMatchObject({
+      email: null,
+      authenticated: false,
+      isLoading: true,
+      mutate: expect.any(Function),
+    });
   });
 });
 
