@@ -233,6 +233,11 @@ describe("restore handler", () => {
       webhook_token: "t",
       allowed_ips: null,
     });
+    let calledArgs: [string, number] | undefined;
+    mockCreatePresignedDownloadUrl = async (key, ttl) => {
+      calledArgs = [key, ttl];
+      return "https://signed.example.com/k1";
+    };
     const r = await restoreHandler({
       id: "b1",
       authorization: null,
@@ -240,6 +245,11 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(200);
+    // Tightened: query-param auth must take the same code path as
+    // Bearer (presign called with file_key + 900s TTL); status-only
+    // would mask a regression that authenticates correctly but skips
+    // the presign step.
+    expect(calledArgs).toEqual(["k1", 900]);
   });
 
   test("403 when query-param token mismatches", async () => {
@@ -275,6 +285,11 @@ describe("restore handler", () => {
       webhook_token: "bearer-token",
       allowed_ips: null,
     });
+    let presignCalls = 0;
+    mockCreatePresignedDownloadUrl = async () => {
+      presignCalls++;
+      return "https://signed.example.com/k1";
+    };
     const r = await restoreHandler({
       id: "b1",
       authorization: "Bearer bearer-token",
@@ -282,5 +297,10 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(200);
+    // Tightened: precedence rule must be Bearer-first, NOT query-token-
+    // first (with bearer-token matching, wrong-query irrelevant). Status
+    // 200 alone could pass even if the impl flipped the precedence and
+    // happened to match by coincidence on a future fixture change.
+    expect(presignCalls).toBe(1);
   });
 });
