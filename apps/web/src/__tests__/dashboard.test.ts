@@ -14,7 +14,10 @@ describe("format helpers", () => {
   });
 
   test("formatBytes clamps very large values to TB", () => {
-    expect(formatBytes(1024 ** 6)).toMatch(/TB$/);
+    // Tightened: pin exact "1048576 TB" — i is clamped at sizes.length-1=4
+    // (no PB/EB unit), so 1024^6 / 1024^4 = 1024^2 = 1048576 TB.
+    // Catches a regression that adds new units without bumping clamp.
+    expect(formatBytes(1024 ** 6)).toBe("1048576 TB");
   });
 
   test("formatDate emits month + day + HH:MM (no year)", () => {
