@@ -79,7 +79,7 @@ describe("RequireAuth", () => {
         React.createElement("div", null, "secret"),
       ),
     );
-    expect(html.toLowerCase()).toContain("loading");
+    expect(html).toContain("Loading…");
   });
 
   test("CF Access logout URL is the canonical one", () => {
@@ -110,7 +110,7 @@ describe("RequireAuth", () => {
     const html = renderToStaticMarkup(
       React.createElement(RA, null, React.createElement("div", null, "x")),
     );
-    expect(html.toLowerCase()).toContain("redirecting to login");
+    expect(html).toContain("Redirecting to login…");
   });
 
   test("renders the 401 redirect branch when ApiError(401) surfaces", async () => {
@@ -128,7 +128,7 @@ describe("RequireAuth", () => {
     const html = renderToStaticMarkup(
       React.createElement(RA, null, React.createElement("div", null, "x")),
     );
-    expect(html.toLowerCase()).toContain("redirecting to login");
+    expect(html).toContain("Redirecting to login…");
   });
 
   test("renders the generic error branch for non-401 errors", async () => {
@@ -145,9 +145,9 @@ describe("RequireAuth", () => {
     const html = renderToStaticMarkup(
       React.createElement(RA, null, React.createElement("div", null, "x")),
     );
-    expect(html.toLowerCase()).toContain("failed to load session");
-    // Tightened: assert the exact error-line shape so a regression that
-    // omits the message or strips the prefix would surface.
+    // Tightened: exact visible-text match including the ellipsis-free
+    // 'Failed to load session: boom' line. Catches a regression that
+    // changes case, drops the prefix, or omits the message.
     expect(html).toContain("Failed to load session: boom");
   });
 
