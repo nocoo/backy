@@ -205,7 +205,6 @@ describe("webhookHeadHandler", () => {
     // branch. HEAD returns `empty(500)` for ALL failure paths — no
     // body to leak the thrown payload.
     mockGetProjectByToken = async () => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw "plain-string";
     };
     const r = await webhookHeadHandler({
@@ -404,7 +403,6 @@ describe("webhookGetHandler", () => {
     // of the thrown payload (no info leak).
     mockGetProjectByToken = async () => baseProject;
     mockCountBackups = async () => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 9876;
     };
     const r = await webhookGetHandler({
@@ -742,7 +740,6 @@ describe("webhookPostHandler", () => {
     // contract and the fallback string.
     mockGetProjectByToken = async () => baseProject;
     mockUploadToR2 = async () => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw "plain-string-not-error";
     };
     const r = await webhookPostHandler({
@@ -765,7 +762,6 @@ describe("webhookPostHandler", () => {
     // ternary. User response remains the generic 500.
     mockGetProjectByToken = async () => baseProject;
     mockCreateBackup = async () => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw { code: 42, type: "plain-object" };
     };
     const r = await webhookPostHandler({
@@ -788,7 +784,6 @@ describe("webhookPostHandler", () => {
     // (getProjectByToken) throws a non-Error value before the inner
     // try-blocks have a chance to catch.
     mockGetProjectByToken = async () => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 12345;
     };
     const r = await webhookPostHandler({
