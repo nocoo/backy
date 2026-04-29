@@ -36,9 +36,17 @@ describe("ctxMiddleware", () => {
     expect(body.hasDb).toBe(true);
     expect(body.hasR2).toBe(true);
     expect(body.uptime).toBeNull();
-    expect(body.env).toContain("ECHO_API_URL");
-    expect(body.env).toContain("CRON_SECRET");
-    expect(body.env).toContain("E2E_SKIP_AUTH");
+    // Tightened: pin the FULL set of env keys exposed via ctx.env.
+    // pickEnv() in middleware/ctx.ts only forwards a fixed allowlist of
+    // string-valued env vars (DB/R2 bindings are intentionally NOT in
+    // ctx.env). makeEnv() default + the ECHO_API_URL override yields
+    // exactly these 3 keys, sorted. A regression that forwards a binding
+    // (e.g. DB) or drops one of these would surface here.
+    expect(body.env).toEqual([
+      "CRON_SECRET",
+      "E2E_SKIP_AUTH",
+      "ECHO_API_URL",
+    ]);
   });
 
   test("presignDownload throws when R2 S3 creds absent", async () => {
