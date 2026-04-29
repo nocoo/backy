@@ -145,13 +145,23 @@ describe("cron handlers", () => {
       });
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
+      if (r.kind === "json") {
+        // Pinned via toEqual: catches a regression that adds a
+        // `results: []` field when empty (the handler intentionally
+        // OMITS results when 0 projects — documented contract). Routes
+        // integration test in apps/worker/routes.test pins the same.
         expect(r.body).toEqual({
           total: 0,
           triggered: 0,
           skipped: 0,
           failed: 0,
         });
+        // Defense-in-depth: assert key is missing (toEqual already
+        // catches this but explicit doc helps future readers).
+        expect((r.body as Record<string, unknown>)).not.toHaveProperty(
+          "results",
+        );
+      }
     });
 
     test("skips project without webhook URL", async () => {
