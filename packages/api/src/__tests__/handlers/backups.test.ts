@@ -261,6 +261,13 @@ describe("backups handlers", () => {
     test("400 when ids contain non-strings", async () => {
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a", 1] } });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 'ids contains non-string' hits the same generic branch as the
+        // empty/non-array cases (the check is conjunctive).
+        expect(r.body).toEqual({
+          error: "ids must be a non-empty array of strings",
+        });
     });
 
     test("R2 errors are non-fatal", async () => {
@@ -270,6 +277,11 @@ describe("backups handlers", () => {
       };
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a"] } });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // R2 delete throws but the handler still returns success:true
+        // with the deleted-row count from D1 (R2 cleanup is non-fatal).
+        expect(r.body).toEqual({ success: true, deleted: 1 });
     });
 
     test("500 on db error", async () => {
@@ -278,6 +290,9 @@ describe("backups handlers", () => {
       };
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a"] } });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to batch delete backups" });
     });
   });
 
@@ -305,7 +320,11 @@ describe("backups handlers", () => {
       mockGetBackup = async () => {
         throw new Error("db");
       };
-      expect((await getBackupHandler({ id: "x" })).status).toBe(500);
+      const r = await getBackupHandler({ id: "x" });
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to get backup" });
     });
   });
 
