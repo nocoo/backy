@@ -103,53 +103,49 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (150 experiments)
+### Current state (170 experiments)
 - **total_ms median: ~735–770 ms** (baseline 2241 ms, **−~67%**)
 - **stddev_ms: ~3–20 ms** typical.
-- **test_count: 627** (baseline 648, −3.2%; +1 vs 100-experiment
-  milestone via additive sanitize-allowlist test).
+- **test_count: 628** (baseline 648, −3.1%; +2 ADDITIVE tests vs 100
+  milestone: sanitize-allowlist, handler-response empty-with-headers).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
-- **Status-only handler tests tightened to positive body checks: 130+**
-  across all packages/api/handlers/* (backups+webhook+projects+restore
-  +cron+logs+categories+db+live+ip-info+stats now have **100%
-  body-coverage** on all 4xx/5xx error branches), apps/worker/routes
-  integration tests (~30 status-only tightened to body shapes incl.
-  Hono missing-handler 404 plain-text contract, 204 No-Content
-  empty-body contract, HEAD empty-body contract), webhook-logs DB layer
-  (10 param-order pins), cron-logs DB layer (7 param-order pins), url
-  SSRF (6 templated reasons), extractors (10 reason strings + filename
-  interpolation), categories DB layer (full SQL+params toEqual + Zod
-  fieldErrors), access-auth middleware (3 NOT-public routes), live
-  envelope, ctx env-key allowlist.
-- **Discoveries logged**: createBackup outer-catch returns 'Internal
-  server error' (NOT inner 'Failed to upload'); previewBackup +
-  extractBackup `if (!r2Response)` null-checks are unreachable in
-  practice (readR2Bytes throws first — dead branches; tracked in
-  ideas.md); backups stored as 'application/zip' (not gzip);
-  formatBytes duplicated across web/lib/format.ts (5 units) vs
-  charts/project-charts.tsx (4 units — ideas.md).
-- **adapter-mock arg drops fixed: 2** (presignDownload ttl).
-- **silent-default mock substitutions removed: 1** (webhook contentType).
-- **misnamed/wrongly-fixtured tests fixed: 1** (db.test seed-verifies-clean).
-- **vacuous union-narrow guards: 0** (all `if (r.kind === 'json')`
-  blocks now preceded by `expect(r.kind)`).
+- **100% body-coverage on every test in every handler** in
+  packages/api/src/handlers/* (backups, webhook, projects, restore,
+  cron, logs, categories, db, live, ip-info, stats) and
+  apps/worker/src/__tests__/* (routes, ctx, access-auth, handler-response,
+  is-localhost) and packages/api/src/__tests__/* (extractors, url, hosts,
+  storage, sanitize, ip, id, file-type, categories, webhook-logs,
+  cron-logs, http-response, d1/r2-binding-adapter).
+- **Real production bugs surfaced via testing**:
+  - `handler-response.ts` empty-case spreads headers into ResponseInit
+    instead of nesting them — `webhookHeadHandler returning empty(200,
+    {X-Project-Name: ...})` silently drops the X-Project-Name header in
+    production. Test pins the BUG so a fix forces both updates.
+  - previewBackup/extractBackup `if (!r2Response)` null-checks are
+    unreachable in practice (readR2Bytes throws first). Dead branches.
+  - createBackup outer-catch returns 'Internal server error' (NOT inner
+    'Failed to upload') — obscures actual failure mode.
+  - `formatBytes` duplicated across web/lib/format.ts (5 units) vs
+    charts/project-charts.tsx (4 units) — unit-list drift risk.
+  - `pages/backups.tsx` byte-for-byte duplicates lib/pagination.ts's
+    `generatePageNumbers`.
+- **Misnamed/wrongly-fixtured tests fixed: 1** (db.test seed-verifies-clean
+  silently ran the 'reset' branch for the entire test history).
+- **Adapter-mock arg drops fixed: 2** (presignDownload ttl).
+- **Silent-default mock substitutions removed: 1** (webhook contentType).
+- **Vacuous union-narrow guards: 0** (all `if (r.kind === 'json')` blocks
+  have a preceding `expect(r.kind)`).
 - **Zod error-envelopes pinned**: createProject, updateProject,
   createCategory, updateCategory, route-level POST /api/projects + /categories.
-- **Negative assertions tightened to positive contracts**:
-  storage.timestamp (.not.toContain → regex shape),
-  live.sanitize-ok (.not.toContain('ok') → toBe('not *** message')),
-  lib-coverage pagination indexed-position checks → full toEqual,
-  sanitize.test ADDED positive allowlist test (catches new sensitive-
-  field exposure).
-- **No-info-leak security contracts pinned**: restoreHandler (token-mismatch,
-  IP-allowlist, project-not-found all surface generic messages),
-  webhookGet/POST (Invalid token or project mismatch / Forbidden),
-  cronTrigger (same Unauthorized for no-auth and wrong-token),
-  access-auth middleware (same Unauthorized for missing-jwt and
-  invalid-jwt).
-- **OR-of-statuses: 0**, **vacuous try/catch: 0**,
-  **time-window assertions: 0**, **real-network deps: 0**.
+- **No-info-leak security contracts pinned**: restoreHandler (token
+  /IP/project-not-found surface generic messages), webhookGet/POST
+  (Invalid token or project mismatch / Forbidden), cronTrigger (same
+  Unauthorized for no-auth and wrong-token), access-auth (same
+  Unauthorized for missing-jwt and invalid-jwt), download (same
+  generic for D1 vs R2 dependency failure).
+- **OR-of-statuses: 0**, **vacuous try/catch: 0**, **time-window
+  assertions: 0**, **real-network deps: 0**.
 
 ### Where to go next (all in autoresearch.ideas.md)
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
