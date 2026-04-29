@@ -271,6 +271,18 @@ describe("projects handlers", () => {
         body: { auto_backup_interval: 5 },
       }, ctx);
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      // Tightened: pin the error envelope so a regression that returns
+      // raw zod error or omits fieldErrors would surface. The interval
+      // schema disallows 5 (must be one of the allowed cron intervals).
+      expect((r as { body: unknown }).body).toMatchObject({
+        error: "Invalid input",
+        details: {
+          fieldErrors: {
+            auto_backup_interval: expect.arrayContaining([expect.any(String)]),
+          },
+        },
+      });
     });
 
     test("returns 404 when project missing", async () => {
