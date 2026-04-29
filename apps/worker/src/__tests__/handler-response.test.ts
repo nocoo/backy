@@ -46,6 +46,27 @@ describe("toResponse", () => {
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(data);
   });
 
+  test("bytes with extra headers (e.g. content-disposition)", async () => {
+    // The bytes branch is the only one without a 'with headers' test.
+    // ADD one to cover the spread-merge contract: extra headers (like
+    // Content-Disposition for downloads) should be present alongside
+    // the contentType. The downloadBackupHandler uses this pattern
+    // when serving raw R2 contents — a regression that drops headers
+    // would silently break browser-side download attribute handling.
+    const data = new Uint8Array([4, 5]);
+    const res = toResponse({
+      kind: "bytes",
+      status: 200,
+      bytes: data,
+      contentType: "application/zip",
+      headers: { "content-disposition": 'attachment; filename="x.zip"' },
+    });
+    expect(res.headers.get("content-type")).toBe("application/zip");
+    expect(res.headers.get("content-disposition")).toBe(
+      'attachment; filename="x.zip"',
+    );
+  });
+
   test("text with default content-type", async () => {
     const res = toResponse({ kind: "text", status: 200, text: "hi" });
     expect(res.headers.get("content-type")).toBe("text/plain; charset=utf-8");
