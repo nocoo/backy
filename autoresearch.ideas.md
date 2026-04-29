@@ -51,3 +51,20 @@ left is genuinely deeper work that wasn't tackled this round:
   client; instead the outer catch returns `Failed to load preview`.
   Either delete the dead branch or restructure to actually catch the
   null-body case before readR2Bytes. Prod-code change, deferred.
+
+- **Distinct error messages for same status across handlers**: Several
+  handlers currently return generic 'Internal server error' on any 5xx
+  while others surface specific 'Failed to X' messages. The mix is
+  inconsistent (uploadBackup → generic; deleteBackup → specific). Either
+  unify to specific (better for ops) or unify to generic (better for
+  no-info-leak). Currently all body-coverage tests pin whichever the
+  handler currently does, so a unification refactor would need to update
+  the tests in parallel.
+
+- **Heuristic: detect tests with single-property body checks (partial
+  envelope)**: scan-weak-tests.ts could grow a heuristic for
+  `expect(body.X).toBe(Y)` where there's no following `toEqual(body)`
+  that pins the full shape. Risky for false positives (some tests
+  legitimately check one field) but could surface 30+ partial assertions
+  scattered across handler tests. Defer until the existing 7 heuristics
+  start hitting 0 across the board (they currently are).
