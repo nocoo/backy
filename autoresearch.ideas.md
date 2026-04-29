@@ -102,3 +102,15 @@ left is genuinely deeper work that wasn't tackled this round:
   Lines 191-201 contribute to the 87% statement coverage gap on
   ip.ts. Should be DELETED to remove the gap and shrink the bundle.
   Prod-code change, deferred.
+
+- **Coverage gap: access-auth JWT-verified-success path**:
+  apps/worker/src/middleware/access-auth.ts lines 92-94 (sets
+  accessAuthenticated + accessEmail) and 100 (return next()) are
+  unreachable in unit tests because the path requires a valid signed
+  JWT. Mocking `jose.jwtVerify` at module scope conflicts with the
+  invalid-JWT throw test (which expects jwtVerify to throw). Options:
+  (a) refactor accessAuth to accept an injectable verifier (prod-code
+  change), (b) use vi.doMock per-test with vi.resetModules (test
+  pattern change), (c) accept the gap (current). Branch coverage on
+  access-auth.ts is 90% \u2014 acceptable given the integration nature
+  of the missing path.
