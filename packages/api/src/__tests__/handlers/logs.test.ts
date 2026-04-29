@@ -137,6 +137,30 @@ describe("logs handlers", () => {
       expect(captured.excludeProjectIds).toBeUndefined();
     });
 
+    test("non-numeric page falls back to 1 and pageSize <1 clamps up to 1", async () => {
+      // Covers lines 42-45 of handlers/logs.ts: the `|| 1` and
+      // `Math.max(1, ...) || 50` fallbacks. parseInt('abc',10) = NaN
+      // (falsy) → || 1 fires. pageSize='0' → parseInt OK 0 → falsy ||
+      // 50 fires → max(1,50)=50. We use pageSize='-5' to also trigger
+      // the Math.max(1, ...) clamp on a negative parsed value.
+      let captured: { page?: number; pageSize?: number } = {};
+      mockListWebhookLogs = async (input: {
+        page?: number;
+        pageSize?: number;
+      }) => {
+        captured = input;
+        return { items: [] };
+      };
+      await listWebhookLogsHandler(
+        { page: "not-a-number", pageSize: "-5" },
+        ctx,
+      );
+      // page: NaN || 1 = 1
+      expect(captured.page).toBe(1);
+      // pageSize: parseInt(-5)=-5 (truthy) → Math.max(1, -5) = 1 → Math.min(100, 1) = 1
+      expect(captured.pageSize).toBe(1);
+    });
+
     test("500 on db error", async () => {
       mockListWebhookLogs = async () => {
         throw new Error("db");
