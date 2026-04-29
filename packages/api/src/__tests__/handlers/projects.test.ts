@@ -304,9 +304,13 @@ describe("projects handlers", () => {
       mockRegenerateToken = async () => "new-token";
       const r = await regenerateTokenHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(200);
-      expect((r as { body: { webhook_token: string } }).body.webhook_token).toBe(
-        "new-token",
-      );
+      // Tightened: pin the exact body shape (no extras) so a regression
+      // that wraps the token in a sanitized response or adds a stale
+      // 'project' field would surface.
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        webhook_token: "new-token",
+      });
     });
 
     test("returns 404 when project missing", async () => {
