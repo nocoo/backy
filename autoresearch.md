@@ -104,30 +104,33 @@
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
 ### Current state
-- **total_ms median: ~730–810 ms** (baseline 2241 ms, **−~66%**)
+- **total_ms median: ~740–770 ms** (baseline 2241 ms, **−~67%**)
   - quiet system: **725 ms** all-time best
-  - typical: **~750 ms**
-- **stddev_ms: ~3–20 ms** typical (system-load spikes can hit 100+).
+  - typical: **~745 ms**
+- **stddev_ms: ~3–20 ms** typical.
 - **test_count: 626** (baseline 648, −3.4%).
-- **weak_tests: 0** by 7-heuristic scanner (noExpect, trivialExistence,
-  onlyMockCall, skipped, empty, vacuousTryCatch, vacuousKindNarrow).
+- **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS** (api lines 92.6%, worker 95.6%, web 98.5%).
-- **OR-of-statuses smoke tests: 0** in routes.test.ts (was 17).
-- **vacuous union-narrow tests: 0** — 11 spots across handler tests now
-  guard `if (r.kind === "json")` with a preceding `expect(r.kind)`
-  assertion.
-- **adapter-mock arg drops: 2 fixed** (presignDownload was dropping ttl in
-  backups.test + restore.test). webhook.test no longer substitutes a
-  default contentType.
-- **partial-shape → full-shape**: 20+ tests rewritten from
-  toContain / toHaveProperty / toHaveLength / single-key assertions to
-  toEqual on the full response body, captured filter object, or R2 side
-  effect array. Catches drift in fields the prior assertion silently
-  ignored.
-- **real-network deps: 0** — DNS stubbed via setupFiles in api; loud
-  fetch net guard in api+worker beforeEach.
-- **time-window assertions: 0**.
-- **vacuous try/catch: 0**.
+- **OR-of-statuses: 0** in routes.test.ts.
+- **vacuous union-narrow: 0** — all `if (r.kind === 'json')` blocks now
+  have a preceding `expect(r.kind)` guard.
+- **adapter-mock arg drops fixed: 2** (presignDownload ttl in backups +
+  restore tests).
+- **silent-default mock substitutions removed: 1** (webhook contentType).
+- **status-only tests tightened: 40+** — success/error/sanitization paths
+  across backups (list+upload+delete+preview+extract+download), webhook
+  (recent_backups), projects (list+create+get+update+regenerate),
+  restore (presign+precedence), cron (full {total,triggered,skipped,
+  failed} on 8 summary tests + body+responseCode+durationMs on 5
+  one-shot tests), logs (filter forwarding), categories (full SQL +
+  params), db (init body, seed branch isolation), live (dependency
+  envelope), ip-info (error msg + upstream pass-through), stats
+  (snake→camel mapping).
+- **misnamed/wrongly-fixtured test fixed: 1** (db.test 'verifies clean
+  existing' had a name drift that silently routed to the 'reset' branch
+  for the entire history of the test).
+- **real-network deps: 0**, **time-window assertions: 0**,
+  **vacuous try/catch: 0**.
 
 ### Where to go next (all in autoresearch.ideas.md)
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
