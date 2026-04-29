@@ -24,13 +24,15 @@ describe("ipInfoHandler", () => {
     // service-unavailable beats validation errors. Catches a refactor
     // that flips the order and ends up validating ip= for an inert
     // service.
-    // Build a context manually to clear ECHO_API_URL (Partial<BackyEnv>
-    // with exactOptionalPropertyTypes:true forbids `undefined` for an
-    // optional string field).
+    // Build a context manually to remove ECHO_API_URL entirely so the
+    // `?? ''` fallback fires (covers line 16 falsy branch). Setting
+    // it to '' wouldn't trigger ?? since the value is non-null.
     const baseCtx = makeMockCtx();
+    const envWithoutUrl: Record<string, unknown> = { ...baseCtx.env };
+    delete envWithoutUrl.ECHO_API_URL;
     const noEchoCtx: typeof baseCtx = {
       ...baseCtx,
-      env: { ...baseCtx.env, ECHO_API_URL: "" },
+      env: envWithoutUrl as typeof baseCtx.env,
     };
     const r = await ipInfoHandler(
       { ip: null },
@@ -111,13 +113,16 @@ describe("ipInfoHandler", () => {
     // Covers the falsy branch of `ctx.env.ECHO_API_KEY ?? ''` on line
     // 17 of handlers/ip-info.ts. The default makeMockCtx sets
     // ECHO_API_KEY='test-echo-key', so the existing tests only
-    // exercise the truthy branch. This test clears ECHO_API_KEY and
-    // verifies the handler still proceeds with an empty x-api-key
-    // (echoKey → '' fallback).
+    // exercise the truthy branch. This test removes ECHO_API_KEY
+    // entirely (so the property is undefined, not empty-string) so
+    // the ?? '' fallback actually fires — then verifies the handler
+    // still proceeds with an empty x-api-key.
     const baseCtx = makeMockCtx();
+    const envWithoutKey: Record<string, unknown> = { ...baseCtx.env };
+    delete envWithoutKey.ECHO_API_KEY;
     const noKeyCtx: typeof baseCtx = {
       ...baseCtx,
-      env: { ...baseCtx.env, ECHO_API_KEY: "" },
+      env: envWithoutKey as typeof baseCtx.env,
     };
     let capturedHeaders: Record<string, string> | undefined;
     const fetcher = async (
