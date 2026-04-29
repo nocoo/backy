@@ -47,6 +47,10 @@ describe("categories handlers", () => {
     mockListCategories = async () => [{ id: "c1", name: "Web" }];
     const r = await listCategoriesHandler(ctx);
     expect(r.status).toBe(200);
+    expect(r.kind).toBe("json");
+    // Tightened: handler must pass listCategories rows through verbatim
+    // (no sanitization, no extra envelope).
+    expect((r as { body: unknown }).body).toEqual([{ id: "c1", name: "Web" }]);
   });
 
   test("list 500 on error", async () => {
@@ -63,6 +67,8 @@ describe("categories handlers", () => {
       ctx,
     );
     expect(r.status).toBe(201);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ id: "c1" });
   });
 
   test("create 400 invalid color", async () => {
@@ -71,6 +77,15 @@ describe("categories handlers", () => {
       ctx,
     );
     expect(r.status).toBe(400);
+    expect(r.kind).toBe("json");
+    // 'red' is not a valid hex color; the color field should surface
+    // in fieldErrors.
+    expect((r as { body: unknown }).body).toMatchObject({
+      error: "Invalid input",
+      details: {
+        fieldErrors: { color: expect.arrayContaining([expect.any(String)]) },
+      },
+    });
   });
 
   test("create 400 missing name", async () => {
@@ -89,12 +104,18 @@ describe("categories handlers", () => {
   });
 
   test("get 200 when found", async () => {
-    mockGetCategory = async () => ({ id: "c1" });
-    expect((await getCategoryHandler({ id: "c1" }, ctx)).status).toBe(200);
+    mockGetCategory = async () => ({ id: "c1", name: "Web" });
+    const r = await getCategoryHandler({ id: "c1" }, ctx);
+    expect(r.status).toBe(200);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ id: "c1", name: "Web" });
   });
 
   test("get 404 when missing", async () => {
-    expect((await getCategoryHandler({ id: "c1" }, ctx)).status).toBe(404);
+    const r = await getCategoryHandler({ id: "c1" }, ctx);
+    expect(r.status).toBe(404);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ error: "Category not found" });
   });
 
   test("get 500 on db error", async () => {
