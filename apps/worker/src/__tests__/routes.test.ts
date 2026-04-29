@@ -211,16 +211,19 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
   test("DELETE /api/projects/:id 404", async () => {
     const res = await fetchWith("/api/projects/missing", { method: "DELETE" });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
   });
 
   test("DELETE /api/categories/:id 404", async () => {
     const res = await fetchWith("/api/categories/missing", { method: "DELETE" });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Category not found" });
   });
 
   test("DELETE /api/backups/:id 404", async () => {
     const res = await fetchWith("/api/backups/missing", { method: "DELETE" });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Backup not found" });
   });
 
   test("POST /api/projects with bad body → 400", async () => {
@@ -230,6 +233,10 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: "Invalid input",
+      details: { fieldErrors: { name: expect.arrayContaining([expect.any(String)]) } },
+    });
   });
 
   test("POST /api/categories with bad body → 400", async () => {
@@ -239,6 +246,10 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: "Invalid input",
+      details: { fieldErrors: { name: expect.arrayContaining([expect.any(String)]) } },
+    });
   });
 
   test("PUT /api/projects/:id with empty body returns 404 (project missing wins over validator)", async () => {
@@ -248,6 +259,7 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       body: "{}",
     });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
   });
 
   test("PUT /api/categories/:id with empty body returns 404", async () => {
@@ -257,6 +269,7 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       body: "{}",
     });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Category not found" });
   });
 
   test("POST /api/projects/:id/token 404 when missing", async () => {
@@ -264,36 +277,47 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       method: "POST",
     });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
   });
 
   test("GET /api/projects/:id/prompt 404 when missing", async () => {
     const res = await fetchWith("/api/projects/missing/prompt");
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
   });
 
   test("GET /api/backups/:id/download 404 when missing", async () => {
     const res = await fetchWith("/api/backups/missing/download");
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Backup not found" });
   });
 
   test("GET /api/backups/:id/preview 404 when missing", async () => {
     const res = await fetchWith("/api/backups/missing/preview");
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Backup not found" });
   });
 
   test("GET /api/backups/:id/extract returns 404 when missing (GET hits the not-found branch first)", async () => {
     const res = await fetchWith("/api/backups/missing/extract");
     expect(res.status).toBe(404);
+    // GET /api/backups/:id/extract has no route handler (only POST is
+    // wired). Hono's default 404 returns plain text "404 Not Found",
+    // NOT a JSON body — this documents the missing-route contract
+    // (vs the POST below that returns JSON {error:'Backup not found'}).
+    expect(await res.text()).toBe("404 Not Found");
   });
 
   test("POST /api/backups/:id/extract 404 when missing", async () => {
     const res = await fetchWith("/api/backups/missing/extract", { method: "POST" });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Backup not found" });
   });
 
   test("GET /api/backups/:id/restore-command 404 when missing", async () => {
     const res = await fetchWith("/api/backups/missing/restore-command");
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Backup not found" });
   });
 
   test("POST /api/backups/upload with empty form returns 400", async () => {
