@@ -646,6 +646,78 @@ describe("webhookPostHandler", () => {
       expect(r.body).toEqual({ error: "Internal server error" });
   });
 
+  test("500 when uploadToR2 throws non-Error (covers instanceof Error false branch → 'R2 upload failed' fallback)", async () => {
+    // Covers line 349 of webhook.ts: the
+    // `uploadError instanceof Error ? msg : 'R2 upload failed'`
+    // ternary when the thrown value is NOT an Error instance.
+    // The user response is unchanged ('Internal server error', no info
+    // leak), but the recorded log entry uses the literal fallback
+    // instead of the thrown value's message. Locks the no-info-leak
+    // contract and the fallback string.
+    mockGetProjectByToken = async () => baseProject;
+    mockUploadToR2 = async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw "plain-string-not-error";
+    };
+    const r = await webhookPostHandler({
+      projectId: "p1",
+      authorization: "Bearer tok-valid",
+      clientIp: null,
+      userAgent: null,
+      formData: fd({}),
+    });
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Same generic body — no propagation of the thrown payload.
+      expect(r.body).toEqual({ error: "Internal server error" });
+  });
+
+  test("500 when createBackup throws non-Error (covers instanceof Error false branch → 'D1 insert failed' fallback)", async () => {
+    // Symmetric to the R2 non-Error throw — covers line 384 of
+    // webhook.ts: the `dbError instanceof Error ? msg : 'D1 insert failed'`
+    // ternary. User response remains the generic 500.
+    mockGetProjectByToken = async () => baseProject;
+    mockCreateBackup = async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw { code: 42, type: "plain-object" };
+    };
+    const r = await webhookPostHandler({
+      projectId: "p1",
+      authorization: "Bearer tok-valid",
+      clientIp: null,
+      userAgent: null,
+      formData: fd({}),
+    });
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Internal server error" });
+  });
+
+  test("500 when getProjectByToken throws non-Error (covers outer-catch instanceof Error false branch → 'Unknown error' fallback)", async () => {
+    // Covers line 419 of webhook.ts: the outer try/catch's
+    // `error instanceof Error ? msg : 'Unknown error'` ternary. The
+    // outer catch fires when the FIRST awaited operation
+    // (getProjectByToken) throws a non-Error value before the inner
+    // try-blocks have a chance to catch.
+    mockGetProjectByToken = async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 12345;
+    };
+    const r = await webhookPostHandler({
+      projectId: "p1",
+      authorization: "Bearer tok-valid",
+      clientIp: null,
+      userAgent: null,
+      formData: fd({}),
+    });
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Internal server error" });
+  });
+
   test("500 when createBackup throws", async () => {
     mockGetProjectByToken = async () => baseProject;
     mockCreateBackup = async () => {
