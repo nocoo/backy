@@ -218,7 +218,14 @@ describe("db handlers", () => {
     });
     const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect((r as { body: { marker: null; error: string } }).body.marker).toBeNull();
-    expect((r as { body: { error: string } }).body.error).toBe("table not found");
+    expect(r.kind).toBe("json");
+    // Tightened: pin full envelope so a regression that drops 'marker'
+    // or wraps the error in another field would surface. Returns 200
+    // (not 500) so the caller can distinguish 'no marker / not seeded'
+    // from 'auth/network failure'.
+    expect((r as { body: unknown }).body).toEqual({
+      marker: null,
+      error: "table not found",
+    });
   });
 });
