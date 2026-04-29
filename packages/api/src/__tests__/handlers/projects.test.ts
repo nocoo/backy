@@ -471,6 +471,58 @@ describe("projects handlers", () => {
       expect(prompt).toContain("**Auth header**: `X-K: \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022`");
     });
 
+    test("pluralizes 'hours' for non-1 interval (covers === 1 false branch)", async () => {
+      // Covers the `auto_backup_interval === 1 ? '' : 's'` branch in
+      // projects-prompt.ts. With interval=12, the prompt must say
+      // 'Every 12 hours' (plural) — not 'Every 12 hour'.
+      mockGetProject = async () =>
+        makeProject({
+          auto_backup_enabled: 1,
+          auto_backup_interval: 12,
+        });
+      const r = await projectPromptHandler(
+        { id: "p1", baseUrl: "https://x.example.com" },
+        ctx,
+      );
+      const prompt = (r as { body: { prompt: string } }).body.prompt;
+      expect(prompt).toContain("Every 12 hours");
+    });
+
+    test("renders '(not set)' when header_key set but header_value missing", async () => {
+      // Covers the `header_value ? mask : '(not set)'` ternary false
+      // branch. The auth-header line should print the key plus
+      // '(not set)' when value is null.
+      mockGetProject = async () =>
+        makeProject({
+          auto_backup_enabled: 1,
+          auto_backup_header_key: "X-Auth",
+          auto_backup_header_value: null,
+        });
+      const r = await projectPromptHandler(
+        { id: "p1", baseUrl: "https://x.example.com" },
+        ctx,
+      );
+      const prompt = (r as { body: { prompt: string } }).body.prompt;
+      expect(prompt).toContain("**Auth header**: `X-Auth: (not set)`");
+    });
+
+    test("renders '(not set)' when auto_backup_webhook is null", async () => {
+      // Covers the `project.auto_backup_webhook ?? '(not set)'` ?? branch.
+      // Pull section's 'Your endpoint' line must print '(not set)' when
+      // the webhook hasn't been configured.
+      mockGetProject = async () =>
+        makeProject({
+          auto_backup_enabled: 1,
+          auto_backup_webhook: null,
+        });
+      const r = await projectPromptHandler(
+        { id: "p1", baseUrl: "https://x.example.com" },
+        ctx,
+      );
+      const prompt = (r as { body: { prompt: string } }).body.prompt;
+      expect(prompt).toContain("**Your endpoint**: `(not set)`");
+    });
+
     test("notes auto-backup not enabled when disabled", async () => {
       mockGetProject = async () => makeProject({ auto_backup_enabled: 0 });
       const r = await projectPromptHandler({
