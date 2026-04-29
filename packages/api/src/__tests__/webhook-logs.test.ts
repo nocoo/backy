@@ -288,7 +288,7 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?)");
-      expect(countQuery?.params).toContain("::1");
+      expect(countQuery?.params).toEqual(["::1"]);
     });
 
     test("adds exclude condition with multiple IPs", async () => {
@@ -297,8 +297,9 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?, ?)");
-      expect(countQuery?.params).toContain("::1");
-      expect(countQuery?.params).toContain("127.0.0.1");
+      // Tightened: pin params order (catches a regression that reverses
+      // the IP list before binding).
+      expect(countQuery?.params).toEqual(["::1", "127.0.0.1"]);
     });
 
     test("does not add exclude condition when excludeClientIps is empty", async () => {
@@ -319,8 +320,9 @@ describe("webhook-logs", () => {
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("project_id");
       expect(countQuery?.sql).toContain("client_ip");
-      expect(countQuery?.params).toContain("proj-test");
-      expect(countQuery?.params).toContain("::1");
+      // Tightened: pin params order — projectIds bound BEFORE clientIps
+      // (matches the source-order in listWebhookLogs).
+      expect(countQuery?.params).toEqual(["proj-test", "::1"]);
     });
   });
 
@@ -338,7 +340,7 @@ describe("webhook-logs", () => {
 
       const deleteQuery = db.calls[0];
       expect(deleteQuery?.sql).toContain("WHERE project_id = ?");
-      expect(deleteQuery?.params).toContain("proj-123");
+      expect(deleteQuery?.params).toEqual(["proj-123"]);
     });
 
     test("deletes logs filtered by method", async () => {
@@ -346,7 +348,7 @@ describe("webhook-logs", () => {
 
       const deleteQuery = db.calls[0];
       expect(deleteQuery?.sql).toContain("method = ?");
-      expect(deleteQuery?.params).toContain("POST");
+      expect(deleteQuery?.params).toEqual(["POST"]);
     });
 
     test("deletes logs filtered by success=true", async () => {
@@ -374,8 +376,9 @@ describe("webhook-logs", () => {
       expect(deleteQuery?.sql).toContain("project_id = ?");
       expect(deleteQuery?.sql).toContain("method = ?");
       expect(deleteQuery?.sql).toContain("status_code >= 400");
-      expect(deleteQuery?.params).toContain("proj-123");
-      expect(deleteQuery?.params).toContain("HEAD");
+      // Tightened: pin params order — projectId BEFORE method
+      // (success=false adds no param).
+      expect(deleteQuery?.params).toEqual(["proj-123", "HEAD"]);
     });
   });
 });
