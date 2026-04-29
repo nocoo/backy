@@ -15,10 +15,13 @@ describe("generateTimestamp", () => {
     expect(generateTimestamp(date)).toBe("2026-03-02T10-30-00-000Z");
   });
 
-  test("returns a string without colons or dots", () => {
+  test("returns a timestamp matching the dashes-only shape", () => {
+    // Tightened: replaced 2 negative .not.toContain(':') / .not.toContain('.')
+    // checks (which would pass for ANY string with no colons or dots, e.g.
+    // empty string) with a positive regex that pins the full ISO-like
+    // shape with all separators replaced by dashes.
     const ts = generateTimestamp();
-    expect(ts).not.toContain(":");
-    expect(ts).not.toContain(".");
+    expect(ts).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/);
   });
 
   test("defaults to current time", () => {
