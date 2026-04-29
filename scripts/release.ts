@@ -48,6 +48,7 @@ const PROJECT_ROOT = findGitRoot(APP_ROOT);
 const PACKAGE_JSON = pathResolve(PROJECT_ROOT, 'package.json');
 const APP_PACKAGE_JSON = pathResolve(APP_ROOT, 'package.json');
 const CHANGELOG_MD = pathResolve(PROJECT_ROOT, 'CHANGELOG.md');
+const WRANGLER_TOML = pathResolve(PROJECT_ROOT, 'apps/worker/wrangler.toml');
 
 // Auto-detect project name from package.json
 function readProjectName(): string {
@@ -378,6 +379,18 @@ function updatePackageJson(newVersion: string): void {
   }
 }
 
+function updateWranglerToml(newVersion: string): void {
+  if (!existsSync(WRANGLER_TOML)) return;
+  const raw = readFileSync(WRANGLER_TOML, 'utf-8');
+  const re = /(NEXT_PUBLIC_APP_VERSION\s*=\s*")\d+\.\d+\.\d+(")/;
+  const updated = raw.replace(re, `$1${newVersion}$2`);
+  if (updated === raw) {
+    console.log('   ⚠️  NEXT_PUBLIC_APP_VERSION not found in wrangler.toml — skipping');
+    return;
+  }
+  writeFileSync(WRANGLER_TOML, updated);
+}
+
 // ---------------------------------------------------------------------------
 // Interactive prompt
 // ---------------------------------------------------------------------------
@@ -462,10 +475,14 @@ async function main(): Promise<void> {
     console.log(
       `   [dry-run] Would update package.json ${currentVersion} → ${newVersion}`,
     );
+    console.log('   [dry-run] Would update wrangler.toml NEXT_PUBLIC_APP_VERSION');
     console.log('   [dry-run] Would run bun install to sync lockfile');
   } else {
     updatePackageJson(newVersion);
     console.log(`   ✅ package.json updated: ${currentVersion} → ${newVersion}`);
+
+    updateWranglerToml(newVersion);
+    console.log(`   ✅ wrangler.toml NEXT_PUBLIC_APP_VERSION updated`);
 
     console.log('   🔄 Running bun install to sync lockfile...');
     const installResult = await run('bun', ['install'], { inherit: true });
@@ -547,6 +564,7 @@ async function main(): Promise<void> {
         'add',
         'package.json',
         pathRelative(PROJECT_ROOT, APP_PACKAGE_JSON),
+        pathRelative(PROJECT_ROOT, WRANGLER_TOML),
         'bun.lock',
         'CHANGELOG.md',
       ],
