@@ -376,6 +376,14 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
   test("POST /api/db/seed-test-project returns 200 with E2E_SKIP_AUTH", async () => {
     const res = await fetchWith("/api/db/seed-test-project", { method: "POST" });
     expect(res.status).toBe(200);
+    // fakeD1 returns empty results for the existence-check query, so
+    // the handler hits the 'created' branch with TEST_PROJECT id+token.
+    expect(await res.json()).toEqual({
+      action: "created",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      cleanedBackups: 0,
+    });
   });
 
   test("GET /api/db/init/marker returns marker status", async () => {
