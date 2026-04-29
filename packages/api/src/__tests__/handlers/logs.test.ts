@@ -52,7 +52,12 @@ describe("logs handlers", () => {
 
   describe("listWebhookLogsHandler", () => {
     test("200 with default pagination", async () => {
-      expect((await listWebhookLogsHandler({}, ctx)).status).toBe(200);
+      const r = await listWebhookLogsHandler({}, ctx);
+      expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      // Pin the default-pagination body shape: handler must pass
+      // the listWebhookLogs return verbatim (no envelope wrapping).
+      if (r.kind === "json") expect(r.body).toEqual({ items: [], total: 0 });
     });
 
     test("200 with all filters parsed", async () => {
