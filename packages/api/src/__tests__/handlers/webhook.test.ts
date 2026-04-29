@@ -484,10 +484,18 @@ describe("webhookPostHandler", () => {
     expect(r.status).toBe(201);
     expect(uploads.length).toBe(2);
     expect(uploads[1]?.type).toBe("application/json");
-    expect(createArg?.environment).toBe("prod");
-    expect(createArg?.tag).toBe("daily");
-    expect(createArg?.senderIp).toBe("5.5.5.5");
-    expect(createArg?.isSingleJson).toBe(true);
+    // Tightened: combine 4 single-property checks into a single
+    // toMatchObject so a missing field would surface as one diff.
+    // Keeps fileKey/jsonKey out of the assertion (timestamp-derived).
+    expect(createArg).toMatchObject({
+      projectId: "p1",
+      environment: "prod",
+      tag: "daily",
+      senderIp: "5.5.5.5",
+      isSingleJson: true,
+      jsonExtracted: false,
+      fileType: "json",
+    });
   });
 
   test("201 with non-previewable zip skips preview upload", async () => {
