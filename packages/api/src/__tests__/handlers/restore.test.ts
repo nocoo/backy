@@ -100,6 +100,12 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Project-not-found also returns 'Invalid token' (not a more
+      // specific 'Project not found') — the impl deliberately doesn't
+      // leak the existence of the project to an unauthenticated caller.
+      expect(r.body).toEqual({ error: "Invalid token" });
   });
 
   test("403 when token mismatches", async () => {
@@ -121,6 +127,9 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Invalid token" });
   });
 
   test("403 when client IP not allowed", async () => {
@@ -142,6 +151,11 @@ describe("restore handler", () => {
       clientIp: "1.2.3.4",
     }, ctx);
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // CIDR mismatch returns the generic 'Forbidden' — don't leak the
+      // allowed CIDR ranges to a denied caller.
+      expect(r.body).toEqual({ error: "Forbidden" });
   });
 
   test("403 when allowed_ips set but clientIp null", async () => {
