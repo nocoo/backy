@@ -8,6 +8,6 @@
 export const TEST_PROJECT = {
   id: "mnp039joh6yiala5UY0Hh",
   name: "backy-test",
-  webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+  webhookToken: "test-webhook-token-for-e2e",
   description: "E2E test project — auto-seeded",
 } as const;

@@ -76,7 +76,7 @@ describe("db handlers", () => {
     expect((r as { body: unknown }).body).toEqual({
       action: "created",
       projectId: "mnp039joh6yiala5UY0Hh",
-      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      webhookToken: "test-webhook-token-for-e2e",
       cleanedBackups: 0,
     });
   });
@@ -95,7 +95,7 @@ describe("db handlers", () => {
             // silently fell through to 'reset' — the test only checked
             // status=200, masking the misnamed branch.
             name: "backy-test",
-            webhook_token: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+            webhook_token: "test-webhook-token-for-e2e",
             description: "E2E test project — auto-seeded",
             allowed_ips: null,
             category_id: null,
@@ -124,7 +124,7 @@ describe("db handlers", () => {
     expect((r as { body: unknown }).body).toEqual({
       action: "verified",
       projectId: "mnp039joh6yiala5UY0Hh",
-      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      webhookToken: "test-webhook-token-for-e2e",
       cleanedBackups: 0,
     });
   });
@@ -152,7 +152,7 @@ describe("db handlers", () => {
     expect((r as { body: unknown }).body).toEqual({
       action: "created",
       projectId: "mnp039joh6yiala5UY0Hh",
-      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      webhookToken: "test-webhook-token-for-e2e",
       cleanedBackups: 1,
     });
   });
@@ -209,7 +209,7 @@ describe("db handlers", () => {
     expect((r as { body: unknown }).body).toEqual({
       action: "reset",
       projectId: "mnp039joh6yiala5UY0Hh",
-      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      webhookToken: "test-webhook-token-for-e2e",
       cleanedBackups: 0,
     });
   });
