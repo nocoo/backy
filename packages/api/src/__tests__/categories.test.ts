@@ -235,22 +235,37 @@ describe("categories", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result!.name).toBe("New Name");
-      expect(result!.color).toBe("#ff0000");
-      expect(result!.icon).toBe("star");
-      expect(result!.sort_order).toBe(10);
-      expect(result!.id).toBe("cat-up");
-      expect(result!.created_at).toBe("2026-01-01T00:00:00.000Z");
+      // Tightened: pin the entire updated row instead of 7 individual
+      // field checks. Asserts new values for name/color/icon/sort_order,
+      // preserved id+created_at, and a refreshed updated_at (any new
+      // ISO timestamp).
+      expect(result).toEqual({
+        id: "cat-up",
+        name: "New Name",
+        color: "#ff0000",
+        icon: "star",
+        sort_order: 10,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      });
       expect(result!.updated_at).not.toBe("2026-01-01T00:00:00.000Z");
 
       // Verify UPDATE SQL
       const updateBody = JSON.parse(capturedBodies[1]!);
-      expect(updateBody.sql).toContain("UPDATE categories SET");
-      expect(updateBody.params).toContain("New Name");
-      expect(updateBody.params).toContain("#ff0000");
-      expect(updateBody.params).toContain("star");
-      expect(updateBody.params).toContain(10);
-      expect(updateBody.params).toContain("cat-up");
+      // Tightened: pin full SQL string + params array (was substring +
+      // 5 toContain checks). Catches column-list drift and verifies
+      // updated_at is forwarded as the same value the result carries.
+      expect(updateBody.sql).toBe(
+        "UPDATE categories SET name = ?, color = ?, icon = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+      );
+      expect(updateBody.params).toEqual([
+        "New Name",
+        "#ff0000",
+        "star",
+        10,
+        result!.updated_at,
+        "cat-up",
+      ]);
     });
 
     test("preserves existing fields when partially updating", async () => {
