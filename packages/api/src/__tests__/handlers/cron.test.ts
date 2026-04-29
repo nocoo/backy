@@ -540,7 +540,9 @@ describe("cron handlers", () => {
         id: "p1",
         auto_backup_webhook: "https://hook.example.com",
       });
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(async () => {
+        fetchCount++;
         throw new Error("net");
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
@@ -555,6 +557,9 @@ describe("cron handlers", () => {
           error: "net",
           durationMs: expect.any(Number),
         });
+      // No-retry contract: thrown fetch counted as failed AFTER
+      // exactly 1 attempt.
+      expect(fetchCount).toBe(1);
     });
   });
 });
