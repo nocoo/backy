@@ -278,12 +278,26 @@ describe("backups handlers", () => {
 
   describe("deleteBackupHandler", () => {
     test("200 when deleted", async () => {
+      const deletes: string[] = [];
+      mockDeleteFromR2 = async (key: string) => {
+        deletes.push(key);
+      };
       mockDeleteBackup = async () => ({ fileKey: "k", jsonKey: "j" });
-      expect((await deleteBackupHandler({ id: "b1" })).status).toBe(200);
+      const r = await deleteBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+      // Tightened: positively verify R2 cleanup ordering (fileKey first,
+      // jsonKey second) AND the response body. Status-only would mask a
+      // regression that returns 200 without actually calling r2.delete.
+      expect(deletes).toEqual(["k", "j"]);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ success: true });
     });
 
     test("404 when missing", async () => {
-      expect((await deleteBackupHandler({ id: "x" })).status).toBe(404);
+      const r = await deleteBackupHandler({ id: "x" });
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Backup not found" });
     });
 
     test("R2 errors non-fatal", async () => {
@@ -291,7 +305,12 @@ describe("backups handlers", () => {
       mockDeleteFromR2 = async () => {
         throw new Error("r2");
       };
-      expect((await deleteBackupHandler({ id: "b1" })).status).toBe(200);
+      const r = await deleteBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+      // Tightened: even when R2 throws, the handler should still report
+      // success:true to the client (the cleanup is non-fatal by design).
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ success: true });
     });
 
     test("500 on db error", async () => {
