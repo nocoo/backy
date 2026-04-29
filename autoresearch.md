@@ -103,13 +103,14 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (200 experiments — milestone)
+### Current state (202 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
-- **test_count: 636** (baseline 648, −1.9%; +10 ADDITIVE tests vs 100
-  milestone, including ip-info 503-not-configured AND cron 'not due
-  this hour' — both covered previously-untested code paths).
+- **test_count: 637** (baseline 648, −1.7%; +11 ADDITIVE tests vs 100
+  milestone, including ip-info 503, cron not-due-this-hour, routes
+  /api/backups with query-params — all closing previously-untested
+  code-path coverage gaps).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS** (api 91.59% statements / 85.24% branches).
 - **100% body-coverage on every test** + auth-header forwarding +
