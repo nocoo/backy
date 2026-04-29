@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { makeMockCtx, makeMockD1, makeMockR2 } from "../helpers";
+import { makeMockCtx, makeMockD1, makeMockR2, makeMockInfo } from "../helpers";
 import { liveCheckHandler } from "../../handlers/live";
 
 describe("live handler", () => {
@@ -91,6 +91,37 @@ describe("live handler", () => {
     if (r.kind === "json") {
       const body = r.body as { dependencies: { d1: { message: string } } };
       expect(body.dependencies.d1.message).toBe("D1 unreachable");
+    }
+  });
+
+  test("non-Error R2 throw uses default 'R2 unreachable' message (covers ternary falsy branch)", async () => {
+    // Symmetric to the D1 non-Error test; covers line 50 of
+    // handlers/live.ts (the `: 'R2 unreachable'` fallback when the
+    // thrown value isn't an Error instance).
+    r2 = makeMockR2({
+      ping: async () => {
+        throw "raw"; // string — not an Error instance
+      },
+    });
+    const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
+    expect(r.status).toBe(503);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json") {
+      const body = r.body as { dependencies: { r2: { message: string } } };
+      expect(body.dependencies.r2.message).toBe("R2 unreachable");
+    }
+  });
+
+  test("uptime_s falls back to 0 when uptimeSeconds returns null (covers ?? 0 branch)", async () => {
+    // Covers line 75 of handlers/live.ts: the `?? 0` fallback for
+    // the uptime field. Default makeMockInfo() returns 42, so the
+    // null path was previously unreached.
+    const ctx = makeMockCtx({ db, r2, info: makeMockInfo(null) });
+    const r = await liveCheckHandler(ctx);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json") {
+      const body = r.body as { uptime_s: number };
+      expect(body.uptime_s).toBe(0);
     }
   });
 });
