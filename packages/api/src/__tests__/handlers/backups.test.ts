@@ -615,6 +615,9 @@ describe("backups handlers", () => {
     test("404 when missing", async () => {
       const r = await previewBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("404 when no json_key", async () => {
@@ -625,6 +628,17 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // is_single_json=0 => extractable=true (caller can POST /extract).
+        // Pin both the human-readable error AND the extractable flag
+        // — the UI relies on this flag to decide whether to show the
+        // 'Extract' button.
+        expect(r.body).toEqual({
+          error:
+            "No JSON available for preview. Extract JSON first via POST /api/backups/[id]/extract",
+          extractable: true,
+        });
     });
 
     test("500 when r2 body missing", async () => {
@@ -632,6 +646,15 @@ describe("backups handlers", () => {
       mockDownloadFromR2 = async () => ({ body: null });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Discovery: the {body:null} mock surfaces 'Failed to load preview'
+        // (the OUTER catch), not 'Failed to download preview file from
+        // storage' — because readR2Bytes() throws on null body before the
+        // explicit r2Response null-check is reached. The 'Failed to
+        // download...' branch is unreachable in practice; documenting
+        // here as a code-quality note.
+        expect(r.body).toEqual({ error: "Failed to load preview" });
     });
 
     test("413 when too large", async () => {
@@ -641,6 +664,14 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(413);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 413 surfaces the 'use download endpoint instead' hint so a CLI
+        // that pins the size-limit branch can route to /download.
+        expect(r.body).toEqual({
+          error:
+            "JSON file too large for inline preview. Use the download endpoint instead.",
+        });
     });
 
     test("500 when stored content not valid JSON", async () => {
@@ -650,6 +681,11 @@ describe("backups handlers", () => {
       });
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Stored preview file is not valid JSON",
+        });
     });
 
     test("200 returns parsed content", async () => {
@@ -684,6 +720,9 @@ describe("backups handlers", () => {
       };
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to load preview" });
     });
   });
 

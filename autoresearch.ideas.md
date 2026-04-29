@@ -42,3 +42,12 @@ left is genuinely deeper work that wasn't tackled this round:
   divergence (charts: '1048576 GB', dashboard: '1048576 TB' for the same
   input shape). Consolidating to a single `formatBytes` would prevent
   unit-list drift. Prod-code change, deferred.
+
+- **previewBackupHandler dead branch**: the `if (!r2Response)` null-check
+  on line 313 of `packages/api/src/handlers/backups.ts` is unreachable
+  in practice — `await readR2Bytes(r2Response)` would throw on a null
+  Response BEFORE the null-check fires. The `Failed to download preview
+  file from storage` message is therefore never actually returned to a
+  client; instead the outer catch returns `Failed to load preview`.
+  Either delete the dead branch or restructure to actually catch the
+  null-body case before readR2Bytes. Prod-code change, deferred.
