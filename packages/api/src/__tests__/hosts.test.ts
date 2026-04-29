@@ -32,6 +32,15 @@ describe("ALLOWED_HOSTS", () => {
     expect(isAllowedHost(env, "backy.hexly.ai")).toBe(true);
     expect(isAllowedHost(env, "localhost:7017")).toBe(true);
   });
+
+  test("returns false when maybeHost is omitted (covers ?? '' fallback)", () => {
+    // Covers line 32 of lib/hosts.ts: `parseAllowedHosts(envOrHost).has(maybeHost ?? '')`.
+    // The empty string is not in any allowlist (the parser .filter(Boolean)s
+    // it out), so omitting maybeHost MUST return false. Documents the
+    // contract: callers can't accidentally bypass the check by
+    // forgetting to pass the host arg.
+    expect(isAllowedHost(env)).toBe(false);
+  });
 });
 
 describe("buildBaseUrl", () => {
