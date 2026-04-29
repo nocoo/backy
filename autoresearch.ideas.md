@@ -68,3 +68,16 @@ left is genuinely deeper work that wasn't tackled this round:
   legitimately check one field) but could surface 30+ partial assertions
   scattered across handler tests. Defer until the existing 7 heuristics
   start hitting 0 across the board (they currently are).
+
+- **Bug: `toResponse({kind:"empty",headers:...})` drops headers**:
+  `apps/worker/src/lib/handler-response.ts` line ~30 spreads `r.headers`
+  directly into the `ResponseInit` object instead of into a nested
+  `headers` property (json/bytes/text correctly do
+  `headers: { ..., ...r.headers }`). The empty-case headers are silently
+  dropped — Response() ignores the unrecognized ResponseInit keys.
+  Currently no caller uses `empty(status, headers)` so the bug is
+  latent, but webhookHeadHandler returning `empty(200, {"X-Project-Name":
+  "..."})` is the obvious risk vector. Fix: change line ~30 to
+  `new Response(null, { status: r.status, headers: { ...(r.headers ?? {}) } })`.
+  Tests in handler-response.test.ts now pin the buggy behavior — fix
+  must update both at once.

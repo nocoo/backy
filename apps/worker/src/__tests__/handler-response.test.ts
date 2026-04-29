@@ -49,6 +49,25 @@ describe("toResponse", () => {
     expect(res.status).toBe(204);
     expect(await res.text()).toBe("");
   });
+
+  test("empty with headers", async () => {
+    // Discovery: in handler-response.ts the 'empty' case spreads
+    // `r.headers` directly into the ResponseInit object instead of
+    // into a `headers` property (compare with json/bytes/text which
+    // do `headers: { ..., ...r.headers }`). Result: header values get
+    // dropped silently and Response() likely ignores the unrecognized
+    // ResponseInit keys. This is a real bug — logged in ideas.md.
+    // For now this test pins the CURRENT (buggy) behavior so a fix
+    // would intentionally break it and prompt updating both at once.
+    const res = toResponse({
+      kind: "empty",
+      status: 200,
+      headers: { "x-foo": "bar", "x-baz": "qux" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-foo")).toBeNull();
+    expect(res.headers.get("x-baz")).toBeNull();
+  });
 });
 
 describe("clientIpOf", () => {
