@@ -275,8 +275,10 @@ describe("cron handlers", () => {
         },
       ];
       let capturedHeaders: Headers | undefined;
+      let capturedUrl: string | undefined;
       globalThis.fetch = mockFetch(
-        async (_url, init) => {
+        async (url, init) => {
+          capturedUrl = typeof url === "string" ? url : url.toString();
           capturedHeaders = new Headers(init?.headers);
           return new Response("ok", { status: 200 });
         },
@@ -299,10 +301,12 @@ describe("cron handlers", () => {
         });
       }
       // Also verify the outbound webhook fetch was called with the
-      // configured auth header (X-Key: secret). A regression that
-      // forgets to forward auto_backup_header_key/value would silently
-      // pass the summary-only assertion above.
+      // configured auth header (X-Key: secret) AND the configured URL.
+      // A regression that forgets to forward auto_backup_header_key/value
+      // OR that hits a hard-coded URL would silently pass the summary-
+      // only assertion above.
       expect(capturedHeaders?.get("X-Key")).toBe("secret");
+      expect(capturedUrl).toBe("https://hook.example.com");
     });
 
     test("counts non-2xx as failed", async () => {
