@@ -282,6 +282,24 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     });
   });
 
+  test("POST /api/categories with malformed JSON falls back to {} (→ 400 invalid input)", async () => {
+    // Covers the catch arrow `() => ({})` in apps/worker/src/routes/
+    // categories.ts:16. When the body isn't valid JSON, the route
+    // gracefully falls back to {} which then fails the Zod required-
+    // name validation. Status alone could pass via a different code
+    // path, so pin the validation envelope shape too.
+    const res = await fetchWith("/api/categories", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{not-valid-json",
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: "Invalid input",
+      details: { fieldErrors: { name: expect.arrayContaining([expect.any(String)]) } },
+    });
+  });
+
   test("PUT /api/projects/:id with empty body returns 404 (project missing wins over validator)", async () => {
     const res = await fetchWith("/api/projects/missing", {
       method: "PUT",
