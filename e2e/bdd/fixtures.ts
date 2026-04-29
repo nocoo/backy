@@ -18,19 +18,10 @@ export const test = base.extend<TestFixtures>({
   },
 
   testBackupId: async ({ request, testProjectId }, use) => {
-    const formData = new FormData();
-    formData.append("projectId", testProjectId);
-    formData.append("environment", "bdd-test");
-    formData.append(
-      "file",
-      new Blob(['{"bdd": "test"}'], { type: "application/json" }),
-      "bdd-test.json"
-    );
-
     const res = await request.post(`${BASE_URL}/api/backups/upload`, {
       multipart: {
         projectId: testProjectId,
-        environment: "bdd-test",
+        environment: "test",
         file: {
           name: "bdd-test.json",
           mimeType: "application/json",
