@@ -40,6 +40,14 @@ describe("isLocalhost", () => {
     expect((await res.json()) as unknown).toEqual({ local: true });
   });
 
+  test("BUG: '127.0.0.1.evil.com' attacker-controlled host is treated as local", async () => {
+    // Same startsWith vulnerability for the IPv4-form prefix.
+    const res = await appThatProbes().request("/probe", {
+      headers: { host: "127.0.0.1.evil.com" },
+    });
+    expect((await res.json()) as unknown).toEqual({ local: true });
+  });
+
   test("false for production host", async () => {
     const res = await appThatProbes().request("/probe", {
       headers: { host: "backy.example.com" },
