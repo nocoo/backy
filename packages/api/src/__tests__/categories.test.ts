@@ -333,8 +333,10 @@ describe("categories", () => {
       expect(result).toBe(true);
 
       const body = JSON.parse(capturedDeleteBody);
-      expect(body.sql).toContain("DELETE FROM categories WHERE id = ?");
-      expect(body.params).toContain("cat-del");
+      // Tightened: pin full SQL string + params array (was substring +
+      // toContain). Catches column-spec drift and extra-param appending.
+      expect(body.sql).toBe("DELETE FROM categories WHERE id = ?");
+      expect(body.params).toEqual(["cat-del"]);
     });
 
     test("returns false when category does not exist", async () => {
