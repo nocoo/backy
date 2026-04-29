@@ -13,6 +13,8 @@ test.describe("Backups Pages", () => {
   }) => {
     await page.goto(`/backups/${testBackupId}`);
 
-    await expect(page.locator("text=Backup").first()).toBeVisible();
+    // Verify it's the real detail page, not the 404 error page
+    await expect(page.locator("text=Backup not found")).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
   });
 });
