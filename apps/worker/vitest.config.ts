@@ -20,14 +20,14 @@ export default defineConfig({
         "src/**/*.d.ts",
       ],
       thresholds: {
-        lines: 90,
-        // Routes are thin adapter shims (`c => toResponse(handler(...))`);
-        // each verb is counted as a separate function so a single uncovered
-        // verb hurts the ratio disproportionately. 85 here, ratchet up as
-        // routes grow real branching logic.
-        functions: 85,
-        branches: 80,
-        statements: 90,
+        lines: 95,
+        // Actual 94.82% — routes are thin adapter shims where each verb
+        // counts as a separate function, so one uncovered verb hurts the
+        // ratio disproportionately. Set 1% below actual; ratchet to 95
+        // when remaining webhook verbs get tests.
+        functions: 93,
+        branches: 90,
+        statements: 95,
       },
     },
   },
