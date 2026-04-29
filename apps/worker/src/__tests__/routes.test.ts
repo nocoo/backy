@@ -150,7 +150,7 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     });
     expect(res.status).toBe(503);
     const body = (await res.json()) as { error: string };
-    expect(body.error).toMatch(/not configured/i);
+    expect(body).toEqual({ error: "IP info service not configured" });
   });
 
   test("GET /api/ip-info returns 400 when ip query is missing", async () => {
@@ -316,8 +316,8 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     const res = await fetchWith("/api/db/init", { method: "POST" });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok: boolean; message: string };
-    expect(body.ok).toBe(true);
-    expect(body.message).toMatch(/Schema initialized/i);
+    // Tightened: pin full schema-init envelope (no extras, exact copy).
+    expect(body).toEqual({ ok: true, message: "Schema initialized" });
   });
 
   test("POST /api/db/seed-test-project returns 200 with E2E_SKIP_AUTH", async () => {
