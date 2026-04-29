@@ -460,9 +460,11 @@ describe("cron handlers", () => {
       });
       let capturedHeaders: Headers | undefined;
       let capturedUrl: string | undefined;
+      let capturedMethod: string | undefined;
       globalThis.fetch = mockFetch(async (url, init) => {
         capturedUrl = typeof url === "string" ? url : url.toString();
         capturedHeaders = new Headers(init?.headers);
+        capturedMethod = init?.method;
         return new Response("ok");
       });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
@@ -483,6 +485,7 @@ describe("cron handlers", () => {
       // hits a hard-coded URL in the one-shot path would surface here.
       expect(capturedHeaders?.get("X-K")).toBe("v");
       expect(capturedUrl).toBe("https://hook.example.com");
+      expect(capturedMethod).toBe("POST");
     });
 
     test("200 failed when fetch returns 500", async () => {
