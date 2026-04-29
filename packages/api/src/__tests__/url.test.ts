@@ -479,4 +479,43 @@ describe("resolveAndValidateUrl", () => {
       "IPv6 address [fd00::1] is in a private range",
     );
   });
+
+  test("allows public IPv4 literal directly (covers IPv4 literal safe path)", async () => {
+    // Covers line 312 of lib/url.ts: the `return { safe: true }` after
+    // an IPv4 literal that is NOT in a private range. All existing
+    // IPv4-literal tests block private/loopback IPs; none exercised
+    // the safe-IPv4-literal early-return.
+    const result = await resolveAndValidateUrl("https://93.184.216.34/hook");
+    expect(result.safe).toBe(true);
+  });
+
+  test("allows public IPv6 literal directly (covers IPv6 literal safe path)", async () => {
+    // Covers line 320 of lib/url.ts: the `return { safe: true }` after
+    // an IPv6 literal that is NOT in a private range. Symmetric to
+    // the IPv4 case above.
+    const result = await resolveAndValidateUrl(
+      "https://[2606:2800:220:1:248:1893:25c8:1946]/hook",
+    );
+    expect(result.safe).toBe(true);
+  });
+
+  test("blocks hostname when DNS returns no records on both families (covers 'No DNS records found' branch)", async () => {
+    // Covers line 337 of lib/url.ts: the 'No DNS records found' branch
+    // — fires when both v4 and v6 lookups return EMPTY arrays (vs both
+    // rejecting, which yields the 'DNS resolution failed' message).
+    // Documents the differentiation between 'lookup succeeded but
+    // empty' and 'lookup itself failed'.
+    const result = await rawResolveAndValidateUrl(
+      "https://no-records.example/hook",
+      env,
+      {
+        resolve4: async () => [],
+        resolve6: async () => [],
+      },
+    );
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toBe(
+      "No DNS records found for no-records.example",
+    );
+  });
 });
