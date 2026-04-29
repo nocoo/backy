@@ -13,6 +13,7 @@
     "test:coverage": "bun --cwd packages/api test:coverage && bun --cwd apps/worker test:coverage && bun --cwd apps/web test:coverage && bun --cwd apps/cli test:coverage",
     "test:e2e": "bun run scripts/run-e2e.ts",
     "test:e2e:api": "bun run scripts/run-e2e.ts",
+    "test:e2e:bdd": "bun run scripts/run-e2e-bdd.ts",
     "gate:security": "bun run scripts/gate-security.ts",
     "gate:secrets": "bun run scripts/gate-security.ts --secrets",
     "gate:deps": "bun run scripts/gate-security.ts --deps",
