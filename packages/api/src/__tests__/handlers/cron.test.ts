@@ -274,8 +274,12 @@ describe("cron handlers", () => {
           auto_backup_header_value: "secret",
         },
       ];
+      let capturedHeaders: Headers | undefined;
       globalThis.fetch = mockFetch(
-        async () => new Response("ok", { status: 200 }),
+        async (_url, init) => {
+          capturedHeaders = new Headers(init?.headers);
+          return new Response("ok", { status: 200 });
+        },
       );
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
@@ -294,6 +298,11 @@ describe("cron handlers", () => {
           failed: 0,
         });
       }
+      // Also verify the outbound webhook fetch was called with the
+      // configured auth header (X-Key: secret). A regression that
+      // forgets to forward auto_backup_header_key/value would silently
+      // pass the summary-only assertion above.
+      expect(capturedHeaders?.get("X-Key")).toBe("secret");
     });
 
     test("counts non-2xx as failed", async () => {
