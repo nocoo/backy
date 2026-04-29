@@ -177,6 +177,11 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // allowed_ips set + clientIp null = same 'Forbidden' (a missing
+      // x-forwarded-for can't satisfy a CIDR allowlist).
+      expect(r.body).toEqual({ error: "Forbidden" });
   });
 
   test("200 with presigned URL when token valid + no IP restriction", async () => {
@@ -302,6 +307,9 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Invalid token" });
   });
 
   test("Bearer wins over query-param when both provided", async () => {
