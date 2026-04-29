@@ -79,7 +79,7 @@ function resolveUpstreamRange(): { range: string; fallback: boolean } {
   return { range: "-20", fallback: true };
 }
 
-async function runGitleaks(): Promise<ScanResult> {
+async function runGitleaks(staged: boolean): Promise<ScanResult> {
   const name = "gitleaks";
   if (!toolExists(name)) {
     return {
@@ -90,6 +90,20 @@ async function runGitleaks(): Promise<ScanResult> {
     };
   }
 
+  if (staged) {
+    try {
+      const result = await $`gitleaks protect --staged --no-banner 2>&1`.quiet().nothrow();
+      const output = result.text();
+
+      if (result.exitCode === 0) {
+        return { name, ok: true, warn: false, output: `✅ ${name}: no secrets detected (staged)` };
+      }
+      return { name, ok: false, warn: false, output: `❌ ${name}: secrets detected (staged)\n${output}` };
+    } catch (err) {
+      return { name, ok: false, warn: false, output: `❌ ${name}: unexpected error — ${err}` };
+    }
+  }
+
   const { range, fallback } = resolveUpstreamRange();
   const mode = fallback ? "last 20 commits (no upstream)" : range;
 
@@ -97,7 +111,6 @@ async function runGitleaks(): Promise<ScanResult> {
     const result = await $`gitleaks git --log-opts=${range} --no-banner 2>&1`.quiet().nothrow();
     const output = result.text();
 
-    // gitleaks exits 0 = no leaks, 1 = leaks found
     if (result.exitCode === 0) {
       return { name, ok: true, warn: false, output: `✅ ${name}: no secrets detected (${mode})` };
     }
@@ -108,9 +121,18 @@ async function runGitleaks(): Promise<ScanResult> {
 }
 
 async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const onlySecrets = args.includes("--secrets");
+  const onlyDeps = args.includes("--deps");
+  const runBoth = !onlySecrets && !onlyDeps;
+
   console.log("🔒 G2 Security Gate\n");
 
-  const results = await Promise.all([runOsvScanner(), runGitleaks()]);
+  const tasks: Array<Promise<ScanResult>> = [];
+  if (runBoth || onlyDeps) tasks.push(runOsvScanner());
+  if (runBoth || onlySecrets) tasks.push(runGitleaks(onlySecrets));
+
+  const results = await Promise.all(tasks);
 
   for (const r of results) {
     console.log(r.output);
