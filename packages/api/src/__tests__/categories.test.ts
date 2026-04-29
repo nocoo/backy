@@ -240,11 +240,9 @@ describe("categories", () => {
         sortOrder: 10,
       });
 
-      expect(result).toBeDefined();
-      // Tightened: pin the entire updated row instead of 7 individual
-      // field checks. Asserts new values for name/color/icon/sort_order,
-      // preserved id+created_at, and a refreshed updated_at (any new
-      // ISO timestamp).
+      // Tightened: removed redundant .toBeDefined() (the .toEqual
+      // below already enforces non-undefined; .toBeDefined could
+      // mask the case where result is null/missing fields).
       expect(result).toEqual({
         id: "cat-up",
         name: "New Name",
@@ -297,11 +295,18 @@ describe("categories", () => {
         name: "Updated",
       });
 
-      expect(result).toBeDefined();
-      expect(result!.name).toBe("Updated");
-      expect(result!.color).toBe("#123456");   // preserved
-      expect(result!.icon).toBe("heart");      // preserved
-      expect(result!.sort_order).toBe(7);      // preserved
+      // Tightened: 4 single-field checks + .toBeDefined consolidated
+      // into one toMatchObject. Asserts the partial update only changes
+      // the requested field (name) and preserves the rest, AND that
+      // updated_at is refreshed (any new ISO).
+      expect(result).toMatchObject({
+        id: "cat-partial",
+        name: "Updated",
+        color: "#123456",
+        icon: "heart",
+        sort_order: 7,
+      });
+      expect(result!.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     test("returns undefined when category does not exist", async () => {
