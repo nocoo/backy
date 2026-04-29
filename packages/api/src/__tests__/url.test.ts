@@ -257,6 +257,26 @@ describe("isUrlSafe", () => {
     // Same origin, different path — should still match (origin-level allowlist)
     expect(isUrlSafe("https://api.example.com/v2/other")).toBe(true);
   });
+
+  test("allowlist returns false when input URL is malformed (covers catch on line 211)", () => {
+    // Covers line 211 of lib/url.ts: the `catch { return false; }` for
+    // an unparseable input URL when an allowlist IS configured.
+    // (Without an allowlist, isUrlSafe returns false earlier; only
+    // the with-allowlist code path reaches this catch.)
+    env.SSRF_ALLOWLIST = "http://localhost:17017";
+    expect(isUrlSafe("::not-a-url::")).toBe(false);
+  });
+
+  test("allowlist gracefully ignores malformed entries (covers catch on line 224)", () => {
+    // Covers line 224 of lib/url.ts: the inner `catch { return false; }`
+    // when an allowlist entry itself fails URL parsing. The malformed
+    // entry should NOT crash; valid entries should still match.
+    env.SSRF_ALLOWLIST = "::garbage::,http://localhost:17017";
+    // The valid entry still matches…
+    expect(isUrlSafe("http://localhost:17017/api")).toBe(true);
+    // … and the malformed entry doesn't accidentally match anything.
+    expect(isUrlSafe("http://other.local/x")).toBe(false);
+  });
 });
 
 describe("isPrivateIp", () => {
