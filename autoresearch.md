@@ -103,25 +103,24 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (211 experiments)
+### Current state (213 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
-- **test_count: 645** (baseline 648, −0.5%; +19 ADDITIVE tests vs 100
-  milestone, including ctx.ts pickEnv full-allowlist coverage —
-  ctx.ts now 100% statements).
+- **test_count: 647** (baseline 648, −0.2%; +21 ADDITIVE tests vs 100
+  milestone, mostly closing previously-untested code-path coverage
+  gaps).
 - **weak_tests: 0** by 7-heuristic scanner.
-- **coverage gates: PASS** (api 91.59% / web 98.64% / worker 94+%
-  statements; worker branches up from 91% → 93.83% via this session).
+- **coverage gates: PASS** (api 91.84% / web 98.64% / worker 94+%
+  statements; api branches up 85.24% → 85.58%; worker branches up
+  91.09% → 93.83%).
 - **Misnamed tests fixed: 2** (cron 'not due this hour' was actually
   testing invalid-interval branch; routes /api/me 'returns 401' was
   always asserting 500 — both now reflect actual behavior).
-- **Production bugs surfaced + logged: 5** (handler-response empty
+- **Production bugs surfaced + logged: 5+** (handler-response empty
   headers; previewBackup/extractBackup dead null-checks; createBackup
   outer-catch wrong message; formatBytes duplication; isLocalhost
   startsWith vulnerability; enforceIpRestriction dead code).
-- **weak_tests: 0** by 7-heuristic scanner.
-- **coverage gates: PASS** (api 91.59% statements / 85.24% branches).
 - **100% body-coverage on every test** + auth-header forwarding +
   URL-targeting + HTTP-method (POST) contracts pinned for both
   cronTriggerHandler and cronTriggerOneHandler success paths +
