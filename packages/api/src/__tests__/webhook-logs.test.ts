@@ -181,7 +181,9 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("l.project_id = ?");
-      expect(countQuery?.params).toContain("proj-123");
+      // Tightened: pin params to exact single-element array (catches a
+      // regression that double-binds the projectId or appends silently).
+      expect(countQuery?.params).toEqual(["proj-123"]);
     });
 
     test("filters by method", async () => {
@@ -190,7 +192,8 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("l.method = ?");
-      expect(countQuery?.params).toContain("POST");
+      // Tightened: pin params + that the method is uppercased.
+      expect(countQuery?.params).toEqual(["POST"]);
     });
 
     test("filters by success=true (status < 400)", async () => {
@@ -215,7 +218,7 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("l.status_code = ?");
-      expect(countQuery?.params).toContain(403);
+      expect(countQuery?.params).toEqual([403]);
     });
 
     test("paginates correctly", async () => {
@@ -234,8 +237,10 @@ describe("webhook-logs", () => {
       expect(result.totalPages).toBe(6);
 
       const selectQuery = db.calls[1];
-      expect(selectQuery?.params).toContain(20);
-      expect(selectQuery?.params).toContain(40);
+      // Tightened: pin params end-of-list to exact [pageSize, offset]
+      // pair (pageSize=20, page=3 ⇒ offset=40). Catches order-flip /
+      // missing-param regressions.
+      expect(selectQuery?.params).toEqual([20, 40]);
     });
   });
 
