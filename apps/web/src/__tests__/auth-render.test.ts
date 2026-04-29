@@ -146,7 +146,9 @@ describe("RequireAuth", () => {
       React.createElement(RA, null, React.createElement("div", null, "x")),
     );
     expect(html.toLowerCase()).toContain("failed to load session");
-    expect(html).toContain("boom");
+    // Tightened: assert the exact error-line shape so a regression that
+    // omits the message or strips the prefix would surface.
+    expect(html).toContain("Failed to load session: boom");
   });
 
   test("renders children when session has an email", async () => {
