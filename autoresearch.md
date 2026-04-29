@@ -103,40 +103,51 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (134 experiments)
+### Current state (150 experiments)
 - **total_ms median: ~735–770 ms** (baseline 2241 ms, **−~67%**)
 - **stddev_ms: ~3–20 ms** typical.
-- **test_count: 626** (baseline 648, −3.4%).
+- **test_count: 627** (baseline 648, −3.2%; +1 vs 100-experiment
+  milestone via additive sanitize-allowlist test).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
-- **status-only handler tests tightened to positive body checks: 100+**
-  across **all** 11 backups handlers (list/upload/get/delete/batchDelete/
-  download/preview/extract/restoreCommand 4xx/5xx fully covered),
-  webhook (4), projects (8), restore (8 incl. all auth/IP no-info-leak
-  contracts), cron (12 across summary + one-shot), logs (10 across all
-  6 endpoints incl. listCron 200/500 + deleteCron 204/500), categories
-  (10 incl. SQL+params toEqual + Zod fieldErrors), db (init + 4 seed
-  branches + getTestMarker), live (sanitizer + envelope), ip-info (4),
-  stats (3), webhook-logs DB layer (10 param order pins), cron-logs DB
-  layer (7 param order pins), url SSRF (6 templated reasons),
-  extractors (10 reason strings + filename interpolation), routes
-  (envelope), ctx (env-key allowlist).
+- **Status-only handler tests tightened to positive body checks: 130+**
+  across all packages/api/handlers/* (backups+webhook+projects+restore
+  +cron+logs+categories+db+live+ip-info+stats now have **100%
+  body-coverage** on all 4xx/5xx error branches), apps/worker/routes
+  integration tests (~30 status-only tightened to body shapes incl.
+  Hono missing-handler 404 plain-text contract, 204 No-Content
+  empty-body contract, HEAD empty-body contract), webhook-logs DB layer
+  (10 param-order pins), cron-logs DB layer (7 param-order pins), url
+  SSRF (6 templated reasons), extractors (10 reason strings + filename
+  interpolation), categories DB layer (full SQL+params toEqual + Zod
+  fieldErrors), access-auth middleware (3 NOT-public routes), live
+  envelope, ctx env-key allowlist.
 - **Discoveries logged**: createBackup outer-catch returns 'Internal
   server error' (NOT inner 'Failed to upload'); previewBackup +
   extractBackup `if (!r2Response)` null-checks are unreachable in
   practice (readR2Bytes throws first — dead branches; tracked in
-  ideas.md).
+  ideas.md); backups stored as 'application/zip' (not gzip);
+  formatBytes duplicated across web/lib/format.ts (5 units) vs
+  charts/project-charts.tsx (4 units — ideas.md).
 - **adapter-mock arg drops fixed: 2** (presignDownload ttl).
 - **silent-default mock substitutions removed: 1** (webhook contentType).
 - **misnamed/wrongly-fixtured tests fixed: 1** (db.test seed-verifies-clean).
-- **vacuous union-narrow guards: 0** (all `if (r.kind === 'json')` blocks
-  now preceded by `expect(r.kind)`).
+- **vacuous union-narrow guards: 0** (all `if (r.kind === 'json')`
+  blocks now preceded by `expect(r.kind)`).
 - **Zod error-envelopes pinned**: createProject, updateProject,
-  createCategory, updateCategory.
+  createCategory, updateCategory, route-level POST /api/projects + /categories.
 - **Negative assertions tightened to positive contracts**:
   storage.timestamp (.not.toContain → regex shape),
   live.sanitize-ok (.not.toContain('ok') → toBe('not *** message')),
-  lib-coverage pagination indexed-position checks → full toEqual.
+  lib-coverage pagination indexed-position checks → full toEqual,
+  sanitize.test ADDED positive allowlist test (catches new sensitive-
+  field exposure).
+- **No-info-leak security contracts pinned**: restoreHandler (token-mismatch,
+  IP-allowlist, project-not-found all surface generic messages),
+  webhookGet/POST (Invalid token or project mismatch / Forbidden),
+  cronTrigger (same Unauthorized for no-auth and wrong-token),
+  access-auth middleware (same Unauthorized for missing-jwt and
+  invalid-jwt).
 - **OR-of-statuses: 0**, **vacuous try/catch: 0**,
   **time-window assertions: 0**, **real-network deps: 0**.
 
