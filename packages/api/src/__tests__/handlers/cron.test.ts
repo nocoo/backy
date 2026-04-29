@@ -276,10 +276,12 @@ describe("cron handlers", () => {
       ];
       let capturedHeaders: Headers | undefined;
       let capturedUrl: string | undefined;
+      let capturedMethod: string | undefined;
       globalThis.fetch = mockFetch(
         async (url, init) => {
           capturedUrl = typeof url === "string" ? url : url.toString();
           capturedHeaders = new Headers(init?.headers);
+          capturedMethod = init?.method;
           return new Response("ok", { status: 200 });
         },
       );
@@ -307,6 +309,10 @@ describe("cron handlers", () => {
       // only assertion above.
       expect(capturedHeaders?.get("X-Key")).toBe("secret");
       expect(capturedUrl).toBe("https://hook.example.com");
+      // Pin the method: webhook trigger MUST be POST. A regression that
+      // accidentally used GET would fail to invoke the SaaS-side handler
+      // (which expects POST per the prompt-builder template).
+      expect(capturedMethod).toBe("POST");
     });
 
     test("counts non-2xx as failed", async () => {
