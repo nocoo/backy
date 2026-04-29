@@ -103,16 +103,17 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (183 experiments)
+### Current state (185 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
 - **test_count: 634** (baseline 648, −2.2%; +6 ADDITIVE tests vs 100
-  milestone: sanitize-allowlist, handler-response empty-with-headers,
-  handler-response json content-type-wins, handler-response bytes
-  content-disposition, access-auth E2E_SKIP_AUTH=false bypass-protection,
-  access-auth E2E_SKIP_AUTH=1 bypass-protection, is-localhost
-  localhost.evil.com vuln, is-localhost 127.0.0.1.evil.com vuln).
+  milestone).
+- **weak_tests: 0** by 7-heuristic scanner.
+- **coverage gates: PASS**.
+- **100% body-coverage on every test** + auth-header forwarding
+  contracts now pinned for both cronTriggerHandler and
+  cronTriggerOneHandler success paths.
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
 - **100% body-coverage on every test** in every handler
