@@ -322,6 +322,42 @@ describe("decompression bomb defense", () => {
     expect(result.success).toBe(true);
   });
 
+  test("ZIP: rejects entry whose declared uncompressedSize exceeds MAX_DECOMPRESSED_SIZE (metadata-bomb defense)", async () => {
+    // Covers lines 152-156 of extractors.ts: the
+    // `declaredSize > MAX_DECOMPRESSED_SIZE` metadata check that
+    // rejects malicious zips claiming a huge uncompressed size BEFORE
+    // calling zipEntry.async() (which would otherwise allocate the
+    // claimed buffer). Catches a refactor that drops the metadata
+    // check.
+    //
+    // We craft a small zip and then surgically rewrite the central
+    // directory's uncompressed-size field so JSZip reports the lie.
+    // The uncompressed-size record lives at offset 24..28 of the
+    // central directory header (signature 0x02014b50). Find that
+    // signature, overwrite the size, and JSZip.loadAsync will believe
+    // it.
+    const zipBuffer = Buffer.from(
+      await createZipBuffer({ "data.json": '{"ok":true}' }),
+    );
+    const CENTRAL_DIR_SIG = Buffer.from([0x50, 0x4b, 0x01, 0x02]);
+    const cdOffset = zipBuffer.indexOf(CENTRAL_DIR_SIG);
+    expect(cdOffset).toBeGreaterThan(-1);
+    // Uncompressed size is at offset +24 from the CD-header signature
+    // (4-byte LE uint32). Write 50MB+1.
+    const liedSize = MAX_DECOMPRESSED_SIZE + 1;
+    zipBuffer.writeUInt32LE(liedSize, cdOffset + 24);
+
+    const result = await extractFromZip(new Uint8Array(zipBuffer));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Pin the bomb-defense reason verbatim. Catches a refactor that
+      // changes the message or weakens the check.
+      expect(result.reason).toBe(
+        `JSON file uncompressed size (${(liedSize / 1024 / 1024).toFixed(1)}MB) exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`,
+      );
+    }
+  });
+
   test("TGZ: streaming gunzip rejects decompressed output exceeding MAX_DECOMPRESSED_SIZE (decompression bomb)", async () => {
     // Covers line 72 of extractors.ts: the `streamingGunzip` helper's
     // incremental-byte-counter overflow check. We craft a tar with a
