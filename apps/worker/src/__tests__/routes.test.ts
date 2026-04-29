@@ -440,8 +440,20 @@ describe("worker routes — input shaping", () => {
       {} as unknown as ExecutionContext,
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as Array<{ id: string }>;
-    expect(body[0]?.id).toBe("p1");
+    const body = (await res.json()) as Array<Record<string, unknown>>;
+    // Tightened: pin entire array shape (was indexed-property check).
+    // The list goes through sanitizeProject() which drops webhook_token
+    // + auto_backup_header_{key,value} and adds auto_backup_headers_configured.
+    expect(body).toEqual([
+      expect.objectContaining({
+        id: "p1",
+        name: "test",
+        auto_backup_headers_configured: false,
+      }),
+    ]);
+    // Also positively verify sanitization: webhook_token MUST NOT be
+    // present (was implicit; now explicit).
+    expect(body[0]).not.toHaveProperty("webhook_token");
   });
 
   test("clientIp falls back to x-forwarded-for in webhook input", async () => {
