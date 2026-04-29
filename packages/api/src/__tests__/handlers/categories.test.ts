@@ -184,6 +184,10 @@ describe("categories handlers", () => {
     mockDeleteCategory = async () => {
       throw new Error("db");
     };
-    expect((await deleteCategoryHandler({ id: "c1" }, ctx)).status).toBe(500);
+    const r = await deleteCategoryHandler({ id: "c1" }, ctx);
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Failed to delete category" });
   });
 });

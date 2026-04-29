@@ -79,10 +79,18 @@ describe("live handler", () => {
 
   test("non-Error throw uses default message", async () => {
     db = makeMockD1(async () => {
-      throw "raw";
+      throw "raw"; // string — not an Error instance
     });
 
     const r = await liveCheckHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(503);
+    // Tightened: pin that the d1.message default fires ("D1 unreachable")
+    // when the thrown value isn't an Error instance. Status alone could
+    // pass even if the handler crashed on the non-Error throw.
+    expect(r.kind).toBe("json");
+    if (r.kind === "json") {
+      const body = r.body as { dependencies: { d1: { message: string } } };
+      expect(body.dependencies.d1.message).toBe("D1 unreachable");
+    }
   });
 });
