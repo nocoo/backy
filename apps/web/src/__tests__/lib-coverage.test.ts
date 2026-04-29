@@ -64,9 +64,7 @@ describe("RequireAuth — DOM-mounted branch coverage", () => {
         ));
       });
       expect(reload).toHaveBeenCalledTimes(1);
-      expect(container.textContent?.toLowerCase()).toContain(
-        "redirecting to login",
-      );
+      expect(container.textContent).toContain("Redirecting to login…");
     } finally {
       cleanup();
       vi.doUnmock("../lib/useMe");
