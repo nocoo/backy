@@ -47,6 +47,12 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(401);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({
+        error:
+          "Missing authentication. Provide Authorization: Bearer header or ?token= query param.",
+      });
   });
 
   test("401 when authorization not Bearer", async () => {
@@ -57,6 +63,14 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(401);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Same error: Basic auth without ?token= falls through to the
+      // missing-auth branch (Bearer is the only accepted scheme).
+      expect(r.body).toEqual({
+        error:
+          "Missing authentication. Provide Authorization: Bearer header or ?token= query param.",
+      });
   });
 
   test("404 when backup missing", async () => {
@@ -67,6 +81,9 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(404);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Backup not found" });
   });
 
   test("403 when project missing", async () => {
