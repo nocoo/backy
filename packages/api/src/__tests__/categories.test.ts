@@ -77,15 +77,16 @@ describe("categories", () => {
       });
 
       const result = await getCategory(makeDb(), "cat-42");
-      expect(result).toBeDefined();
-      expect(result!.id).toBe("cat-42");
-      expect(result!.name).toBe("Infra");
-      expect(result!.color).toBe("#10b981");
-      expect(result!.icon).toBe("cloud");
+      // Tightened: pin the entire row pass-through (was 4 individual
+      // field checks). Catches sort_order/timestamp drift.
+      expect(result).toEqual(mockCat);
 
       const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("SELECT * FROM categories WHERE id = ?");
-      expect(body.params).toContain("cat-42");
+      // Tightened: pin the full SQL string (was substring check) and
+      // pin params as an exact array (was toContain — would pass even
+      // if extra params were appended).
+      expect(body.sql).toBe("SELECT * FROM categories WHERE id = ?");
+      expect(body.params).toEqual(["cat-42"]);
     });
 
     test("returns undefined when category not found", async () => {
