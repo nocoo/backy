@@ -5,6 +5,7 @@
     "": {
       "name": "backy",
       "devDependencies": {
+        "@playwright/test": "^1.59.1",
         "husky": "^9.1.7",
       },
     },
