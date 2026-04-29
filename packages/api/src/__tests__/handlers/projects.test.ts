@@ -98,8 +98,15 @@ describe("projects handlers", () => {
   describe("createProjectHandler", () => {
     test("returns 201 on valid input", async () => {
       const created = makeProject();
-      mockCreateProject = async () => created;
-      const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
+      let captured: unknown[] | undefined;
+      mockCreateProject = async (...args: unknown[]) => {
+        captured = args;
+        return created;
+      };
+      const r = await createProjectHandler(
+        { body: { name: "ok", description: "d" } },
+        ctx,
+      );
       expect(r.status).toBe(201);
       // Tightened: createProjectHandler intentionally returns the raw
       // project (webhook_token included) so the client sees the token
@@ -110,6 +117,12 @@ describe("projects handlers", () => {
       const body = (r as { body: Record<string, unknown> }).body;
       expect(body.id).toBe(created.id);
       expect(body.webhook_token).toBe(created.webhook_token);
+      // Also positively verify createProject is called with the
+      // parsed args POSITIONALLY (name, description). Discovery: the
+      // handler does NOT pass the parsed object verbatim — it spreads
+      // name + description as separate positional args. A regression
+      // that swaps argument order would surface here.
+      expect(captured).toEqual(["ok", "d"]);
     });
 
     test("returns 400 on invalid input", async () => {
