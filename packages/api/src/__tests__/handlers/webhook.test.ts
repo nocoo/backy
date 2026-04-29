@@ -359,6 +359,11 @@ describe("webhookGetHandler", () => {
       userAgent: null,
     });
     expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      // Generic 'Internal server error' — webhook handlers don't leak
+      // which dependency failed (D1 vs the listBackups DB call).
+      expect(r.body).toEqual({ error: "Internal server error" });
   });
 });
 
@@ -400,6 +405,11 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(401);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({
+        error: "Missing or invalid Authorization header",
+      });
   });
 
   test("403 when token invalid", async () => {
@@ -411,6 +421,11 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({
+        error: "Invalid token or project mismatch",
+      });
   });
 
   test("403 when IP blocked", async () => {
@@ -426,6 +441,9 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(403);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Forbidden" });
   });
 
   test("400 when file missing", async () => {
@@ -438,6 +456,11 @@ describe("webhookPostHandler", () => {
       formData: fd({ file: null }),
     });
     expect(r.status).toBe(400);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({
+        error: "Missing 'file' field in form data",
+      });
   });
 
   test("400 when file empty", async () => {
@@ -450,6 +473,9 @@ describe("webhookPostHandler", () => {
       formData: fd({ file: new File([], "x.json", { type: "application/json" }) }),
     });
     expect(r.status).toBe(400);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "File is empty" });
   });
 
   test("413 when file too large", async () => {
