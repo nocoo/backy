@@ -103,7 +103,7 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (196 experiments)
+### Current state (199 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
@@ -123,6 +123,11 @@
 - **Misnamed test fixed**: 'skips project not due this hour' was
   actually testing the invalid-interval branch all along; renamed +
   added a real not-due-this-hour test.
+- **RequireAuth no-children-leak contracts**: loading state asserts
+  children NOT rendered; email-present state asserts no wrapper text
+  leaked.
+- **ip-info default-fetcher path** now pins URL+headers+body (was
+  status-only).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
 - **100% body-coverage on every test** in every handler
