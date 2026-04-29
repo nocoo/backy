@@ -130,6 +130,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 0,
+          triggered: 0,
+          skipped: 0,
+          failed: 0,
+        });
     });
 
     test("skips project without webhook URL", async () => {
@@ -140,6 +148,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 1,
+          failed: 0,
+        });
     });
 
     test("skips project not due this hour", async () => {
@@ -149,7 +165,7 @@ describe("cron handlers", () => {
         {
           id: "p1",
           auto_backup_webhook: "https://hook.example.com",
-          auto_backup_interval: 999, // invalid → never triggers
+          auto_backup_interval: 999,
           auto_backup_header_key: null,
           auto_backup_header_value: null,
         },
@@ -158,6 +174,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 1,
+          failed: 0,
+        });
     });
 
     test("fails project when SSRF static check blocks", async () => {
@@ -175,6 +199,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
     });
 
     test("fails project when DNS check fails", async () => {
