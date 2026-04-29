@@ -215,6 +215,42 @@ describe("cron handlers", () => {
         });
     });
 
+    test("skips project not due this hour (valid interval but hour mismatch)", async () => {
+      // Covers the actual 'not due this hour' branch (was missing
+      // before — the prior test under that name was hitting the
+      // invalid-interval branch). Uses fake timers to pin UTC hour=1
+      // and interval=12: 1 % 12 = 1 ≠ 0, so shouldTrigger returns false.
+      vi.useFakeTimers();
+      vi.setSystemTime(Date.UTC(2026, 0, 1, 1, 0, 0)); // 2026-01-01T01:00:00Z
+      try {
+        mockIsUrlSafe = () => true;
+        mockResolveAndValidateUrl = async () => ({ safe: true });
+        mockListAutoBackupProjects = async () => [
+          {
+            id: "p1",
+            auto_backup_webhook: "https://hook.example.com",
+            auto_backup_interval: 12, // valid; modulo 12 with hour=1 = 1 ≠ 0
+            auto_backup_header_key: null,
+            auto_backup_header_value: null,
+          },
+        ];
+        const r = await cronTriggerHandler({
+          authorization: "Bearer test-secret",
+        });
+        expect(r.status).toBe(200);
+        expect(r.kind).toBe("json");
+        if (r.kind === "json")
+          expect(r.body).toEqual({
+            total: 1,
+            triggered: 0,
+            skipped: 1,
+            failed: 0,
+          });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     test("fails project when SSRF static check blocks", async () => {
       mockIsUrlSafe = () => false;
       mockListAutoBackupProjects = async () => [
