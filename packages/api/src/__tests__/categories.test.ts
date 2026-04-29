@@ -46,7 +46,13 @@ describe("categories", () => {
       expect(result).toEqual(mockData);
 
       const body = JSON.parse(capturedBody);
-      expect(body.sql).toContain("SELECT * FROM categories ORDER BY sort_order ASC, name ASC");
+      // Tightened: pin exact SQL string (no trailing whitespace, no
+      // extra ORDER BY clauses). The single-arg listCategories takes
+      // no params.
+      expect(body.sql).toBe(
+        "SELECT * FROM categories ORDER BY sort_order ASC, name ASC",
+      );
+      expect(body.params).toEqual([]);
     });
 
     test("returns empty array when no categories exist", async () => {
