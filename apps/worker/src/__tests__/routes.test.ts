@@ -335,6 +335,31 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(await res.json()).toEqual({ error: "Category not found" });
   });
 
+  test("PUT /api/categories/:id with malformed JSON falls back to {} (→ 404 missing)", async () => {
+    // Covers the catch arrow in apps/worker/src/routes/categories.ts:23.
+    // PUT-with-malformed-JSON should still hit the missing-resource
+    // 404 branch (handler treats no-fields-to-update as a no-op),
+    // not 500.
+    const res = await fetchWith("/api/categories/missing", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: "{not-valid-json",
+    });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Category not found" });
+  });
+
+  test("PUT /api/projects/:id with malformed JSON falls back to {} (→ 404 missing)", async () => {
+    // Covers the catch arrow in apps/worker/src/routes/projects.ts:26.
+    const res = await fetchWith("/api/projects/missing", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: "{not-valid-json",
+    });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
+  });
+
   test("POST /api/projects/:id/token 404 when missing", async () => {
     const res = await fetchWith("/api/projects/missing/token", {
       method: "POST",
