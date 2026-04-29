@@ -269,6 +269,21 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     });
   });
 
+  test("POST /api/projects with malformed JSON falls back to {} (→ 400 invalid input)", async () => {
+    // Symmetric to the categories malformed-JSON test — covers the
+    // same catch arrow pattern in apps/worker/src/routes/projects.ts.
+    const res = await fetchWith("/api/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "not-valid-json{",
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: "Invalid input",
+      details: { fieldErrors: { name: expect.arrayContaining([expect.any(String)]) } },
+    });
+  });
+
   test("POST /api/categories with bad body → 400", async () => {
     const res = await fetchWith("/api/categories", {
       method: "POST",
