@@ -734,6 +734,9 @@ describe("backups handlers", () => {
     test("404 when missing", async () => {
       const r = await extractBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("200 when json_key already set", async () => {
@@ -757,6 +760,11 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Backup is already a JSON file, no extraction needed",
+        });
     });
 
     test("400 when file_type not extractable", async () => {
@@ -768,6 +776,13 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct error message from the 'already single JSON' branch
+        // — catches a refactor that collapses them.
+        expect(r.body).toEqual({
+          error: "Preview is not available for this file format",
+        });
     });
 
     test("500 when r2 body missing", async () => {
@@ -782,6 +797,15 @@ describe("backups handlers", () => {
       mockDownloadFromR2 = async () => ({ body: null });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same dead-branch caveat as previewBackupHandler: readR2Bytes
+        // throws on null body BEFORE the explicit null-check fires, so
+        // the 'Failed to download backup file...' branch is unreachable.
+        // The OUTER catch returns 'Failed to extract JSON from backup'.
+        expect(r.body).toEqual({
+          error: "Failed to extract JSON from backup",
+        });
     });
 
     test("400 when contentLength exceeds limit", async () => {
@@ -799,6 +823,15 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 60MB exceeds 50MB limit; templated reason includes both the
+        // input size (60.0MB) and the limit (50MB) so operators can
+        // diagnose without consulting the source.
+        expect(r.body).toEqual({
+          error:
+            "Archive too large for extraction (60.0MB exceeds 50MB limit)",
+        });
     });
 
     test("400 when extraction fails", async () => {
