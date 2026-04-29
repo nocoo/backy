@@ -57,7 +57,11 @@ describe("categories handlers", () => {
     mockListCategories = async () => {
       throw new Error("db");
     };
-    expect((await listCategoriesHandler(ctx)).status).toBe(500);
+    const r = await listCategoriesHandler(ctx);
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Failed to list categories" });
   });
 
   test("create 201 with valid input", async () => {
