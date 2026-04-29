@@ -327,6 +327,7 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       body: fd,
     });
     expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "projectId is required" });
   });
 
   test("DELETE /api/backups with empty body returns 400", async () => {
@@ -336,11 +337,15 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       body: "{}",
     });
     expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "ids must be a non-empty array of strings",
+    });
   });
 
   test("POST /api/cron/trigger/:projectId returns 404 when project missing", async () => {
     const res = await fetchWith("/api/cron/trigger/missing", { method: "POST" });
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
   });
 
   test("DELETE /api/logs/webhook with empty body returns 200", async () => {
@@ -350,11 +355,14 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       body: "{}",
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
   });
 
   test("DELETE /api/logs/cron returns 204 (no body)", async () => {
     const res = await fetchWith("/api/logs/cron", { method: "DELETE" });
     expect(res.status).toBe(204);
+    // 204 No Content must NOT have a body.
+    expect(await res.text()).toBe("");
   });
 
   test("POST /api/db/init returns 200 with the schema-initialized payload", async () => {
