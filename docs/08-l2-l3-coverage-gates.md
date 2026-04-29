@@ -418,33 +418,25 @@ Add version read step and verification:
 1. ✅ `chore: ratchet packages/api coverage to 95%`
 2. ✅ `chore: ratchet apps/worker coverage to 95%`
 3. ✅ `chore: ratchet apps/web coverage to 98%`
+4. ✅ `test(worker): add webhook POST auth-pass test, ratchet funcs to 95%`
+5. ✅ `test(web): add branch tests for version.ts/api.ts, ratchet branches to 95%`
 
-### D.5 Actual Thresholds Applied (2026-04-30)
+### D.5 Final Thresholds (2026-04-30)
 
-| Package | stmts | lines | funcs | branches | Notes |
-|---------|-------|-------|-------|----------|-------|
-| packages/api | 95% | 95% | 95% | 90% | ✅ At target |
-| apps/worker | 95% | 95% | **93%** | 90% | ⚠️ funcs below 95% target (actual 94.82%) |
-| apps/web | 98% | 98% | 98% | **90%** | ⚠️ branches below 95% target (actual 91.66%) |
-| apps/cli | 90% | 90% | 90% | 80% | Unchanged (not in scope) |
+| Package | stmts | lines | funcs | branches | Actual |
+|---------|-------|-------|-------|----------|--------|
+| packages/api | 95% | 95% | 95% | 90% | 95.63 / 96.71 / 95.32 / 91.66 |
+| apps/worker | 95% | 95% | 95% | 90% | 96.55 / 97.5 / 96.55 / 97.26 |
+| apps/web | 98% | 98% | 98% | 95% | 100 / 100 / 100 / 97.22 |
+| apps/cli | 90% | 90% | 90% | 80% | 100 / 100 / 100 / 100 |
 
-### D.6 Remaining Ratchet Items
+All packages at or above 95%+ targets. One remaining uncovered branch:
+`RequireAuth.tsx:21` — useEffect `error instanceof ApiError && error.status === 401`
+short-circuit branch (the "error is not ApiError" path inside useEffect). Covered
+behaviorally by the render test but V8 counts the useEffect callback's branch
+separately from the render body's identical check.
 
-Two thresholds have not reached D.2 targets yet:
-
-1. **apps/worker funcs 93% → 95%**: 3 uncovered webhook route adapter
-   functions (`webhookHeadHandler`, `webhookGetHandler`, `webhookPostHandler`
-   wrappers in `routes/webhook.ts`). Add unit tests for these thin shims to
-   reach 95%.
-
-2. **apps/web branches 90% → 95%**: 3 uncovered branches:
-   - `version.ts:4` — `import.meta.env.VITE_APP_VERSION ?? "dev"` fallback
-   - `api.ts:54` — error response handling branch
-   - `RequireAuth.tsx:21` — unauthenticated redirect branch
-   These require mocking `import.meta.env` or error states at unit level
-   (L3 BDD covers them behaviorally but not in Vitest's branch counter).
-
-**Wave D Status: PARTIAL** — ratchet baseline applied, 2 items remain for final 95%+ target
+**Wave D Status: COMPLETE** (2026-04-30)
 
 ---
 
@@ -456,7 +448,7 @@ Two thresholds have not reached D.2 targets yet:
 - [x] `bun run test:e2e:bdd` passes locally (9 tests)
 - [x] CI runs L2 and L3 on PR
 - [x] CD verifies version after deploy
-- [ ] Coverage thresholds at 95%+ (2 remaining: worker funcs 93%→95%, web branches 90%→95%)
+- [x] Coverage thresholds at 95%+ across all packages
 
 ## References
 
