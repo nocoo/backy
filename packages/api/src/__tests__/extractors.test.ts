@@ -321,4 +321,48 @@ describe("decompression bomb defense", () => {
     const result = await extractFromTgz(tgz);
     expect(result.success).toBe(true);
   });
+
+  test("TGZ: streaming gunzip rejects decompressed output exceeding MAX_DECOMPRESSED_SIZE (decompression bomb)", async () => {
+    // Covers line 72 of extractors.ts: the `streamingGunzip` helper's
+    // incremental-byte-counter overflow check. We craft a tar with a
+    // single entry of MAX_DECOMPRESSED_SIZE+1 bytes of zeros, gzip it
+    // (zeros compress ~1000x so the gz is small), and verify the
+    // streaming gunzip aborts with the bomb-defense error before any
+    // tar entry is parsed. Catches a refactor that drops streaming
+    // and decompresses fully into memory (which would OOM or pass).
+    const pack = tar.pack();
+    const giantSize = MAX_DECOMPRESSED_SIZE + 1;
+    const entryStream = pack.entry({
+      name: "giant.json",
+      size: giantSize,
+    });
+    const ZEROS_CHUNK = Buffer.alloc(64 * 1024);
+    let written = 0;
+    while (written < giantSize) {
+      const remaining = giantSize - written;
+      const chunk = remaining >= ZEROS_CHUNK.length
+        ? ZEROS_CHUNK
+        : ZEROS_CHUNK.subarray(0, remaining);
+      entryStream.write(chunk);
+      written += chunk.length;
+    }
+    entryStream.end();
+    pack.finalize();
+    const chunks: Buffer[] = [];
+    for await (const chunk of pack) {
+      chunks.push(chunk as Buffer);
+    }
+    const tarBuffer = Buffer.concat(chunks);
+    const gzBuffer = await gzipAsync(tarBuffer);
+
+    const result = await extractFromTgz(new Uint8Array(gzBuffer));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Pin the bomb-defense message verbatim. A regression that
+      // weakens or removes the streaming check would change this.
+      expect(result.reason).toBe(
+        `Decompressed output exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit (possible decompression bomb)`,
+      );
+    }
+  }, 30_000);
 });
