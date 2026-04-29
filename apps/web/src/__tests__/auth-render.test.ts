@@ -176,5 +176,13 @@ describe("RequireAuth", () => {
       ),
     );
     expect(html).toContain("secret-payload");
+    // Tightened: when email is present, RequireAuth must render ONLY
+    // the children — NOT a wrapper around them. A regression that
+    // accidentally rendered children INSIDE the loading/error/redirect
+    // shell would still pass the toContain check above. These
+    // negative assertions confirm the bare-children branch was taken.
+    expect(html).not.toContain("Loading…");
+    expect(html).not.toContain("Redirecting to login…");
+    expect(html).not.toContain("Failed to load session");
   });
 });
