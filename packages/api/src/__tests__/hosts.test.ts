@@ -41,6 +41,17 @@ describe("ALLOWED_HOSTS", () => {
     // forgetting to pass the host arg.
     expect(isAllowedHost(env)).toBe(false);
   });
+
+  test("string-overload uses default ALLOWED_HOSTS env (covers typeof-string branch)", () => {
+    // Covers the `if (typeof envOrHost === 'string')` branch of
+    // isAllowedHost — the string-only overload that re-parses the
+    // default ALLOWED_HOSTS env (process.env-derived, here empty so
+    // parseAllowedHosts() falls back to its 'localhost:7017' default).
+    // Existing tests all pass `(env, host)`; the single-arg string
+    // overload was unreached.
+    expect(isAllowedHost("localhost:7017")).toBe(true);
+    expect(isAllowedHost("evil.com")).toBe(false);
+  });
 });
 
 describe("buildBaseUrl", () => {
