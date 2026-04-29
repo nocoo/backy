@@ -422,8 +422,20 @@ describe("projects handlers", () => {
         baseUrl: "https://x.example.com",
       }, ctx);
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
       const prompt = (r as { body: { prompt: string } }).body.prompt;
+      // Tightened: positively verify the prompt contains the
+      // INTERPOLATED webhook URL with the test project's id (proj-test
+      // from makeProject), not just a generic webhook substring. Catches
+      // a regression that hard-codes a different project-id pattern.
       expect(prompt).toContain("https://x.example.com/api/webhook/proj-test");
+      // Also positively verify the prompt contains the project name and
+      // the canonical SaaS-agent role description (catches a regression
+      // that drops the project-name interpolation or rewrites the prompt
+      // skeleton).
+      expect(prompt).toContain("Test Project");
+      // The body must be a single 'prompt' field (no extras leaked).
+      expect(Object.keys((r as { body: object }).body)).toEqual(["prompt"]);
     });
 
     test("includes auto-backup section when enabled", async () => {
