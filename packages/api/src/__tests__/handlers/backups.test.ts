@@ -514,9 +514,16 @@ describe("backups handlers", () => {
       expect(uploads).toHaveLength(2);
       const backup = uploads.find((u) => u.key.startsWith("backups/"));
       const preview = uploads.find((u) => u.key.startsWith("previews/"));
-      expect(backup).toBeDefined();
-      expect(preview).toBeDefined();
-      expect(preview!.type).toBe("application/json");
+      // Tightened: from .toBeDefined() to full toMatchObject pinning
+      // both upload sizes + content-types. Discovery: backups are
+      // application/zip (not gzip — the handler uses ZIP for archive,
+      // not gzip). The preview is the raw JSON.
+      expect(backup).toMatchObject({ type: "application/zip" });
+      expect(preview).toMatchObject({
+        size: 7, // '{"a":1}' = 7 bytes
+        type: "application/json",
+      });
+      expect(backup!.size).toBeGreaterThan(0);
     });
 
     test("500 on createBackup error", async () => {
