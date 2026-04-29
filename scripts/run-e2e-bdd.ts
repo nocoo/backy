@@ -48,8 +48,24 @@ async function buildWebApp(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Step 2: Spawn dev server
+// Step 2: Check port availability and spawn dev server
 // ---------------------------------------------------------------------------
+
+async function checkPortFree(): Promise<void> {
+  try {
+    const res = await fetch(`http://localhost:${E2E_PORT}/api/live`, {
+      signal: AbortSignal.timeout(1000),
+    });
+    if (res.ok) {
+      console.error(
+        `FATAL: Port ${E2E_PORT} is already in use. Kill the existing server first.`,
+      );
+      process.exit(1);
+    }
+  } catch {
+    // Expected — port is free
+  }
+}
 
 function spawnDevServer(): Subprocess {
   console.log(`\nStep 2: Starting wrangler dev --env test on port ${E2E_PORT}...`);
@@ -82,13 +98,21 @@ function spawnDevServer(): Subprocess {
 // Step 3: Wait for server ready
 // ---------------------------------------------------------------------------
 
-async function waitForServer(): Promise<void> {
+async function waitForServer(server: Subprocess): Promise<void> {
   const url = `http://localhost:${E2E_PORT}/api/live`;
   const start = Date.now();
 
   console.log(`\nStep 3: Waiting for server at ${url}...`);
 
+  // Track early exit
+  let serverExited = false;
+  void server.exited.then(() => { serverExited = true; });
+
   while (Date.now() - start < MAX_WAIT_MS) {
+    if (serverExited) {
+      console.error("FATAL: wrangler dev exited before becoming ready (port conflict?)");
+      process.exit(1);
+    }
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (response.ok) {
@@ -201,14 +225,15 @@ async function main(): Promise<void> {
   // Step 1: Build web app
   await buildWebApp();
 
-  // Step 2: Spawn dev server
+  // Step 2: Check port free, then spawn dev server
+  await checkPortFree();
   const server = spawnDevServer();
 
   let testExitCode = 1;
 
   try {
     // Step 3: Wait for ready
-    await waitForServer();
+    await waitForServer(server);
 
     // Step 4: Initialize D1 schema
     await initSchema();

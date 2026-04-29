@@ -12,7 +12,7 @@ test.describe("Dashboard Page", () => {
     await page.goto("/");
 
     await expect(page.locator("nav").first()).toBeVisible();
-    await expect(page.locator("text=Projects")).toBeVisible();
-    await expect(page.locator("text=Backups")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Projects" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Backups" })).toBeVisible();
   });
 });
