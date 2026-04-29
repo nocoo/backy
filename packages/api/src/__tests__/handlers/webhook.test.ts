@@ -558,9 +558,9 @@ describe("webhookPostHandler", () => {
 
   test("201 with non-previewable zip skips preview upload", async () => {
     mockGetProjectByToken = async () => baseProject;
-    const uploads: string[] = [];
-    mockUploadToR2 = async (key) => {
-      uploads.push(key);
+    const uploads: { key: string; contentType: string | undefined }[] = [];
+    mockUploadToR2 = async (key, _body, contentType) => {
+      uploads.push({ key, contentType });
     };
     const zipBytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0]);
     const r = await webhookPostHandler({
@@ -573,7 +573,13 @@ describe("webhookPostHandler", () => {
       }),
     });
     expect(r.status).toBe(201);
-    expect(uploads.length).toBe(1);
+    // Tightened: pin BOTH the upload count (1, no preview because zip
+    // isn't previewable) AND the upload key prefix + content-type. A
+    // regression that uploaded a stray preview alongside, or stored the
+    // zip with the wrong content-type, would surface here.
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0]!.key).toMatch(/^backups\/p1\//);
+    expect(uploads[0]!.contentType).toBe("application/zip");
   });
 
   test("senderIp falls back to 'unknown' when clientIp null", async () => {
@@ -596,7 +602,17 @@ describe("webhookPostHandler", () => {
       formData: fd({}),
     });
     expect(r.status).toBe(201);
-    expect(captured?.senderIp).toBe("unknown");
+    // Tightened: fall-back contract is 'unknown' literal (NOT null/empty
+    // /'unset' — createBackup downstream may rely on the literal for
+    // analytics segmentation). Pin senderIp via toMatchObject incl. the
+    // surrounding context (other fields stay undefined when fd({}).)
+    expect(captured).toMatchObject({
+      projectId: "p1",
+      senderIp: "unknown",
+      isSingleJson: true,
+      jsonExtracted: false,
+      fileType: "json",
+    });
   });
 
   test("500 when uploadToR2 throws", async () => {
