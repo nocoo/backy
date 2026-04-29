@@ -60,7 +60,15 @@ describe("db handlers", () => {
       makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
     );
     expect(r.status).toBe(200);
-    expect((r as { body: { action: string } }).body.action).toBe("created");
+    expect(r.kind).toBe("json");
+    // Tightened: pin the full created-branch shape with TEST_PROJECT id
+    // + token. cleanedBackups=0 because the orphans query returns [].
+    expect((r as { body: unknown }).body).toEqual({
+      action: "created",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      cleanedBackups: 0,
+    });
   });
 
   test("seed verifies clean existing", async () => {
