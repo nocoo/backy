@@ -389,11 +389,16 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
   test("HEAD /api/webhook/:projectId without token returns 401 (auth runs before lookup)", async () => {
     const res = await fetchWith("/api/webhook/missing", { method: "HEAD" });
     expect(res.status).toBe(401);
+    // HEAD never has a body — the empty(401) handler enforces this.
+    expect(await res.text()).toBe("");
   });
 
   test("GET /api/webhook/:projectId without token returns 401", async () => {
     const res = await fetchWith("/api/webhook/missing");
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      error: "Missing or invalid Authorization header",
+    });
   });
 });
 
@@ -409,6 +414,9 @@ describe("worker routes — webhook POST hits the streaming path", () => {
     // wins deterministically. Previous OR-of-[401,404] hid any regression
     // that flipped the auth-vs-lookup precedence.
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      error: "Missing or invalid Authorization header",
+    });
   });
 });
 
@@ -443,6 +451,7 @@ describe("worker routes — input shaping", () => {
     });
     // Same auth-precedence as above: missing token → 401 deterministic.
     expect(res.status).toBe(401);
+    expect(await res.text()).toBe("");
   });
 
   test("ctx env passes ALLOWED_HOSTS through to baseUrl logic", async () => {
@@ -455,6 +464,7 @@ describe("worker routes — input shaping", () => {
       {} as unknown as ExecutionContext,
     );
     expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Project not found" });
   });
 });
 
