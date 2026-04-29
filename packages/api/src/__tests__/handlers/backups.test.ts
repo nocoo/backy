@@ -853,6 +853,14 @@ describe("backups handlers", () => {
       });
       const r = await extractBackupHandler({ id: "b1" });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 400 surfaces the extractor's reason verbatim (no JSON files
+        // in this empty zip with only readme.txt). Catches a regression
+        // that wraps or rephrases the extractor reason.
+        expect(r.body).toEqual({
+          error: "No JSON files found in the ZIP archive",
+        });
     });
 
     test("200 on successful extraction", async () => {
@@ -905,6 +913,9 @@ describe("backups handlers", () => {
       };
       const r = await extractBackupHandler({ id: "x" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to extract JSON from backup" });
     });
   });
 
@@ -914,6 +925,9 @@ describe("backups handlers", () => {
     test("404 when backup missing", async () => {
       const r = await restoreCommandHandler({ id: "x", baseUrl });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("404 when project missing", async () => {
@@ -921,6 +935,13 @@ describe("backups handlers", () => {
       mockGetProject = async () => undefined;
       const r = await restoreCommandHandler({ id: "b1", baseUrl });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct 'Project not found' (vs the generic 'Backup not
+        // found' even though the route is /backups/:id/restore-command
+        // — the project disappeared mid-flight, so this is a real edge
+        // case worth distinguishing for operators).
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("200 returns curl command", async () => {
@@ -950,6 +971,11 @@ describe("backups handlers", () => {
       };
       const r = await restoreCommandHandler({ id: "x", baseUrl });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Failed to generate restore command",
+        });
     });
   });
 });
