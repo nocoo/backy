@@ -121,6 +121,11 @@
   headers; previewBackup/extractBackup dead null-checks; createBackup
   outer-catch wrong message; formatBytes duplication; isLocalhost
   startsWith vulnerability; enforceIpRestriction dead code).
+- **Final coverage snapshot**:
+  - api: 91.84% stmts / 85.58% branches
+  - web: 98.64% stmts / 91.66% branches
+  - worker: 95.56% stmts / 95.89% branches (↑ 91% → 95.89% via session)
+  - cli: 100% stmts
 - **100% body-coverage on every test** + auth-header forwarding +
   URL-targeting + HTTP-method (POST) contracts pinned for both
   cronTriggerHandler and cronTriggerOneHandler success paths +
