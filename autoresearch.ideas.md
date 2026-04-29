@@ -35,3 +35,10 @@ left is genuinely deeper work that wasn't tackled this round:
   `auth-render.test.ts` and `api.test.ts` (both capture `realFetch` at
   module-load time and restore to it). Worthwhile when those two tests
   get a proper `beforeEach`-based fetch lifecycle.
+
+- **formatBytes is duplicated**: `apps/web/src/lib/format.ts` has 5 size
+  units (B/KB/MB/GB/TB), and `apps/web/src/components/charts/project-charts.tsx`
+  has its own `formatBytes` with only 4 (B/KB/MB/GB). Tests pin the
+  divergence (charts: '1048576 GB', dashboard: '1048576 TB' for the same
+  input shape). Consolidating to a single `formatBytes` would prevent
+  unit-list drift. Prod-code change, deferred.

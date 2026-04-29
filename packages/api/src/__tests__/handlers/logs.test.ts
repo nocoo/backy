@@ -116,7 +116,11 @@ describe("logs handlers", () => {
       mockListWebhookLogs = async () => {
         throw new Error("db");
       };
-      expect((await listWebhookLogsHandler({}, ctx)).status).toBe(500);
+      const r = await listWebhookLogsHandler({}, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to list webhook logs" });
     });
   });
 
@@ -126,27 +130,40 @@ describe("logs handlers", () => {
         body: { projectId: "p1", method: "POST", success: false },
       }, ctx);
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ success: true });
     });
 
     test("200 with empty body", async () => {
-      expect(
-        (await deleteWebhookLogsHandler({ body: null }, ctx)).status,
-      ).toBe(200);
+      const r = await deleteWebhookLogsHandler({ body: null }, ctx);
+      expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ success: true });
     });
 
     test("500 on db error", async () => {
       mockDeleteWebhookLogs = async () => {
         throw new Error("db");
       };
-      expect(
-        (await deleteWebhookLogsHandler({ body: {} }, ctx)).status,
-      ).toBe(500);
+      const r = await deleteWebhookLogsHandler({ body: {} }, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to delete webhook logs" });
     });
   });
 
   describe("listCronLogsHandler", () => {
     test("200 with defaults", async () => {
-      expect((await listCronLogsHandler({}, ctx)).status).toBe(200);
+      const r = await listCronLogsHandler({}, ctx);
+      expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      // Tightened: handler must pass the listCronLogs return verbatim
+      // (no envelope wrapping).
+      if (r.kind === "json")
+        expect(r.body).toEqual({ items: [], total: 0 });
     });
 
     test("200 with valid status", async () => {
