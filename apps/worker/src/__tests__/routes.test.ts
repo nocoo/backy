@@ -438,6 +438,19 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       error: "Missing or invalid Authorization header",
     });
   });
+
+  test("GET /api/webhook/:projectId with environment query exercises the conditional spread", async () => {
+    // Covers the branch in apps/worker/src/routes/webhook.ts:33
+    // `...(env !== undefined && { environment: env })`. Without a
+    // ?environment= query param, the truthy branch was never taken.
+    // Auth still 401s (no bearer), but the env-spread runs BEFORE
+    // the auth check (in route construction), so the branch fires.
+    const res = await fetchWith("/api/webhook/missing?environment=staging");
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      error: "Missing or invalid Authorization header",
+    });
+  });
 });
 
 describe("worker routes — webhook POST hits the streaming path", () => {
