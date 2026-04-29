@@ -49,6 +49,23 @@ describe("ctxMiddleware", () => {
     ]);
   });
 
+  test("forwards NEXT_PUBLIC_APP_VERSION when set", async () => {
+    // Covers line 69 of ctx.ts (the conditional NEXT_PUBLIC_APP_VERSION
+    // forwarding). Without this test, the default-empty makeEnv kept
+    // that key out of pickEnv's output and the truthy branch was
+    // unreached. Pinning that the version surfaces via ctx.env confirms
+    // the live-check handler can read it (its body includes
+    // `version: ctx.env.NEXT_PUBLIC_APP_VERSION ?? 'unknown'`).
+    const env = makeEnv({ NEXT_PUBLIC_APP_VERSION: "9.9.9" });
+    const res = await probe().request(
+      "/probe",
+      undefined,
+      env as unknown as AppEnv["Bindings"],
+    );
+    const body = (await res.json()) as { env: string[] };
+    expect(body.env).toContain("NEXT_PUBLIC_APP_VERSION");
+  });
+
   test("presignDownload throws when R2 S3 creds absent", async () => {
     const app = new Hono<AppEnv>();
     app.use("*", ctxMiddleware());
