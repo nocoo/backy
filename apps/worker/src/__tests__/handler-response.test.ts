@@ -15,6 +15,24 @@ describe("toResponse", () => {
     expect((await res.json()) as unknown).toEqual({ ok: true });
   });
 
+  test("json: user-supplied content-type WINS over default", async () => {
+    // Discovery / contract: the impl spreads `r.headers` AFTER the
+    // default `content-type: application/json` literal, so a user
+    // can override the content-type (rare but legitimate — e.g. for
+    // application/problem+json or vendor-specific media types).
+    // This pins the precedence so a refactor that flips the spread
+    // order would surface here.
+    const res = toResponse({
+      kind: "json",
+      status: 200,
+      body: { problem: true },
+      headers: { "content-type": "application/problem+json" },
+    });
+    expect(res.headers.get("content-type")).toBe(
+      "application/problem+json",
+    );
+  });
+
   test("bytes", async () => {
     const data = new Uint8Array([1, 2, 3]);
     const res = toResponse({
