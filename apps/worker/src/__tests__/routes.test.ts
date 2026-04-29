@@ -421,6 +421,19 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(await res.json()).toEqual({ success: true });
   });
 
+  test("DELETE /api/logs/webhook with malformed JSON falls back to {} (→ 200)", async () => {
+    // Covers the catch arrow in apps/worker/src/routes/logs.ts:32
+    // (`c.req.json().catch(() => ({}))`). A malformed body should
+    // gracefully delete with no filters (default behavior), not 500.
+    const res = await fetchWith("/api/logs/webhook", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: "{not-valid-json",
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+  });
+
   test("DELETE /api/logs/cron returns 204 (no body)", async () => {
     const res = await fetchWith("/api/logs/cron", { method: "DELETE" });
     expect(res.status).toBe(204);
