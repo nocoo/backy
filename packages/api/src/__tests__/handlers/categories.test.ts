@@ -126,29 +126,33 @@ describe("categories handlers", () => {
   });
 
   test("update 200 when patched", async () => {
-    mockUpdateCategory = async () => ({ id: "c1" });
-    expect(
-      (await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx))
-        .status,
-    ).toBe(200);
+    mockUpdateCategory = async () => ({ id: "c1", name: "X" });
+    const r = await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx);
+    expect(r.status).toBe(200);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ id: "c1", name: "X" });
   });
 
   test("update 400 invalid input", async () => {
-    expect(
-      (
-        await updateCategoryHandler(
-          { id: "c1", body: { color: "red" } },
-          ctx,
-        )
-      ).status,
-    ).toBe(400);
+    const r = await updateCategoryHandler(
+      { id: "c1", body: { color: "red" } },
+      ctx,
+    );
+    expect(r.status).toBe(400);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toMatchObject({
+      error: "Invalid input",
+      details: {
+        fieldErrors: { color: expect.arrayContaining([expect.any(String)]) },
+      },
+    });
   });
 
   test("update 404 when missing", async () => {
-    expect(
-      (await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx))
-        .status,
-    ).toBe(404);
+    const r = await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx);
+    expect(r.status).toBe(404);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ error: "Category not found" });
   });
 
   test("update 500 on db error", async () => {
@@ -163,11 +167,17 @@ describe("categories handlers", () => {
 
   test("delete 200 when deleted", async () => {
     mockDeleteCategory = async () => true;
-    expect((await deleteCategoryHandler({ id: "c1" }, ctx)).status).toBe(200);
+    const r = await deleteCategoryHandler({ id: "c1" }, ctx);
+    expect(r.status).toBe(200);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ success: true });
   });
 
   test("delete 404 when missing", async () => {
-    expect((await deleteCategoryHandler({ id: "c1" }, ctx)).status).toBe(404);
+    const r = await deleteCategoryHandler({ id: "c1" }, ctx);
+    expect(r.status).toBe(404);
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ error: "Category not found" });
   });
 
   test("delete 500 on db error", async () => {
