@@ -103,13 +103,13 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (194 experiments)
+### Current state (196 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
-- **test_count: 635** (baseline 648, −2.0%; +9 ADDITIVE tests vs 100
-  milestone, including ip-info 503-not-configured which covered a
-  previously-untested code path).
+- **test_count: 636** (baseline 648, −1.9%; +10 ADDITIVE tests vs 100
+  milestone, including ip-info 503-not-configured AND cron 'not due
+  this hour' — both covered previously-untested code paths).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS** (api 91.59% statements / 85.24% branches).
 - **100% body-coverage on every test** + auth-header forwarding +
@@ -117,6 +117,12 @@
   cronTriggerHandler and cronTriggerOneHandler success paths +
   no-retry contract pinned across all 4 cron failure paths
   (summary-5xx, summary-throw, one-shot-5xx, one-shot-throw).
+- **shouldTrigger branches now both covered**: invalid-interval (#999
+  not in [1,12,24]) AND not-due-this-hour (interval=12, hour=1, fake
+  timers).
+- **Misnamed test fixed**: 'skips project not due this hour' was
+  actually testing the invalid-interval branch all along; renamed +
+  added a real not-due-this-hour test.
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
 - **100% body-coverage on every test** in every handler
