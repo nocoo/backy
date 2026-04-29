@@ -380,6 +380,7 @@ Add version read step and verification:
 
 1. ✅ `feat: sync NEXT_PUBLIC_APP_VERSION in release script`
 2. ✅ `ci: add version verification to release workflow`
+3. ✅ `fix: make wrangler.toml version sync fatal in release script`
 
 **Wave C Status: COMPLETE** (2026-04-30)
 
