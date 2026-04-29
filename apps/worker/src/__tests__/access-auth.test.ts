@@ -131,6 +131,7 @@ describe("accessAuth — JWT verification", () => {
       } as unknown as AppEnv["Bindings"],
     );
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
   });
 
   test("invalid JWT → 401", async () => {
@@ -149,5 +150,8 @@ describe("accessAuth — JWT verification", () => {
       } as unknown as AppEnv["Bindings"],
     );
     expect(res.status).toBe(401);
+    // Same generic 'Unauthorized' for missing-jwt and invalid-jwt
+    // (no info leak about WHICH check failed).
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
   });
 });
