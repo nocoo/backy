@@ -34,7 +34,11 @@ describe("formatBytes", () => {
   });
 
   test("clamps unit index for very large values", () => {
-    expect(formatBytes(1024 ** 5)).toMatch(/GB$/);
+    // Tightened: pin exact "1048576 GB" — i is clamped at sizes.length-1=3
+    // (no PB/EB unit), so 1024^5 / 1024^3 = 1024^2 = 1048576 GB.
+    // Catches a regression that adds new units without bumping the
+    // clamp.
+    expect(formatBytes(1024 ** 5)).toBe("1048576 GB");
   });
 });
 
@@ -59,8 +63,10 @@ describe("getChartColor", () => {
   });
 
   test("negative wraps to a palette entry", () => {
-    // index % length for negatives can be negative; default branch covers it
-    const c = getChartColor(-1);
-    expect(c).toMatch(/^hsl\(var\(--chart-\d+\)\)$/);
+    // Tightened: pin exact value. JS — -1 % 5 = -1, CHART_COLORS[-1] is
+    // undefined, the `?? CHART_COLORS[0]` fallback returns chart-1.
+    // This documents the negative-index branch is handled by the ?? fallback,
+    // not by a Math.abs / proper modulo wrap.
+    expect(getChartColor(-1)).toBe("hsl(var(--chart-1))");
   });
 });
