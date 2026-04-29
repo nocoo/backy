@@ -157,6 +157,9 @@ describe("projects handlers", () => {
     test("returns 404 when not found", async () => {
       const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
@@ -302,6 +305,9 @@ describe("projects handlers", () => {
         body: { name: "x" },
       }, ctx);
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
