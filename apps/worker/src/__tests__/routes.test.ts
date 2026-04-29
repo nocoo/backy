@@ -133,6 +133,16 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
       headers: { authorization: "Bearer test-cron-secret" },
     });
     expect(res.status).toBe(200);
+    // fakeD1 returns no auto-backup projects, so the cron summary
+    // returns all-zeros AND no `results` field (omitted when empty).
+    // Pin the full envelope so a regression that drops a counter or
+    // adds a results-array would surface.
+    expect(await res.json()).toEqual({
+      total: 0,
+      triggered: 0,
+      skipped: 0,
+      failed: 0,
+    });
   });
 
   test("POST /api/cron/trigger with wrong secret → 401", async () => {
