@@ -94,3 +94,11 @@ left is genuinely deeper work that wasn't tackled this round:
   or `host.startsWith("localhost:")` for port suffix) or use
   `URL.hostname` parsing. Test currently pins the BUG behavior so a fix
   forces both updates. Prod-code change, deferred.
+
+- **Dead code: `enforceIpRestriction` in lib/ip.ts**: Defined at
+  packages/api/src/lib/ip.ts:186 but NEVER imported anywhere (verified
+  via `grep -rn enforceIpRestriction packages/api/src apps/worker/src`).
+  Handlers use `getClientIp` + `isIpAllowed` directly via composition.
+  Lines 191-201 contribute to the 87% statement coverage gap on
+  ip.ts. Should be DELETED to remove the gap and shrink the bundle.
+  Prod-code change, deferred.
