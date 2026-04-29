@@ -23,6 +23,11 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    // Tightened: positively verify the request reached the downstream
+    // handler (vs. a 200 response from accessAuth itself). The fake
+    // handler returns {ok:true, email:null} when no accessEmail is set
+    // — this confirms the public-path matcher SKIPPED Access entirely.
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("POST /api/cron/trigger is public", async () => {
@@ -31,6 +36,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("HEAD /api/webhook/:projectId is public", async () => {
@@ -39,6 +45,9 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    // HEAD responses have no body — just confirm the request reached
+    // the downstream (status:200 from fake handler, not 401 from access).
+    expect(await res.text()).toBe("");
   });
 
   test("GET /api/webhook/:projectId is public", async () => {
@@ -46,6 +55,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("POST /api/webhook/:projectId is public", async () => {
@@ -54,6 +64,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("GET /api/restore/:id is public", async () => {
@@ -61,6 +72,7 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 
   test("/api/cron/trigger/:projectId is NOT public (Access-protected)", async () => {
