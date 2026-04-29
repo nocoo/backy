@@ -260,12 +260,22 @@ describe("backups handlers", () => {
 
   describe("getBackupHandler", () => {
     test("200 when found", async () => {
-      mockGetBackup = async () => ({ id: "b1" });
-      expect((await getBackupHandler({ id: "b1" })).status).toBe(200);
+      mockGetBackup = async () => ({ id: "b1", project_id: "p1" });
+      const r = await getBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+      // Tightened: handler must pass the full backup row through verbatim.
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({
+        id: "b1",
+        project_id: "p1",
+      });
     });
 
     test("404 when missing", async () => {
-      expect((await getBackupHandler({ id: "x" })).status).toBe(404);
+      const r = await getBackupHandler({ id: "x" });
+      expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      expect((r as { body: unknown }).body).toEqual({ error: "Backup not found" });
     });
 
     test("500 on db error", async () => {
