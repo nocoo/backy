@@ -571,6 +571,9 @@ describe("backups handlers", () => {
     test("404 when missing", async () => {
       const r = await downloadBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("500 on db error", async () => {
@@ -579,6 +582,9 @@ describe("backups handlers", () => {
       };
       const r = await downloadBackupHandler({ id: "x" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to generate download URL" });
     });
 
     test("500 on presign error", async () => {
@@ -592,6 +598,12 @@ describe("backups handlers", () => {
       };
       const r = await downloadBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same generic 'Failed to generate download URL' message for both
+        // db-error and presign-error branches — they share the outer
+        // try/catch.
+        expect(r.body).toEqual({ error: "Failed to generate download URL" });
     });
   });
 
