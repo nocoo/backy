@@ -79,12 +79,29 @@ describe("ipInfoHandler", () => {
 
   test("uses default fetcher when not provided", async () => {
     const originalFetch = globalThis.fetch;
+    let capturedUrl: string | undefined;
+    let capturedHeaders: Record<string, string> | undefined;
     // @ts-expect-error narrow override for the test
-    globalThis.fetch = async () =>
-      new Response(JSON.stringify({ ok: true }), { status: 200 });
+    globalThis.fetch = async (url, init) => {
+      capturedUrl = typeof url === "string" ? url : url.toString();
+      capturedHeaders = (init?.headers ?? undefined) as
+        | Record<string, string>
+        | undefined;
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    };
     try {
       const r = await ipInfoHandler({ ip: "1.2.3.4" }, ctx);
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      // Tightened: pin response body pass-through AND outbound URL
+      // (with ?ip= query) AND x-api-key header forwarding. The
+      // default-fetcher path (no fetcher arg) must behave identically
+      // to the explicit-fetcher path.
+      if (r.kind === "json") expect(r.body).toEqual({ ok: true });
+      expect(capturedUrl).toBe(
+        "https://echo.example.com?ip=1.2.3.4",
+      );
+      expect(capturedHeaders?.["x-api-key"]).toBe("test-echo-key");
     } finally {
       globalThis.fetch = originalFetch;
     }
