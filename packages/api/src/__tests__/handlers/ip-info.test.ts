@@ -12,6 +12,9 @@ describe("ipInfoHandler", () => {
       async () => new Response(),
     );
     expect(r.status).toBe(400);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Missing ip parameter" });
   });
 
   test("200 on success", async () => {
@@ -21,6 +24,10 @@ describe("ipInfoHandler", () => {
       });
     const r = await ipInfoHandler({ ip: "1.2.3.4" }, ctx, fetcher);
     expect(r.status).toBe(200);
+    // Tightened: handler must pass upstream JSON through verbatim.
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ ip: "1.2.3.4", country: "US" });
   });
 
   test("502 on upstream error", async () => {
@@ -28,6 +35,9 @@ describe("ipInfoHandler", () => {
       new Response("bad", { status: 500, statusText: "Server Error" });
     const r = await ipInfoHandler({ ip: "1.2.3.4" }, ctx, fetcher);
     expect(r.status).toBe(502);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "IP info service unavailable" });
   });
 
   test("500 on fetcher throw", async () => {
@@ -36,6 +46,9 @@ describe("ipInfoHandler", () => {
     };
     const r = await ipInfoHandler({ ip: "1.2.3.4" }, ctx, fetcher);
     expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Failed to fetch IP info" });
   });
 
   test("uses default fetcher when not provided", async () => {
