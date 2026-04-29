@@ -29,12 +29,10 @@ export default defineConfig({
         "src/lib/r2/s3-adapter.ts",
       ],
       thresholds: {
-        lines: 90,
-        functions: 90,
-        // Vitest now measures branches (bun:test couldn't); ratchet up to
-        // 85 when extractors.ts gets the missing-archive test cases.
-        branches: 80,
-        statements: 90,
+        lines: 95,
+        functions: 95,
+        branches: 90,
+        statements: 95,
       },
     },
   },
