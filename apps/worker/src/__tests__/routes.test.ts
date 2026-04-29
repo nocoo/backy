@@ -207,14 +207,22 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect(await res.json()).toEqual({ error: "Missing ip parameter" });
   });
 
-  test("GET /api/me without E2E_SKIP_AUTH returns 401", async () => {
+  test("GET /api/me without E2E_SKIP_AUTH returns 500 when Access env missing", async () => {
+    // Renamed from 'returns 401' — the actual response is 500 because
+    // CF Access env vars (CF_ACCESS_TEAM_DOMAIN, CF_ACCESS_AUD) are
+    // not set in the test env, so accessAuth short-circuits with the
+    // 'Cloudflare Access not configured' error BEFORE reaching the
+    // me handler. The 401 path on /api/me itself (line 9 of me.ts)
+    // would require a valid JWT setup, which is out of scope for unit
+    // tests — it's covered implicitly by the access-auth.test
+    // missing-jwt and invalid-jwt 401 tests.
     const env: EnvOverrides = { E2E_SKIP_AUTH: undefined };
     const res = await worker.fetch(
       new Request("http://backy.example.com/api/me"),
       makeEnv(env),
       {} as unknown as ExecutionContext,
     );
-    expect(res.status).toBe(500); // CF Access not configured → 500
+    expect(res.status).toBe(500);
     expect(await res.json()).toEqual({
       error: "Cloudflare Access not configured",
     });
