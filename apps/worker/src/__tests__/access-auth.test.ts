@@ -129,6 +129,35 @@ describe("accessAuth — short-circuits", () => {
     expect(res.status).toBe(200);
     expect((await res.json()) as unknown).toEqual({ ok: true, email: "dev@local" });
   });
+
+  test("E2E_SKIP_AUTH=false (string) does NOT bypass", async () => {
+    // Security contract: bypass requires the EXACT literal string "true".
+    // Common misconfig values like "false", "1", or "yes" must NOT
+    // accidentally enable the bypass. Without this test a refactor that
+    // does `if (env.E2E_SKIP_AUTH)` (truthy check) would silently open
+    // a backdoor in production deploys.
+    const res = await buildApp().request(
+      "/api/projects",
+      { headers: { host: "backy.example.com" } },
+      { E2E_SKIP_AUTH: "false" } as unknown as AppEnv["Bindings"],
+    );
+    expect(res.status).toBe(500); // Falls through to access-not-configured
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
+  });
+
+  test("E2E_SKIP_AUTH=1 (string) does NOT bypass", async () => {
+    const res = await buildApp().request(
+      "/api/projects",
+      { headers: { host: "backy.example.com" } },
+      { E2E_SKIP_AUTH: "1" } as unknown as AppEnv["Bindings"],
+    );
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
+  });
 });
 
 describe("accessAuth — unconfigured env", () => {
