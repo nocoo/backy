@@ -21,11 +21,6 @@ jobs:
   # Root scripts forward into each workspace, so the standard
   # `bun run typecheck` / `bun run test:coverage` / `bun run gate:security`
   # commands cover all packages without per-workspace jobs.
-  #
-  # L2 (API E2E) and L3 (Playwright) are not yet wired here. They will
-  # be re-introduced once Wave B' lands streaming uploads + worker-side
-  # E2E (the legacy L2/L3 suites still live in apps/web_legacy and only
-  # run on demand via `bun run legacy:test:e2e:*`).
   # ─────────────────────────────────────────────────────
   quality:
     uses: nocoo/base-ci/.github/workflows/bun-quality.yml@v2026.1
@@ -34,7 +29,10 @@ jobs:
       typecheck-command: "bun run typecheck"
       test-command: "bun run test:coverage"
       osv-config: "osv-scanner.toml"
-      enable-l2: "false"
-      enable-l3: "false"
+      enable-l2: "true"
+      l2-command: "bun run test:e2e:api"
+      enable-l3: "true"
+      l3-command: "bun run test:e2e:bdd"
+      l3-browser: "chromium"
       enable-worker: "false"
     secrets: inherit
