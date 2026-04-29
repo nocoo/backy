@@ -260,6 +260,9 @@ describe("restore handler", () => {
       clientIp: null,
     }, ctx);
     expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
+      expect(r.body).toEqual({ error: "Failed to generate restore URL" });
   });
 
   test("200 with query-param token (no Authorization header)", async () => {
