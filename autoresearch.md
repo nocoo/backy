@@ -103,33 +103,35 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (170 experiments)
-- **total_ms median: ~735–770 ms** (baseline 2241 ms, **−~67%**)
-- **stddev_ms: ~3–20 ms** typical.
-- **test_count: 628** (baseline 648, −3.1%; +2 ADDITIVE tests vs 100
-  milestone: sanitize-allowlist, handler-response empty-with-headers).
+### Current state (180 experiments)
+- **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
+  recent runs trending higher due to host system load).
+- **stddev_ms: ~3–20 ms** typical when system idle.
+- **test_count: 630** (baseline 648, −2.8%; +4 ADDITIVE tests vs 100
+  milestone: sanitize-allowlist, handler-response empty-with-headers,
+  json content-type-wins, bytes content-disposition).
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
-- **100% body-coverage on every test in every handler** in
-  packages/api/src/handlers/* (backups, webhook, projects, restore,
-  cron, logs, categories, db, live, ip-info, stats) and
-  apps/worker/src/__tests__/* (routes, ctx, access-auth, handler-response,
-  is-localhost) and packages/api/src/__tests__/* (extractors, url, hosts,
-  storage, sanitize, ip, id, file-type, categories, webhook-logs,
-  cron-logs, http-response, d1/r2-binding-adapter).
+- **100% body-coverage on every test** in every handler
+  (packages/api/src/handlers/*) and every test file
+  (apps/worker/src/__tests__/*, packages/api/src/__tests__/*).
+  No status-only assertions remain in the codebase.
 - **Real production bugs surfaced via testing**:
   - `handler-response.ts` empty-case spreads headers into ResponseInit
     instead of nesting them — `webhookHeadHandler returning empty(200,
-    {X-Project-Name: ...})` silently drops the X-Project-Name header in
+    {X-Project-Name: ...})` silently drops X-Project-Name in
     production. Test pins the BUG so a fix forces both updates.
-  - previewBackup/extractBackup `if (!r2Response)` null-checks are
+  - `previewBackup`/`extractBackup` `if (!r2Response)` null-checks are
     unreachable in practice (readR2Bytes throws first). Dead branches.
-  - createBackup outer-catch returns 'Internal server error' (NOT inner
-    'Failed to upload') — obscures actual failure mode.
+  - `createBackup` outer-catch returns 'Internal server error' (NOT
+    inner 'Failed to upload') — obscures actual failure mode.
   - `formatBytes` duplicated across web/lib/format.ts (5 units) vs
     charts/project-charts.tsx (4 units) — unit-list drift risk.
   - `pages/backups.tsx` byte-for-byte duplicates lib/pagination.ts's
     `generatePageNumbers`.
+- **Cron-summary contract documented**: `results` field OMITTED when
+  empty (NOT `results:[]`). Pinned at handler + routes-integration
+  + via .not.toHaveProperty for explicit doc.
 - **Misnamed/wrongly-fixtured tests fixed: 1** (db.test seed-verifies-clean
   silently ran the 'reset' branch for the entire test history).
 - **Adapter-mock arg drops fixed: 2** (presignDownload ttl).
@@ -143,9 +145,20 @@
   (Invalid token or project mismatch / Forbidden), cronTrigger (same
   Unauthorized for no-auth and wrong-token), access-auth (same
   Unauthorized for missing-jwt and invalid-jwt), download (same
-  generic for D1 vs R2 dependency failure).
+  generic for D1 vs R2 dependency failure), seedTestProject (generic
+  Forbidden, no E2E_SKIP_AUTH leak), dbInit (generic Schema-init-failed,
+  no Error.message leak).
 - **OR-of-statuses: 0**, **vacuous try/catch: 0**, **time-window
   assertions: 0**, **real-network deps: 0**.
+
+### Wrap-up
+- Test surface is now in a strong, defensive state. Future regressions
+  to handler error messages, response envelopes, or sanitization
+  contracts will all surface as test diffs (not silent passes).
+- Next session focus: act on the 5 ideas-backlog items (mostly
+  prod-code refactors that were off-limits for this session).
+- `bun run test:coverage` and `bun run typecheck` pass; `bun run lint`
+  clean.
 
 ### Where to go next (all in autoresearch.ideas.md)
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
