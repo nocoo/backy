@@ -25,10 +25,14 @@ export default defineConfig({
       include: ["src/lib/**/*.{ts,tsx}"],
       exclude: ["src/__tests__/**", "src/**/*.d.ts"],
       thresholds: {
-        lines: 95,
-        functions: 95,
+        lines: 98,
+        functions: 98,
+        // Actual 91.66% — version.ts import.meta.env branch and api.ts
+        // error-handling branch are hard to cover in unit tests (covered
+        // by L3 BDD instead). Set 1% below actual; ratchet to 95 when
+        // remaining branches get tests.
         branches: 90,
-        statements: 95,
+        statements: 98,
       },
     },
   },
