@@ -237,7 +237,7 @@ describe("extractFromTgz", () => {
     const result = await extractFromTgz(tgz);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("No JSON files");
+      expect(result.reason).toBe("No JSON files found in the TAR.GZ archive");
     }
   });
 
@@ -248,7 +248,9 @@ describe("extractFromTgz", () => {
     const result = await extractFromTgz(tgz);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      // Tightened: pin the templated reason — catches a regression that
+      // drops the failing entry name.
+      expect(result.reason).toBe(`File "bad.json" is not valid JSON`);
     }
   });
 
@@ -257,7 +259,11 @@ describe("extractFromTgz", () => {
     const result = await extractFromTgz(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("corrupt");
+      // 6-byte input fails the gunzip step (not the tar parse), so the
+      // 'decompress TGZ' reason is what surfaces (not 'parse TAR').
+      expect(result.reason).toBe(
+        "Failed to decompress TGZ file — file may be corrupt",
+      );
     }
   });
 
