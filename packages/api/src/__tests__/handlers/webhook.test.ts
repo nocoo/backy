@@ -297,25 +297,26 @@ describe("webhookGetHandler", () => {
     expect(r.status).toBe(200);
     expect(r.kind).toBe("json");
     if (r.kind === "json") {
-      const body = r.body as Record<string, unknown>;
-      expect(body.project_name).toBe("Test Project");
-      expect(body.environment).toBeNull();
-      expect(body.total_backups).toBe(7);
-      const recent = body.recent_backups as Record<string, unknown>[];
-      // Tightened: pin the full sanitized shape. The previous combo of
-      // toHaveLength(1) + 2 not.toHaveProperty + 1 id-equality didn't
-      // verify that the public fields (tag/environment/file_size/...)
-      // pass through. toEqual catches both leaks AND missing fields.
-      expect(recent).toEqual([
-        {
-          id: "b1",
-          tag: "daily",
-          environment: "prod",
-          file_size: 1024,
-          is_single_json: 1,
-          created_at: "2026-01-15T00:00:00Z",
-        },
-      ]);
+      // Tightened: consolidate 4 single-property checks (project_name,
+      // environment-null, total_backups, recent) into a single toEqual
+      // pinning the full body envelope. Catches a regression that adds
+      // a stray field (e.g. webhook_token leak) or drops one of the
+      // top-level fields.
+      expect(r.body).toEqual({
+        project_name: "Test Project",
+        environment: null,
+        total_backups: 7,
+        recent_backups: [
+          {
+            id: "b1",
+            tag: "daily",
+            environment: "prod",
+            file_size: 1024,
+            is_single_json: 1,
+            created_at: "2026-01-15T00:00:00Z",
+          },
+        ],
+      });
     }
   });
 
