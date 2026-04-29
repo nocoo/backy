@@ -103,29 +103,22 @@
   the env-init it saved (727→816 ms regression).
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
-### Current state (213 experiments)
+### Current state (228 experiments)
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
-- **test_count: 647** (baseline 648, −0.2%; +21 ADDITIVE tests vs 100
-  milestone, mostly closing previously-untested code-path coverage
-  gaps).
+- **test_count: 665** (baseline 648, **+2.6%**; +21 ADDITIVE tests vs
+  100 milestone, including coverage-driven additions for ctx pickEnv,
+  cron route ?? branch, me 401 path, ip-info ?? fallbacks, hosts
+  string-overload, projects-prompt branches, logs page/pageSize, url
+  IPv4/IPv6 literals + No-DNS-records + allowlist edge cases, live
+  R2 non-Error + uptime null, webhook-logs errorCode + binding-order).
 - **weak_tests: 0** by 7-heuristic scanner.
-- **coverage gates: PASS** (api 91.84% / web 98.64% / worker 94+%
-  statements; api branches up 85.24% → 85.58%; worker branches up
-  91.09% → 93.83%).
-- **Misnamed tests fixed: 2** (cron 'not due this hour' was actually
-  testing invalid-interval branch; routes /api/me 'returns 401' was
-  always asserting 500 — both now reflect actual behavior).
-- **Production bugs surfaced + logged: 5+** (handler-response empty
-  headers; previewBackup/extractBackup dead null-checks; createBackup
-  outer-catch wrong message; formatBytes duplication; isLocalhost
-  startsWith vulnerability; enforceIpRestriction dead code).
-- **Final coverage snapshot**:
-  - api: 91.84% stmts / 85.58% branches
-  - web: 98.64% stmts / 91.66% branches
-  - worker: 95.56% stmts / 95.89% branches (↑ 91% → 95.89% via session)
-  - cli: 100% stmts
+- **coverage gates: PASS** (api 92.32% statements / 87.38% branches —
+  up from 91.59%/85.24% via this session).
+  - cli: 100%
+  - web: 98.64% / 91.66%
+  - worker: ~95% / ~96% (post #224 access-auth revert)
 - **100% body-coverage on every test** + auth-header forwarding +
   URL-targeting + HTTP-method (POST) contracts pinned for both
   cronTriggerHandler and cronTriggerOneHandler success paths +
