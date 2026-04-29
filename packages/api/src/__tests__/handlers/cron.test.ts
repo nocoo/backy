@@ -511,8 +511,12 @@ describe("cron handlers", () => {
         id: "p1",
         auto_backup_webhook: "https://hook.example.com",
       });
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(
-        async () => new Response("oops", { status: 502 }),
+        async () => {
+          fetchCount++;
+          return new Response("oops", { status: 502 });
+        },
       );
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
@@ -524,6 +528,9 @@ describe("cron handlers", () => {
           error: "oops",
           durationMs: expect.any(Number),
         });
+      // Same no-retry contract: 5xx response should be counted as
+      // failed AFTER exactly 1 fetch attempt.
+      expect(fetchCount).toBe(1);
     });
 
     test("200 failed when fetch throws", async () => {
