@@ -380,13 +380,17 @@ function updatePackageJson(newVersion: string): void {
 }
 
 function updateWranglerToml(newVersion: string): void {
-  if (!existsSync(WRANGLER_TOML)) return;
+  if (!existsSync(WRANGLER_TOML)) {
+    console.error('❌ wrangler.toml not found at expected path');
+    process.exit(1);
+  }
   const raw = readFileSync(WRANGLER_TOML, 'utf-8');
   const re = /(NEXT_PUBLIC_APP_VERSION\s*=\s*")\d+\.\d+\.\d+(")/;
   const updated = raw.replace(re, `$1${newVersion}$2`);
   if (updated === raw) {
-    console.log('   ⚠️  NEXT_PUBLIC_APP_VERSION not found in wrangler.toml — skipping');
-    return;
+    console.error('❌ NEXT_PUBLIC_APP_VERSION not found in wrangler.toml');
+    console.error('   Add NEXT_PUBLIC_APP_VERSION = "<version>" to [vars] section');
+    process.exit(1);
   }
   writeFileSync(WRANGLER_TOML, updated);
 }
@@ -528,6 +532,8 @@ async function main(): Promise<void> {
     '*.ts',
     '--glob',
     '*.tsx',
+    '--glob',
+    '*.toml',
     '--glob',
     '!node_modules/**',
     '--glob',
