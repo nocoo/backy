@@ -401,4 +401,26 @@ describe("decompression bomb defense", () => {
       );
     }
   }, 30_000);
+
+  test("TGZ: rejects when gunzip succeeds but tar parser errors (covers extract.on('error'))", async () => {
+    // Covers line 389 of extractors.ts: the `extract.on('error')`
+    // handler. We construct a valid gzip wrapping a buffer that is
+    // NOT a valid tar (random non-tar bytes). streamingGunzip
+    // resolves cleanly; tar-stream then errors when it tries to
+    // parse the bytes as a tar header.
+    const garbage = Buffer.from(
+      "this is definitely not a valid tar archive but it gunzips fine".repeat(
+        20,
+      ),
+    );
+    const gz = await gzipAsync(garbage);
+    const result = await extractFromTgz(new Uint8Array(gz));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Generic outer-catch failure surfaces; pin the user-facing
+      // prefix so a refactor of the error-message format is forced to
+      // update the test in tandem.
+      expect(result.reason).toBe("Failed to parse TAR archive — file may be corrupt");
+    }
+  });
 });
