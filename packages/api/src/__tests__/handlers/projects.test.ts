@@ -182,6 +182,19 @@ describe("projects handlers", () => {
         body: { name: "Renamed", description: "d" },
       }, ctx);
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      // Tightened: pin the response is the SANITIZED project (webhook_token
+      // stripped, auto_backup_headers_configured derived). Catches a
+      // regression that returns the raw project (token leak).
+      if (r.kind === "json") {
+        const body = r.body as Record<string, unknown>;
+        expect(body).not.toHaveProperty("webhook_token");
+        expect(body).toMatchObject({
+          id: "proj-test",
+          name: "Test Project",
+          auto_backup_headers_configured: false,
+        });
+      }
     });
 
     test("clears allowed_ips when null or empty string", async () => {
