@@ -102,7 +102,11 @@ describe("webhook-logs", () => {
       // The underlying D1 failure must surface in console.error so it shows
       // up in worker logs even though the caller treats it as fire-and-forget.
       expect(consoleSpy).toHaveBeenCalledTimes(1);
-      const [, err] = consoleSpy.mock.calls[0]!;
+      const [prefix, err] = consoleSpy.mock.calls[0]!;
+      // Tightened: pin the exact prefix message so a regression that
+      // changes 'Webhook log write failed:' (e.g. logging-format change
+      // that breaks log-aggregation alerts) would surface here.
+      expect(prefix).toBe("Webhook log write failed:");
       expect((err as Error).message).toBe("database locked");
       consoleSpy.mockRestore();
     });
@@ -129,7 +133,8 @@ describe("webhook-logs", () => {
       ).resolves.toBeUndefined();
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
-      const [, err] = consoleSpy.mock.calls[0]!;
+      const [prefix, err] = consoleSpy.mock.calls[0]!;
+      expect(prefix).toBe("Webhook log write failed:");
       expect((err as Error).message).toBe("Network unreachable");
       consoleSpy.mockRestore();
     });
