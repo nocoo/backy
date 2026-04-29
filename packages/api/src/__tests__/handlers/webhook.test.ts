@@ -199,6 +199,24 @@ describe("webhookHeadHandler", () => {
     // semantically prohibits a body, so this is by design.
     expect(r.kind).toBe("empty");
   });
+  test("500 when getProjectByToken throws non-Error (covers HEAD outer-catch instanceof Error false branch)", async () => {
+    // Covers line 130 of webhook.ts: the HEAD handler's outer catch
+    // `error instanceof Error ? msg : 'Unknown error'` ternary false
+    // branch. HEAD returns `empty(500)` for ALL failure paths — no
+    // body to leak the thrown payload.
+    mockGetProjectByToken = async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw "plain-string";
+    };
+    const r = await webhookHeadHandler({
+      projectId: "p1",
+      authorization: "Bearer tok-valid",
+      clientIp: null,
+      userAgent: null,
+    });
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("empty");
+  });
 });
 
 describe("webhookGetHandler", () => {
@@ -376,6 +394,28 @@ describe("webhookGetHandler", () => {
     if (r.kind === "json")
       // Generic 'Internal server error' — webhook handlers don't leak
       // which dependency failed (D1 vs the listBackups DB call).
+      expect(r.body).toEqual({ error: "Internal server error" });
+  });
+  test("500 when countBackups throws non-Error (covers GET outer-catch instanceof Error false branch)", async () => {
+    // Covers line 221 of webhook.ts: the GET handler's outer catch
+    // `error instanceof Error ? msg : 'Unknown error'` ternary false
+    // branch. Symmetric to the POST and HEAD non-Error throws —
+    // user response is the generic 'Internal server error' regardless
+    // of the thrown payload (no info leak).
+    mockGetProjectByToken = async () => baseProject;
+    mockCountBackups = async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 9876;
+    };
+    const r = await webhookGetHandler({
+      projectId: "p1",
+      authorization: "Bearer tok-valid",
+      clientIp: null,
+      userAgent: null,
+    });
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    if (r.kind === "json")
       expect(r.body).toEqual({ error: "Internal server error" });
   });
 });
@@ -567,6 +607,52 @@ describe("webhookPostHandler", () => {
       jsonExtracted: false,
       fileType: "json",
     });
+  });
+
+  test("201 with empty file.name + empty file.type uses defaults ('backup' name, 'application/octet-stream' type)", async () => {
+    // Covers lines 309 and 329 of webhook.ts: the
+    // `file.type || 'application/octet-stream'` and
+    // `file.name || 'backup'` falsy fallbacks. Browsers/servers can
+    // legally produce a File with empty name/type; the handler must
+    // assign sane defaults rather than crashing or persisting empty
+    // strings as fileKey path components.
+    mockGetProjectByToken = async () => baseProject;
+    let createArg: { fileType?: string; fileSize?: number } = {};
+    mockCreateBackup = async (input: {
+      fileType?: string;
+      fileSize?: number;
+    }) => {
+      createArg = input;
+      return {
+        id: "bk-empty",
+        project_id: "p1",
+        environment: "prod",
+        tag: null,
+        file_size: 5,
+        file_key: "k",
+        json_key: null,
+        sender_ip: null,
+        sender_user_agent: null,
+        is_single_json: 0,
+        json_extracted: 0,
+        created_at: "now",
+      } as Awaited<ReturnType<typeof mockCreateBackup>>;
+    };
+    const fileNoMeta = new File([new Uint8Array([1, 2, 3, 4, 5])], "", {
+      type: "",
+    });
+    const r = await webhookPostHandler({
+      projectId: "p1",
+      authorization: "Bearer tok-valid",
+      clientIp: null,
+      userAgent: null,
+      formData: fd({ file: fileNoMeta }),
+    });
+    expect(r.status).toBe(201);
+    // Empty file.type → normalizeContentType('application/octet-stream')
+    // → detectFileType('backup','application/octet-stream') returns
+    // 'unknown' (extension-based detection sees no '.json' etc).
+    expect(createArg.fileType).toBe("unknown");
   });
 
   test("201 with non-previewable zip skips preview upload", async () => {
