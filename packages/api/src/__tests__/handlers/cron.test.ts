@@ -356,6 +356,9 @@ describe("cron handlers", () => {
       };
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to fetch project" });
     });
 
     test("404 when project missing", async () => {
