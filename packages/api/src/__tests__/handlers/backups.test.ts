@@ -369,7 +369,11 @@ describe("backups handlers", () => {
       mockDeleteBackup = async () => {
         throw new Error("db");
       };
-      expect((await deleteBackupHandler({ id: "x" })).status).toBe(500);
+      const r = await deleteBackupHandler({ id: "x" });
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to delete backup" });
     });
   });
 
@@ -383,6 +387,9 @@ describe("backups handlers", () => {
     test("400 missing projectId", async () => {
       const r = await uploadBackupHandler({ formData: fd({}) });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "projectId is required" });
     });
 
     test("404 when project missing", async () => {
@@ -391,6 +398,11 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1" }),
       });
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Distinct 'Project not found' (vs 'Backup not found' on the
+        // get/delete handlers).
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("400 missing file", async () => {
@@ -398,6 +410,9 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1" }),
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Missing 'file' field in form data" });
     });
 
     test("400 empty file", async () => {
@@ -408,6 +423,9 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file }),
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "File is empty" });
     });
 
     test("413 file too large", async () => {
@@ -420,6 +438,11 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file: big }),
       });
       expect(r.status).toBe(413);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 413 = MAX_FILE_SIZE (50MB) limit. Pin the user-facing string
+        // so a regression that bumps the limit silently surfaces.
+        expect(r.body).toEqual({ error: "File too large. Maximum: 50MB" });
     });
 
     test("400 invalid environment", async () => {
