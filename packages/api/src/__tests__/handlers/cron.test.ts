@@ -228,6 +228,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
     });
 
     test("triggers successfully when fetch ok", async () => {
@@ -316,6 +324,14 @@ describe("cron handlers", () => {
         authorization: "Bearer test-secret",
       });
       expect(r.status).toBe(200);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          total: 1,
+          triggered: 0,
+          skipped: 0,
+          failed: 1,
+        });
     });
   });
 
