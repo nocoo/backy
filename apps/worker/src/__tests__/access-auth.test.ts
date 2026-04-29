@@ -1,10 +1,29 @@
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
 import {
   accessAuth,
   __resetJwksCacheForTests,
 } from "../middleware/access-auth";
 import type { AppEnv } from "../lib/types";
+
+// vi.hoisted toggle: lets individual tests choose whether jwtVerify
+// throws (default — matches the existing 'invalid JWT' contract) or
+// returns a verified payload (lets us cover the JWT-success path that
+// sets accessAuthenticated + accessEmail).
+// Safe because no other test file imports jose (verified via
+// `grep -rn 'from "jose"' apps/worker/src packages/api/src`).
+const joseControl = vi.hoisted(() => ({
+  payload: null as Record<string, unknown> | null, // null → throw
+}));
+vi.mock("jose", () => ({
+  createRemoteJWKSet: () => ({}) as unknown,
+  jwtVerify: vi.fn(async () => {
+    if (joseControl.payload === null) {
+      throw new Error("JWT verification failed");
+    }
+    return { payload: joseControl.payload };
+  }),
+}));
 
 function buildApp() {
   const app = new Hono<AppEnv>();
@@ -15,7 +34,10 @@ function buildApp() {
   return app;
 }
 
-beforeEach(() => __resetJwksCacheForTests());
+beforeEach(() => {
+  __resetJwksCacheForTests();
+  joseControl.payload = null; // default: jwtVerify throws → 401
+});
 
 describe("accessAuth — public path whitelist", () => {
   test("GET /api/live is public", async () => {
@@ -206,5 +228,57 @@ describe("accessAuth — JWT verification", () => {
     // Same generic 'Unauthorized' for missing-jwt and invalid-jwt
     // (no info leak about WHICH check failed).
     expect(await res.json()).toEqual({ error: "Unauthorized" });
+  });
+
+  test("verified JWT sets accessEmail from payload (covers JWT-success path)", async () => {
+    // Covers lines 92-94 + 100 of access-auth.ts (the JWT-verified
+    // success path that sets accessAuthenticated + accessEmail and
+    // calls next()). Uses the joseControl toggle to make jwtVerify
+    // return a verified payload instead of throwing.
+    joseControl.payload = { email: "alice@example.com" };
+    const app = buildApp();
+    const res = await app.request(
+      "/api/projects",
+      {
+        headers: {
+          host: "backy.example.com",
+          "Cf-Access-Jwt-Assertion": "any-string", // mocked, not parsed
+        },
+      },
+      {
+        CF_ACCESS_TEAM_DOMAIN: "test.cloudflareaccess.com",
+        CF_ACCESS_AUD: "test-aud",
+      } as unknown as AppEnv["Bindings"],
+    );
+    expect(res.status).toBe(200);
+    // Pins that the email payload made it all the way through
+    // accessAuth → next() → downstream handler via c.get('accessEmail').
+    expect(await res.json()).toEqual({
+      ok: true,
+      email: "alice@example.com",
+    });
+  });
+
+  test("verified JWT without email payload still authenticates (covers typeof-string false branch)", async () => {
+    // Covers the false branch of `typeof payload.email === 'string'`
+    // — a verified JWT whose payload omits email should still pass
+    // through (accessAuthenticated=true) but accessEmail stays unset.
+    joseControl.payload = { sub: "some-subject" }; // no email field
+    const app = buildApp();
+    const res = await app.request(
+      "/api/projects",
+      {
+        headers: {
+          host: "backy.example.com",
+          "Cf-Access-Jwt-Assertion": "any-string",
+        },
+      },
+      {
+        CF_ACCESS_TEAM_DOMAIN: "test.cloudflareaccess.com",
+        CF_ACCESS_AUD: "test-aud",
+      } as unknown as AppEnv["Bindings"],
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
   });
 });
