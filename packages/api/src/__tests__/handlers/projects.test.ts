@@ -215,6 +215,15 @@ describe("projects handlers", () => {
         body: { allowed_ips: "not-an-ip" },
       }, ctx);
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // 'Invalid IP/CIDR format' includes an `invalid:` array of the
+        // bad CIDRs the caller submitted (so a script can identify
+        // which ones to fix). Pin both fields.
+        expect(r.body).toEqual({
+          error: "Invalid IP/CIDR format",
+          invalid: ["not-an-ip"],
+        });
     });
 
     test("normalizes valid allowed_ips", async () => {
@@ -239,6 +248,12 @@ describe("projects handlers", () => {
         body: { auto_backup_webhook: "http://10.0.0.1/x" },
       }, ctx);
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Same SSRF guard message as cron handler (HTTPS + public hostname).
+        expect(r.body).toEqual({
+          error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
+        });
     });
 
     test("accepts null webhook URL", async () => {
