@@ -66,6 +66,42 @@ describe("ctxMiddleware", () => {
     expect(body.env).toContain("NEXT_PUBLIC_APP_VERSION");
   });
 
+  test("forwards every optional env var when set (covers all pickEnv branches)", async () => {
+    // Covers the remaining conditional branches in ctx.ts pickEnv()
+    // (SSRF_ALLOWLIST, ECHO_API_KEY, ALLOWED_HOSTS, etc). Sets every
+    // optional env var and verifies they all appear in ctx.env.
+    const env = makeEnv({
+      ALLOWED_HOSTS: "a.example.com,b.example.com",
+      SSRF_ALLOWLIST: "10.0.0.1/32",
+      ECHO_API_URL: "https://echo.example",
+      ECHO_API_KEY: "echo-key",
+      R2_ACCESS_KEY_ID: "r2-id",
+      R2_SECRET_ACCESS_KEY: "r2-secret",
+      R2_ACCOUNT_ID: "r2-account",
+      R2_BUCKET_NAME: "r2-bucket",
+      NEXT_PUBLIC_APP_VERSION: "1.2.3",
+    });
+    const res = await probe().request(
+      "/probe",
+      undefined,
+      env as unknown as AppEnv["Bindings"],
+    );
+    const body = (await res.json()) as { env: string[] };
+    expect(body.env).toEqual([
+      "ALLOWED_HOSTS",
+      "CRON_SECRET",
+      "E2E_SKIP_AUTH",
+      "ECHO_API_KEY",
+      "ECHO_API_URL",
+      "NEXT_PUBLIC_APP_VERSION",
+      "R2_ACCESS_KEY_ID",
+      "R2_ACCOUNT_ID",
+      "R2_BUCKET_NAME",
+      "R2_SECRET_ACCESS_KEY",
+      "SSRF_ALLOWLIST",
+    ]);
+  });
+
   test("presignDownload throws when R2 S3 creds absent", async () => {
     const app = new Hono<AppEnv>();
     app.use("*", ctxMiddleware());
