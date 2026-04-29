@@ -226,6 +226,17 @@ describe("webhook-logs", () => {
       expect(countQuery?.params).toEqual([403]);
     });
 
+    test("filters by errorCode", async () => {
+      // Covers the errorCode conditional branch in lib/db/webhook-logs.ts
+      // (lines 180-181) which was previously uncovered.
+      db = makeMockD1(async () => ({ results: [] }));
+      await listWebhookLogs({ errorCode: "auth_invalid" });
+
+      const countQuery = db.calls[0];
+      expect(countQuery?.sql).toContain("l.error_code = ?");
+      expect(countQuery?.params).toEqual(["auth_invalid"]);
+    });
+
     test("paginates correctly", async () => {
       let callCount = 0;
       db = makeMockD1(async () => {
