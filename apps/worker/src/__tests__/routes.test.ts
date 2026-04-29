@@ -23,13 +23,22 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     // fakeD1.query and fakeR2.ping both succeed, so both dependencies
     // report `up` and the handler picks the 200 branch deterministically.
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      status: string;
-      dependencies: { d1: { status: string }; r2: { status: string } };
-    };
-    expect(body.status).toBe("ok");
-    expect(body.dependencies.d1.status).toBe("up");
-    expect(body.dependencies.r2.status).toBe("up");
+    const body = (await res.json()) as Record<string, unknown>;
+    // Tightened: from 3 single-property checks to a full toMatchObject
+    // pinning the live-check envelope shape. Catches snake→camel drift
+    // (latency_ms vs latencyMs), dropped fields (uptime_s/version/
+    // timestamp), and missing 'message: undefined' on the up branch
+    // (sanitizeMessage shouldn't fire when status='up').
+    expect(body).toMatchObject({
+      status: "ok",
+      uptime_s: expect.any(Number),
+      version: expect.any(String),
+      timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      dependencies: {
+        d1: { status: "up", latency_ms: expect.any(Number) },
+        r2: { status: "up", latency_ms: expect.any(Number) },
+      },
+    });
   });
 
   test("GET /api/me with E2E_SKIP_AUTH returns dev email", async () => {
