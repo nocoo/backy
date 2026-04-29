@@ -65,7 +65,11 @@ describe("categories handlers", () => {
   });
 
   test("create 201 with valid input", async () => {
-    mockCreateCategory = async () => ({ id: "c1" });
+    let captured: unknown;
+    mockCreateCategory = async (data: unknown) => {
+      captured = data;
+      return { id: "c1" };
+    };
     const r = await createCategoryHandler(
       { body: { name: "Web", color: "#ffaabb", icon: "globe" } },
       ctx,
@@ -73,6 +77,15 @@ describe("categories handlers", () => {
     expect(r.status).toBe(201);
     expect(r.kind).toBe("json");
     expect((r as { body: unknown }).body).toEqual({ id: "c1" });
+    // Tightened: ALSO verify the parsed input is forwarded to
+    // createCategory verbatim. Catches a regression that drops or
+    // typos any of the optional fields (color/icon/sortOrder), which
+    // the 201 status alone would not detect.
+    expect(captured).toEqual({
+      name: "Web",
+      color: "#ffaabb",
+      icon: "globe",
+    });
   });
 
   test("create 400 invalid color", async () => {
