@@ -144,13 +144,14 @@ describe("db handlers", () => {
       throw new Error("db");
     });
 
-    expect(
-      (
-        await seedTestProjectHandler(
-          makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
-        )
-      ).status,
-    ).toBe(500);
+    const r = await seedTestProjectHandler(
+      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
+    );
+    expect(r.status).toBe(500);
+    expect(r.kind).toBe("json");
+    // Tightened: handler surfaces the raw error message via String(err).
+    // 'Error: db' is the toString of `new Error('db')`.
+    expect((r as { body: unknown }).body).toEqual({ error: "Error: db" });
   });
 
   test("seed resets dirty existing", async () => {
@@ -183,21 +184,32 @@ describe("db handlers", () => {
       makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
     );
     expect(r.status).toBe(200);
-    expect((r as { body: { action: string } }).body.action).toBe("reset");
+    expect(r.kind).toBe("json");
+    // Tightened: pin the full reset-branch envelope. cleanedBackups=0
+    // because orphans query returns []. projectId+webhookToken come
+    // from TEST_PROJECT (the handler resets the row to canonical state).
+    expect((r as { body: unknown }).body).toEqual({
+      action: "reset",
+      projectId: "mnp039joh6yiala5UY0Hh",
+      webhookToken: "wDzglaK3i-tTUmHsTsCdTWQVTeZWSn9tGfCaW4lR1f3JPGzJ",
+      cleanedBackups: 0,
+    });
   });
 
   test("getTestMarker returns marker when present", async () => {
     db = makeMockD1(async () => ({ results: [{ id: "e2e-test-db" }] }));
     const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect((r as { body: { marker: string } }).body.marker).toBe("e2e-test-db");
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ marker: "e2e-test-db" });
   });
 
   test("getTestMarker returns null when not present", async () => {
     db = makeMockD1(async () => ({ results: [] }));
     const r = await getTestMarkerHandler(makeMockCtx({ db, r2 }));
     expect(r.status).toBe(200);
-    expect((r as { body: { marker: null } }).body.marker).toBeNull();
+    expect(r.kind).toBe("json");
+    expect((r as { body: unknown }).body).toEqual({ marker: null });
   });
 
   test("getTestMarker returns error info on failure", async () => {
