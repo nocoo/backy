@@ -378,8 +378,10 @@ Add version read step and verification:
 
 ### C.4 Atomic Commits
 
-1. `feat: sync NEXT_PUBLIC_APP_VERSION in release script`
-2. `ci: add version verification to release workflow`
+1. ✅ `feat: sync NEXT_PUBLIC_APP_VERSION in release script`
+2. ✅ `ci: add version verification to release workflow`
+
+**Wave C Status: COMPLETE** (2026-04-30)
 
 ---
 
@@ -423,9 +425,9 @@ Add version read step and verification:
 - [x] `bun run gate:routes` passes (39 routes covered)
 - [x] `bun run test:e2e:api` passes locally (40 tests)
 - [x] `bun run gate:pages` passes (8 pages covered)
-- [ ] `bun run test:e2e:bdd` passes locally
+- [x] `bun run test:e2e:bdd` passes locally (9 tests)
 - [x] CI runs L2 and L3 on PR
-- [ ] CD verifies version after deploy
+- [x] CD verifies version after deploy
 - [ ] Coverage thresholds at 95%+
 
 ## References
