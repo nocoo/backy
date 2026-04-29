@@ -370,7 +370,9 @@ describe("cron handlers", () => {
           auto_backup_header_value: null,
         },
       ];
+      let fetchCount = 0;
       globalThis.fetch = mockFetch(async () => {
+        fetchCount++;
         throw new Error("network");
       });
       const r = await cronTriggerHandler({
@@ -385,6 +387,10 @@ describe("cron handlers", () => {
           skipped: 0,
           failed: 1,
         });
+      // Same no-retry contract as the non-2xx test: a thrown fetch
+      // (network failure) should be counted as failed AFTER exactly
+      // 1 attempt.
+      expect(fetchCount).toBe(1);
     });
   });
 
