@@ -457,6 +457,11 @@ describe("backups handlers", () => {
         }),
       });
       expect(r.status).toBe(400);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({
+          error: "Invalid environment. Allowed: dev, prod, staging, test",
+        });
     });
 
     test("201 uploads non-JSON as-is", async () => {
@@ -525,6 +530,14 @@ describe("backups handlers", () => {
         formData: fd({ projectId: "p1", file }),
       });
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        // Discovery: createBackup throws are caught by the OUTER
+        // try/catch which surfaces the generic 'Internal server error'
+        // (the inner db-error catch returns a more specific message via
+        // fireLog and a 200 stub response, but does NOT re-throw — see
+        // backups.ts uploadBackupHandler).
+        expect(r.body).toEqual({ error: "Internal server error" });
     });
   });
 
