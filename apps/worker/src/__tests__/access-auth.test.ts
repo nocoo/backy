@@ -69,6 +69,9 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(500); // Access not configured → 500
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 
   test("/api/webhook/:projectId/sub is NOT public (only one segment after webhook/)", async () => {
@@ -76,6 +79,12 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(500);
+    // Same misconfig message — confirms the request reached accessAuth
+    // (i.e. the public-path matcher did NOT short-circuit on this path,
+    // proving the matcher requires exactly one segment after webhook/).
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 
   test("/api/restore/:id/sub is NOT public", async () => {
@@ -83,6 +92,9 @@ describe("accessAuth — public path whitelist", () => {
       headers: { host: "backy.example.com" },
     });
     expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: "Cloudflare Access not configured",
+    });
   });
 });
 
