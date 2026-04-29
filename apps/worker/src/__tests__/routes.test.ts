@@ -76,6 +76,26 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     });
   });
 
+  test("GET /api/backups with query params (projectId/search/environment)", async () => {
+    // Covers the conditional spread branches in apps/worker/src/routes/backups.ts
+    // (lines 24-26): when projectId/search/environment are defined,
+    // they spread into the handler input. Without query-param tests,
+    // these branches were uncovered.
+    const res = await fetchWith(
+      "/api/backups?projectId=p1&search=foo&environment=prod",
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+      totalPages: 0,
+      environments: [],
+      projects: [],
+    });
+  });
+
   test("GET /api/stats/totals returns zeroed totals on empty DB", async () => {
     const res = await fetchWith("/api/stats/totals");
     expect(res.status).toBe(200);
