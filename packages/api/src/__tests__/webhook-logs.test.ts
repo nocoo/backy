@@ -256,7 +256,7 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?)");
-      expect(countQuery?.params).toContain("proj-guntest");
+      expect(countQuery?.params).toEqual(["proj-guntest"]);
     });
 
     test("adds exclude condition with multiple IDs", async () => {
@@ -265,8 +265,9 @@ describe("webhook-logs", () => {
 
       const countQuery = db.calls[0];
       expect(countQuery?.sql).toContain("NOT IN (?, ?)");
-      expect(countQuery?.params).toContain("proj-a");
-      expect(countQuery?.params).toContain("proj-b");
+      // Tightened: pin params order — catches a regression that
+      // reverses the projectIds list before binding.
+      expect(countQuery?.params).toEqual(["proj-a", "proj-b"]);
     });
 
     test("does not add exclude condition when excludeProjectIds is undefined", async () => {
