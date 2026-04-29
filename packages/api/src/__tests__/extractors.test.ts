@@ -299,7 +299,12 @@ describe("decompression bomb defense", () => {
     // This should fail because it's not valid JSON, but NOT because of size
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toContain("not valid JSON");
+      // Tightened: 'not valid JSON' branch with positive exact reason +
+      // explicit 'not size-limit' check (size-limit branch would mention
+      // 'MB limit', so 'limit' substring negative-check excludes it).
+      expect(result.reason).toBe(
+        "Decompressed content is not valid JSON — preview is not available for this file",
+      );
       expect(result.reason).not.toContain("limit");
     }
   });
