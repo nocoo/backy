@@ -87,7 +87,11 @@ describe("projects handlers", () => {
       mockListProjects = async () => {
         throw new Error("db");
       };
-      expect((await listProjectsHandler(ctx)).status).toBe(500);
+      const r = await listProjectsHandler(ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to list projects" });
     });
   });
 
@@ -131,6 +135,9 @@ describe("projects handlers", () => {
       };
       const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to create project" });
     });
   });
 
@@ -156,7 +163,11 @@ describe("projects handlers", () => {
       mockGetProject = async () => {
         throw new Error("db");
       };
-      expect((await getProjectHandler({ id: "p1" }, ctx)).status).toBe(500);
+      const r = await getProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to get project" });
     });
   });
 
@@ -302,6 +313,9 @@ describe("projects handlers", () => {
         body: { name: "x" },
       }, ctx);
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to update project" });
     });
   });
 
@@ -325,7 +339,11 @@ describe("projects handlers", () => {
       mockDeleteProject = async () => {
         throw new Error("db");
       };
-      expect((await deleteProjectHandler({ id: "p1" }, ctx)).status).toBe(500);
+      const r = await deleteProjectHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to delete project" });
     });
   });
 
@@ -354,7 +372,11 @@ describe("projects handlers", () => {
       mockRegenerateToken = async () => {
         throw new Error("db");
       };
-      expect((await regenerateTokenHandler({ id: "p1" }, ctx)).status).toBe(500);
+      const r = await regenerateTokenHandler({ id: "p1" }, ctx);
+      expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to regenerate token" });
     });
   });
 
@@ -409,6 +431,9 @@ describe("projects handlers", () => {
         baseUrl: "https://x",
       }, ctx);
       expect(r.status).toBe(404);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
@@ -420,6 +445,9 @@ describe("projects handlers", () => {
         baseUrl: "https://x",
       }, ctx);
       expect(r.status).toBe(500);
+      expect(r.kind).toBe("json");
+      if (r.kind === "json")
+        expect(r.body).toEqual({ error: "Failed to generate prompt" });
     });
   });
 });
