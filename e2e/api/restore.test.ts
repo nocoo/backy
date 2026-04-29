@@ -22,7 +22,7 @@ describe("L2: API /api/restore", () => {
 
     // Create a test backup
     const formData = new FormData();
-    formData.append("project_id", testProjectId);
+    formData.append("projectId", testProjectId);
     formData.append("environment", "test");
     formData.append(
       "file",
@@ -38,16 +38,21 @@ describe("L2: API /api/restore", () => {
     testBackupId = body.id;
   });
 
-  test("GET /api/restore/:id returns restore info", async () => {
+  test("GET /api/restore/:id without token returns 401", async () => {
     expect(testBackupId).toBeTruthy();
 
     const res = await fetch(url(`/api/restore/${testBackupId}`));
-    // May return 200 with restore info or 404 if restore not available
-    expect([200, 404]).toContain(res.status);
+    expect(res.status).toBe(401);
 
-    if (res.status === 200) {
-      const body = (await res.json()) as { id: string };
-      expect(body).toHaveProperty("id");
-    }
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("Missing authentication");
+  });
+
+  test("GET /api/restore/:id with invalid token returns 403", async () => {
+    expect(testBackupId).toBeTruthy();
+
+    const res = await fetch(url(`/api/restore/${testBackupId}?token=invalid`));
+    // 403 = invalid token, 404 = backup not found
+    expect([403, 404]).toContain(res.status);
   });
 });

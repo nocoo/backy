@@ -17,23 +17,26 @@ describe("L2: API /api/logs/webhook", () => {
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as {
-      logs: unknown[];
+      items: unknown[];
       total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
     };
-    expect(body).toHaveProperty("logs");
+    expect(body).toHaveProperty("items");
     expect(body).toHaveProperty("total");
-    expect(Array.isArray(body.logs)).toBe(true);
+    expect(body).toHaveProperty("page");
+    expect(body).toHaveProperty("pageSize");
+    expect(body).toHaveProperty("totalPages");
+    expect(Array.isArray(body.items)).toBe(true);
   });
 
-  test("DELETE /api/logs/webhook deletes logs by ids", async () => {
-    // Delete with empty array should succeed
-    const res = await jsonRequest("DELETE", "/api/logs/webhook", {
-      ids: [],
-    });
+  test("DELETE /api/logs/webhook deletes logs", async () => {
+    const res = await jsonRequest("DELETE", "/api/logs/webhook", {});
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as { deleted: number };
-    expect(body.deleted).toBe(0);
+    const body = (await res.json()) as { success: boolean };
+    expect(body.success).toBe(true);
   });
 });
 
@@ -43,22 +46,23 @@ describe("L2: API /api/logs/cron", () => {
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as {
-      logs: unknown[];
+      items: unknown[];
       total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
     };
-    expect(body).toHaveProperty("logs");
+    expect(body).toHaveProperty("items");
     expect(body).toHaveProperty("total");
-    expect(Array.isArray(body.logs)).toBe(true);
+    expect(body).toHaveProperty("page");
+    expect(body).toHaveProperty("pageSize");
+    expect(body).toHaveProperty("totalPages");
+    expect(Array.isArray(body.items)).toBe(true);
   });
 
-  test("DELETE /api/logs/cron deletes logs by ids", async () => {
-    // Delete with empty array should succeed
-    const res = await jsonRequest("DELETE", "/api/logs/cron", {
-      ids: [],
-    });
-    expect(res.status).toBe(200);
-
-    const body = (await res.json()) as { deleted: number };
-    expect(body.deleted).toBe(0);
+  test("DELETE /api/logs/cron deletes logs", async () => {
+    const res = await jsonRequest("DELETE", "/api/logs/cron", {});
+    // Handler returns 204 No Content
+    expect(res.status).toBe(204);
   });
 });

@@ -15,13 +15,13 @@ describe("L2: API /api/stats", () => {
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as {
-      projects: number;
-      backups: number;
-      storage_bytes: number;
+      totalProjects: number;
+      totalBackups: number;
+      totalStorageBytes: number;
     };
-    expect(typeof body.projects).toBe("number");
-    expect(typeof body.backups).toBe("number");
-    expect(typeof body.storage_bytes).toBe("number");
+    expect(typeof body.totalProjects).toBe("number");
+    expect(typeof body.totalBackups).toBe("number");
+    expect(typeof body.totalStorageBytes).toBe("number");
   });
 
   test("GET /api/stats/charts returns chart data", async () => {
@@ -29,9 +29,15 @@ describe("L2: API /api/stats", () => {
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as {
-      daily: unknown[];
+      projectStats: unknown[];
+      dailyBackups: unknown[];
+      cronStats: unknown[];
     };
-    expect(body).toHaveProperty("daily");
-    expect(Array.isArray(body.daily)).toBe(true);
+    expect(body).toHaveProperty("projectStats");
+    expect(body).toHaveProperty("dailyBackups");
+    expect(body).toHaveProperty("cronStats");
+    expect(Array.isArray(body.projectStats)).toBe(true);
+    expect(Array.isArray(body.dailyBackups)).toBe(true);
+    expect(Array.isArray(body.cronStats)).toBe(true);
   });
 });
