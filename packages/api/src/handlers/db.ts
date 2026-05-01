@@ -26,6 +26,7 @@ export async function getTestMarkerHandler(
   } catch (error) {
     return json(200, {
       marker: null,
+      /* v8 ignore next -- @preserve defensive: thrown values from D1 query are always Error instances; String(error) branch unreachable */
       error: error instanceof Error ? error.message : String(error),
     });
   }
@@ -94,6 +95,7 @@ export async function seedTestProjectHandler(
     }
 
     const row = existing[0];
+    /* v8 ignore next 5 -- @preserve defensive: TS narrowing — existing.length === 1 was checked above, so existing[0] always exists */
     if (!row) {
       return json(500, {
         error: "Unexpected: empty result after length check",
