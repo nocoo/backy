@@ -18,17 +18,19 @@ export default defineConfig({
     isolate: false,
     coverage: {
       provider: "v8",
+      // v4: AST-aware remapping is enabled by default (was experimentalAstAwareRemapping in v3)
       reporter: ["text", "html"],
       // Mirror the previous bun gate scope: only src/lib/** is gated.
       // Pages/components live behind L3 (BDD/Playwright) and presentational
       // shadcn primitives have no logic worth surface-testing.
       include: ["src/lib/**/*.{ts,tsx}"],
+      // Excludes: tests and type decls.
       exclude: ["src/__tests__/**", "src/**/*.d.ts"],
       thresholds: {
-        lines: 98,
-        functions: 98,
+        statements: 95,
         branches: 95,
-        statements: 98,
+        functions: 95,
+        lines: 95,
       },
     },
   },

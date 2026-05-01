@@ -7,14 +7,16 @@ export default defineConfig({
     include: ["src/__tests__/**/*.test.ts"],
     coverage: {
       provider: "v8",
+      // v4: AST-aware remapping is enabled by default (was experimentalAstAwareRemapping in v3)
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
+      // Excludes: tests, type decls, and the bin entrypoint (thin shell wrapper)
       exclude: ["src/__tests__/**", "src/**/*.d.ts", "src/bin.ts"],
       thresholds: {
-        lines: 90,
-        functions: 90,
-        branches: 80,
-        statements: 90,
+        statements: 95,
+        branches: 95,
+        functions: 95,
+        lines: 95,
       },
     },
   },
