@@ -121,6 +121,7 @@ export function createRestD1Adapter(
         };
       }
 
+      /* v8 ignore next -- @preserve defensive: lastError is always set when retry loop exhausts; ?? fallback is unreachable */
       throw lastError ?? new Error("D1 query failed");
     },
   };

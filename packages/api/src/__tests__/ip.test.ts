@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { isValidCidr, validateAllowedIps, normalizeAllowedIps, isIpAllowed, getClientIp } from "@backy/api/ip";
+import { isValidCidr, validateAllowedIps, normalizeAllowedIps, isIpAllowed, getClientIp, enforceIpRestriction } from "@backy/api/ip";
 
 describe("isValidCidr", () => {
   test("accepts plain IPv4 address", () => {
@@ -194,5 +194,48 @@ describe("getClientIp", () => {
       headers: { "x-forwarded-for": "::ffff:192.168.1.1" },
     });
     expect(getClientIp(req)).toBe("192.168.1.1");
+  });
+});
+
+describe("enforceIpRestriction", () => {
+  test("returns null when allowedIps is null (no restriction)", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "1.2.3.4" },
+    });
+    expect(enforceIpRestriction(req, null)).toBeNull();
+  });
+
+  test("returns null when client IP matches allowlist", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "10.0.0.5" },
+    });
+    expect(enforceIpRestriction(req, "10.0.0.0/8")).toBeNull();
+  });
+
+  test("returns 403 JSON when client IP missing", async () => {
+    const req = new Request("http://localhost");
+    const res = enforceIpRestriction(req, "10.0.0.0/8");
+    expect(res?.status).toBe(403);
+    const body = (await res?.json()) as { error: string };
+    expect(body.error).toBe("Forbidden");
+  });
+
+  test("returns 403 JSON when client IP not in allowlist", async () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "1.2.3.4" },
+    });
+    const res = enforceIpRestriction(req, "10.0.0.0/8");
+    expect(res?.status).toBe(403);
+    const body = (await res?.json()) as { error: string };
+    expect(body.error).toBe("Forbidden");
+  });
+
+  test("returns 403 with empty body when headRequest option set", async () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "1.2.3.4" },
+    });
+    const res = enforceIpRestriction(req, "10.0.0.0/8", { headRequest: true });
+    expect(res?.status).toBe(403);
+    expect(await res?.text()).toBe("");
   });
 });

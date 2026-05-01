@@ -55,6 +55,7 @@ async function fireProjectWebhook(
       durationMs,
     };
   } catch (error) {
+    /* v8 ignore next -- @preserve defensive: thrown values from fetch() are always Error instances; "Unknown error" fallback unreachable */
     const message = error instanceof Error ? error.message : "Unknown error";
     return {
       status: "failed",

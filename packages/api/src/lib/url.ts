@@ -59,6 +59,7 @@ const BLOCKED_CIDRS: Array<[number, number]> = [
 
 function cidr(ip: string, prefix: number): [number, number] {
   const n = ipToInt(ip);
+  /* v8 ignore next -- @preserve defensive: only called with hardcoded valid CIDR bases at module init, unreachable in tests */
   if (n === null) throw new Error(`Invalid CIDR base: ${ip}`);
   const mask = (0xffffffff << (32 - prefix)) >>> 0;
   return [n & mask, mask];
@@ -123,6 +124,7 @@ export function isPrivateIpv6(addr: string): boolean {
   if (expanded.startsWith("0000:0000:0000:0000:0000:ffff:")) {
     const v4Hex = expanded.slice(30); // "XXYY:ZZWW"
     const parts = v4Hex.split(":");
+    /* v8 ignore next 2 -- @preserve defensive: TS narrowing — expanded IPv6 form guarantees parts[0] and parts[1] exist; ?? "0" unreachable */
     const hi = parseInt(parts[0] ?? "0", 16);
     const lo = parseInt(parts[1] ?? "0", 16);
     const a = (hi >> 8) & 0xff;
@@ -153,6 +155,7 @@ function expandIpv6(addr: string): string | null {
     if (v4Parts.length !== 4) return null;
     const nums = v4Parts.map((p) => parseInt(p, 10));
     if (nums.some((n) => isNaN(n) || n < 0 || n > 255)) return null;
+    /* v8 ignore next 2 -- @preserve defensive: nums[0..3] guaranteed by length===4 check above; ?? 0 is TS strict-mode narrowing */
     const hi = (((nums[0] ?? 0) << 8) | (nums[1] ?? 0)) & 0xffff;
     const lo = (((nums[2] ?? 0) << 8) | (nums[3] ?? 0)) & 0xffff;
     normalized = normalized.slice(0, lastColon + 1) +

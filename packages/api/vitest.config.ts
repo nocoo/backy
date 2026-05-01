@@ -11,28 +11,28 @@ export default defineConfig({
     setupFiles: ["./src/__tests__/setup.ts"],
     coverage: {
       provider: "v8",
+      // v4: AST-aware remapping is enabled by default (was experimentalAstAwareRemapping in v3)
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
+      // Excludes: tests, package entrypoint re-exports, runtime bootstrap,
+      // DB schema (declarative drizzle), thin DB wrappers (covered via the
+      // adapter layer below), and the S3 presign adapter (needs real AWS
+      // SDK + R2 endpoint; covered by E2E).
       exclude: [
         "src/__tests__/**",
         "src/index.ts",
         "src/runtime.ts",
         "src/**/*.d.ts",
         "src/lib/db/schema.ts",
-        // Thin DB query wrappers — fully mocked in handler tests; testing
-        // them directly would just re-mock the same D1 surface. Coverage
-        // is via the d1-{rest,binding}-adapter tests one layer below.
         "src/lib/db/backups.ts",
         "src/lib/db/projects.ts",
-        // S3 presign adapter — needs real AWS SDK + R2 endpoint; covered
-        // indirectly by E2E (legacy L2 + Wave B' worker tests).
         "src/lib/r2/s3-adapter.ts",
       ],
       thresholds: {
-        lines: 95,
-        functions: 95,
-        branches: 90,
         statements: 95,
+        branches: 95,
+        functions: 95,
+        lines: 95,
       },
     },
   },

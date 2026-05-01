@@ -538,4 +538,24 @@ describe("resolveAndValidateUrl", () => {
       "No DNS records found for no-records.example",
     );
   });
+
+  test("blocks hostname resolving to private IPv6 (covers v6Addresses private branch)", async () => {
+    // Covers line 353 of lib/url.ts: the loop that scans resolved
+    // AAAA records for private/reserved IPv6 ranges. The default
+    // resolve6 mock returns a public address; we override it to
+    // return a loopback (::1) so the private-IPv6 rejection path
+    // fires.
+    const result = await rawResolveAndValidateUrl(
+      "https://example.com/hook",
+      env,
+      {
+        resolve4: async () => [],
+        resolve6: async () => ["::1"],
+      },
+    );
+    expect(result.safe).toBe(false);
+    expect((result as { reason: string }).reason).toBe(
+      "example.com resolves to private IPv6 ::1",
+    );
+  });
 });

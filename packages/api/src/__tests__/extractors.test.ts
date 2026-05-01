@@ -423,4 +423,97 @@ describe("decompression bomb defense", () => {
       expect(result.reason).toBe("Failed to parse TAR archive — file may be corrupt");
     }
   });
+
+  test("GZ: streaming gunzip rejects decompressed output exceeding MAX_DECOMPRESSED_SIZE (decompression bomb)", async () => {
+    // Covers the `if (message.includes("limit"))` branch inside
+    // extractFromGz's catch. Mirrors the TGZ bomb test but exercises
+    // the GZ-direct path: gunzipWithLimit rejects with a 'limit'
+    // message; extractFromGz must surface that message verbatim
+    // rather than falling through to the "Failed to decompress GZ"
+    // generic message.
+    const giantSize = MAX_DECOMPRESSED_SIZE + 1;
+    const ZEROS = Buffer.alloc(giantSize);
+    const gz = await gzipAsync(ZEROS);
+
+    const result = await extractFromGz(new Uint8Array(gz));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reason).toBe(
+        `Decompressed output exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit (possible decompression bomb)`,
+      );
+    }
+  }, 30_000);
+
+  test("TGZ: skips non-file tar entries (directories) without invoking onEntry", async () => {
+    // Covers the `header.type !== "file"` early-skip branch in
+    // parseTarEntries. Pack a tar that contains a directory entry
+    // alongside a json file; without the skip, tar-stream would
+    // surface the directory header and the test would fail because
+    // the directory name does not end with `.json` and the function
+    // would still pick the right file — but we additionally assert
+    // that the directory itself was not surfaced as a json-candidate.
+    const pack = tar.pack();
+    pack.entry({ name: "subdir/", type: "directory" });
+    pack.entry(
+      { name: "subdir/data.json", size: Buffer.byteLength('{"ok":true}') },
+      '{"ok":true}',
+    );
+    pack.finalize();
+    const chunks: Buffer[] = [];
+    for await (const chunk of pack) {
+      chunks.push(chunk as Buffer);
+    }
+    const tarBuffer = Buffer.concat(chunks);
+    const gzBuffer = await gzipAsync(tarBuffer);
+
+    const result = await extractFromTgz(new Uint8Array(gzBuffer));
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.sourceFile).toBe("subdir/data.json");
+      expect(result.jsonFilesFound).toBe(1);
+    }
+  });
+
+  test("TGZ: rejects tar entry whose declared size exceeds MAX_DECOMPRESSED_SIZE (header-bomb defense)", async () => {
+    // Covers the `header.size != null && header.size > MAX_DECOMPRESSED_SIZE`
+    // pre-stream check in parseTarEntries. We hand-craft a single 512-byte
+    // ustar header whose size field claims MAX+1 bytes, but we never
+    // supply that payload. tar-stream emits `entry` after parsing the
+    // header (synchronously, before consuming the data stream), so the
+    // guard fires deterministically on the declared size.
+    const liedSize = MAX_DECOMPRESSED_SIZE + 1;
+    const header = Buffer.alloc(512);
+    header.write("huge.json", 0, "ascii"); // name
+    header.write("0000644\0", 100, "ascii"); // mode
+    header.write("0000000\0", 108, "ascii"); // uid
+    header.write("0000000\0", 116, "ascii"); // gid
+    // size: 11-char octal + NUL
+    header.write(liedSize.toString(8).padStart(11, "0") + "\0", 124, "ascii");
+    header.write("00000000000\0", 136, "ascii"); // mtime
+    header.write("        ", 148, "ascii"); // checksum placeholder (spaces)
+    header.write("0", 156, "ascii"); // typeflag = regular file
+    header.write("ustar\0", 257, "ascii"); // magic
+    header.write("00", 263, "ascii"); // version
+    // Compute checksum: unsigned sum of all header bytes with chksum field = spaces
+    let sum = 0;
+    for (let i = 0; i < 512; i++) sum += header[i]!;
+    // Write checksum: 6-char octal + NUL + space
+    const chk = sum.toString(8).padStart(6, "0") + "\0 ";
+    header.write(chk, 148, "ascii");
+
+    // Append two empty 512-byte blocks (tar end-of-archive marker) so the
+    // parser has a well-formed envelope; the guard fires before reaching them.
+    const tarBuffer = Buffer.concat([header, Buffer.alloc(1024)]);
+    const gzBuffer = await gzipAsync(tarBuffer);
+
+    const result = await extractFromTgz(new Uint8Array(gzBuffer));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Must be the header-bomb guard, not a generic parse error.
+      expect(result.reason).toContain("huge.json");
+      expect(result.reason).toContain(
+        `${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`,
+      );
+    }
+  });
 });

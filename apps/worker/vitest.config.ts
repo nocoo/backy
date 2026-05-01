@@ -11,8 +11,11 @@ export default defineConfig({
     setupFiles: ["./src/__tests__/setup.ts"],
     coverage: {
       provider: "v8",
+      // v4: AST-aware remapping is enabled by default (was experimentalAstAwareRemapping in v3)
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
+      // Excludes: tests, the worker entrypoint (Cloudflare Workers fetch handler
+      // exercised end-to-end via E2E), shared type module, and type decls.
       exclude: [
         "src/__tests__/**",
         "src/index.ts",
@@ -20,10 +23,10 @@ export default defineConfig({
         "src/**/*.d.ts",
       ],
       thresholds: {
-        lines: 95,
-        functions: 95,
-        branches: 90,
         statements: 95,
+        branches: 95,
+        functions: 95,
+        lines: 95,
       },
     },
   },
