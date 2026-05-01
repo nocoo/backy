@@ -476,51 +476,44 @@ describe("decompression bomb defense", () => {
 
   test("TGZ: rejects tar entry whose declared size exceeds MAX_DECOMPRESSED_SIZE (header-bomb defense)", async () => {
     // Covers the `header.size != null && header.size > MAX_DECOMPRESSED_SIZE`
-    // pre-stream check in parseTarEntries. We pack a tar with a
-    // small payload but write a giant declared size in the header
-    // (then truncate so we never actually have to allocate it).
-    //
-    // tar-stream's `pack.entry({ size })` writes the declared size
-    // into the header; we set it to MAX+1 and immediately end the
-    // entry with empty content. The reader will see the lie and
-    // reject before reading any bytes.
-    const pack = tar.pack();
+    // pre-stream check in parseTarEntries. We hand-craft a single 512-byte
+    // ustar header whose size field claims MAX+1 bytes, but we never
+    // supply that payload. tar-stream emits `entry` after parsing the
+    // header (synchronously, before consuming the data stream), so the
+    // guard fires deterministically on the declared size.
     const liedSize = MAX_DECOMPRESSED_SIZE + 1;
-    const entryStream = pack.entry({ name: "huge.json", size: liedSize });
-    // We must satisfy tar-stream's writer (it expects exactly `size`
-    // bytes), but we also need the reader to bail on the header
-    // BEFORE consuming. The reader checks header.size first, so as
-    // long as we close the pack stream, the reader will reject on
-    // seeing the giant header. To keep this test fast and bounded,
-    // we only write a small filler then forcibly destroy the pack —
-    // the reader sees a valid header with the lied size and aborts.
-    entryStream.destroy();
-    pack.finalize();
-    const chunks: Buffer[] = [];
-    try {
-      for await (const chunk of pack) {
-        chunks.push(chunk as Buffer);
-      }
-    } catch {
-      // pack stream may error after destroy(); we have enough header bytes already
-    }
-    if (chunks.length === 0) {
-      // Skip silently if the pack stream produced nothing — environment-dependent
-      return;
-    }
-    const tarBuffer = Buffer.concat(chunks);
+    const header = Buffer.alloc(512);
+    header.write("huge.json", 0, "ascii"); // name
+    header.write("0000644\0", 100, "ascii"); // mode
+    header.write("0000000\0", 108, "ascii"); // uid
+    header.write("0000000\0", 116, "ascii"); // gid
+    // size: 11-char octal + NUL
+    header.write(liedSize.toString(8).padStart(11, "0") + "\0", 124, "ascii");
+    header.write("00000000000\0", 136, "ascii"); // mtime
+    header.write("        ", 148, "ascii"); // checksum placeholder (spaces)
+    header.write("0", 156, "ascii"); // typeflag = regular file
+    header.write("ustar\0", 257, "ascii"); // magic
+    header.write("00", 263, "ascii"); // version
+    // Compute checksum: unsigned sum of all header bytes with chksum field = spaces
+    let sum = 0;
+    for (let i = 0; i < 512; i++) sum += header[i]!;
+    // Write checksum: 6-char octal + NUL + space
+    const chk = sum.toString(8).padStart(6, "0") + "\0 ";
+    header.write(chk, 148, "ascii");
+
+    // Append two empty 512-byte blocks (tar end-of-archive marker) so the
+    // parser has a well-formed envelope; the guard fires before reaching them.
+    const tarBuffer = Buffer.concat([header, Buffer.alloc(1024)]);
     const gzBuffer = await gzipAsync(tarBuffer);
 
     const result = await extractFromTgz(new Uint8Array(gzBuffer));
     expect(result.success).toBe(false);
     if (!result.success) {
-      // Either the pre-stream bomb-defense fires (preferred path) or
-      // the truncated tar surfaces as a parse failure. Both are
-      // acceptable safe-fail outcomes.
-      expect(
-        result.reason.includes("limit") ||
-          result.reason.includes("Failed to parse TAR"),
-      ).toBe(true);
+      // Must be the header-bomb guard, not a generic parse error.
+      expect(result.reason).toContain("huge.json");
+      expect(result.reason).toContain(
+        `${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`,
+      );
     }
   });
 });
