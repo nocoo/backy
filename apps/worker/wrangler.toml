@@ -18,7 +18,6 @@ CF_ACCESS_AUD = "677c4df5d98c379b766a18f6cff5d3a1162ae2e6c56aee835aa810a795e0d3d
 # time:
 #   wrangler secret put R2_ACCESS_KEY_ID
 #   wrangler secret put R2_SECRET_ACCESS_KEY
-# (and the same for `--env test`).
 R2_ACCOUNT_ID = "d51a8fde361e4be31db17d8c56737c1f"
 R2_BUCKET_NAME = "backy"
 
@@ -39,21 +38,3 @@ not_found_handling = "single-page-application"
 
 [triggers]
 crons = ["0 * * * *"]
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Test environment (local wrangler dev only, never deployed)
-# ─────────────────────────────────────────────────────────────────────────────
-
-[env.test]
-
-[env.test.vars]
-E2E_SKIP_AUTH = "true"
-
-[[env.test.d1_databases]]
-binding = "DB"
-database_name = "backy-db-test"
-database_id = "placeholder-local-sqlite"
-
-[[env.test.r2_buckets]]
-binding = "R2"
-bucket_name = "backy-test"
