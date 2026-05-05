@@ -2,7 +2,7 @@
  * L2: API E2E test runner with full server lifecycle.
  *
  * Steps:
- *   1. Spawn `wrangler dev --env test --port 17018` in apps/worker
+ *   1. Clean persist dir + spawn `wrangler dev --local --persist-to` on port 17018
  *   2. Wait for server ready (poll /api/live)
  *   3. Initialize D1 schema (POST /api/db/init)
  *   4. Verify _test_marker (refuse to run against prod D1)
@@ -10,41 +10,55 @@
  *   6. Kill server
  *   7. Exit with test exit code
  *
+ * All CF bindings are simulated locally via miniflare (SQLite-backed D1/R2).
+ * No remote CF credentials required.
+ *
  * Usage:
  *   bun run scripts/run-e2e.ts
  */
 
 import { resolve } from "node:path";
+import { rmSync } from "node:fs";
 import type { Subprocess } from "bun";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const WORKER_DIR = resolve(ROOT, "apps/worker");
 const E2E_PORT = 17018;
+const PERSIST_DIR = resolve(WORKER_DIR, ".wrangler/e2e-api");
 const POLL_INTERVAL_MS = 500;
 const MAX_WAIT_MS = 60_000;
 
 // ---------------------------------------------------------------------------
-// Step 1: Spawn dev server
+// Step 1: Clean persist dir + spawn dev server
 // ---------------------------------------------------------------------------
 
+function cleanPersistDir(): void {
+  rmSync(PERSIST_DIR, { recursive: true, force: true });
+  console.log(`  Cleaned persist dir: ${PERSIST_DIR}`);
+}
+
 function spawnDevServer(): Subprocess {
-  console.log(`\nStep 1: Starting wrangler dev --env test on port ${E2E_PORT}...`);
+  console.log(`\nStep 1: Starting wrangler dev --local on port ${E2E_PORT}...`);
+  cleanPersistDir();
 
   const proc = Bun.spawn(
     [
       "npx",
       "wrangler",
       "dev",
-      "--env",
-      "test",
+      "--local",
       "--port",
       String(E2E_PORT),
+      `--persist-to=${PERSIST_DIR}`,
+      "--var=ENVIRONMENT:test",
+      "--var=E2E_SKIP_AUTH:true",
     ],
     {
       cwd: WORKER_DIR,
       env: {
         ...process.env,
-        E2E_SKIP_AUTH: "true",
+        WRANGLER_LOG: "error",
+        NODE_ENV: "test",
       },
       stdout: "inherit",
       stderr: "inherit",
@@ -164,7 +178,7 @@ async function runTests(): Promise<number> {
 async function main(): Promise<void> {
   console.log("=== L2: API E2E Test Runner ===\n");
 
-  // Step 1: Spawn dev server
+  // Step 1: Spawn dev server (clean persist dir first)
   const server = spawnDevServer();
 
   let testExitCode = 1;

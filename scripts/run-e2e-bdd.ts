@@ -3,7 +3,7 @@
  *
  * Steps:
  *   1. Build web app (outputs to apps/worker/static/)
- *   2. Spawn `wrangler dev --env test --port 17018` in apps/worker
+ *   2. Clean persist dir + spawn `wrangler dev --local --persist-to` on port 17018
  *   3. Wait for server ready (poll /api/live)
  *   4. Initialize D1 schema (POST /api/db/init)
  *   5. Verify _test_marker (refuse to run against prod D1)
@@ -11,17 +11,22 @@
  *   7. Kill server
  *   8. Exit with test exit code
  *
+ * All CF bindings are simulated locally via miniflare (SQLite-backed D1/R2).
+ * No remote CF credentials required.
+ *
  * Usage:
  *   bun run scripts/run-e2e-bdd.ts
  */
 
 import { resolve } from "node:path";
+import { rmSync } from "node:fs";
 import type { Subprocess } from "bun";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const WORKER_DIR = resolve(ROOT, "apps/worker");
 const WEB_DIR = resolve(ROOT, "apps/web");
 const E2E_PORT = 17018;
+const PERSIST_DIR = resolve(WORKER_DIR, ".wrangler/e2e-bdd");
 const POLL_INTERVAL_MS = 500;
 const MAX_WAIT_MS = 60_000;
 
@@ -48,7 +53,7 @@ async function buildWebApp(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Step 2: Check port availability and spawn dev server
+// Step 2: Check port availability, clean persist dir, and spawn dev server
 // ---------------------------------------------------------------------------
 
 async function checkPortFree(): Promise<void> {
@@ -67,24 +72,33 @@ async function checkPortFree(): Promise<void> {
   }
 }
 
+function cleanPersistDir(): void {
+  rmSync(PERSIST_DIR, { recursive: true, force: true });
+  console.log(`  Cleaned persist dir: ${PERSIST_DIR}`);
+}
+
 function spawnDevServer(): Subprocess {
-  console.log(`\nStep 2: Starting wrangler dev --env test on port ${E2E_PORT}...`);
+  console.log(`\nStep 2: Starting wrangler dev --local on port ${E2E_PORT}...`);
+  cleanPersistDir();
 
   const proc = Bun.spawn(
     [
       "npx",
       "wrangler",
       "dev",
-      "--env",
-      "test",
+      "--local",
       "--port",
       String(E2E_PORT),
+      `--persist-to=${PERSIST_DIR}`,
+      "--var=ENVIRONMENT:test",
+      "--var=E2E_SKIP_AUTH:true",
     ],
     {
       cwd: WORKER_DIR,
       env: {
         ...process.env,
-        E2E_SKIP_AUTH: "true",
+        WRANGLER_LOG: "error",
+        NODE_ENV: "test",
       },
       stdout: "inherit",
       stderr: "inherit",
@@ -225,7 +239,7 @@ async function main(): Promise<void> {
   // Step 1: Build web app
   await buildWebApp();
 
-  // Step 2: Check port free, then spawn dev server
+  // Step 2: Check port free, clean persist dir, then spawn dev server
   await checkPortFree();
   const server = spawnDevServer();
 
