@@ -237,11 +237,9 @@ L1 单元测试 + G1 静态分析由 pre-commit 执行，G2 安全扫描由 pre-
 | G1 静态分析 | tsc + ESLint | pre-commit | 0 错误 / 0 警告 |
 | G2 安全扫描 | osv-scanner + gitleaks | pre-push | 0 漏洞 / 0 泄露 |
 
-L2 (API E2E) / L3 (Playwright) 当前仅 `apps/web_legacy` 留存历史套件，
-`legacy:test:e2e:*` 按需运行；worker 侧 L2 计划随 Wave B' 流式上传一起回归。
-
-L2 (API E2E) / L3 (Playwright BDD) 使用 `wrangler dev --local --persist-to` 全本地模拟
-（SQLite-backed D1/R2），零远程 CF 凭证依赖。通过 `_test_marker` 表验证安全性。
+L2 (`bun run test:e2e:api`) 和 L3 (`bun run test:e2e:bdd`) 使用 `wrangler dev --local --persist-to`
+全本地模拟（SQLite-backed D1/R2），零远程 CF 凭证依赖，通过 `_test_marker` 表验证安全性。
+Legacy `legacy:test:e2e:*` 是冻结的历史套件，按需运行。
 
 ## 📄 License
 
