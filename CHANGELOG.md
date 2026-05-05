@@ -5,6 +5,390 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-05-05
+
+### Added
+- Sync NEXT_PUBLIC_APP_VERSION in release script
+- Add test:e2e:bdd runner script
+- Add gate:pages static coverage check
+- Add logs BDD specs (/logs, /cron-logs)
+- Add backups BDD specs (/backups, /backups/:id)
+- Add projects BDD specs (/projects, /projects/new, /projects/:id)
+- Add dashboard BDD spec (/)
+- Add Playwright BDD config and fixtures
+- Add gate:routes static coverage check
+- Add webhook E2E tests (3 routes)
+- Add restore E2E test (1 route)
+- Add db E2E tests (3 routes)
+- Add live/ip-info/me E2E tests (3 routes)
+- Add stats E2E tests (2 routes)
+- Add logs E2E tests (4 routes)
+- Add cron E2E tests (2 routes)
+- Add backups E2E tests (9 routes)
+- Add categories E2E tests (5 routes)
+- Add projects E2E tests (7 routes)
+- Add shared E2E config module
+- Add test:e2e and test:e2e:api commands
+- Add L2 API E2E test runner and basic tests
+- Add _test_marker for E2E database isolation
+- Accept ?token= query param alongside Bearer header
+- Port Logs pages (D.9) — webhook logs + cron logs
+- Port Backups pages (D.8) — list, detail + json-tree-viewer
+- Port Projects pages (D.7) — list, new, detail + components
+- Port Dashboard page (D.6)
+- Port chart components (D.5) — activity, cron, project bars
+- Port layout components (D.4) — sidebar, app-shell, theme toggle, breadcrumbs
+- Port shadcn/ui primitives + cn helper (Wave D.3)
+- Api client + useMe + RequireAuth + AppLayout (Wave D.2)
+- Scaffold Vite SPA (Wave D.1)
+- Unit tests + coverage gate (Wave C.6)
+- Wire all @backy/api handlers + scheduled() cron (Wave C.4+C.5)
+- Types + Access auth + RuntimeContext middleware (Wave C.3)
+- D1 + R2 binding adapters for Cloudflare Worker host (Wave C.2)
+
+### Changed
+- Fix contradictory E2E description
+- Update test isolation references for --local mode
+- Replace --env test with --local --persist-to
+- Add root vitest config aggregating workspace test suites
+- Add vitest and @vitest/coverage-v8 as root devDependencies
+- Make TGZ header-bomb test deterministically cover the guard
+- Mark untestable race-condition branches with v8 ignore
+- Ratchet coverage thresholds to 95% for cli/web/worker
+- Fix overstated coverage claim in Wave D and checklist
+- Mark Wave D complete — all thresholds at 95%+
+- Add branch tests for version.ts/api.ts, ratchet branches to 95%
+- Add webhook POST auth-pass test, ratchet funcs to 95%
+- Mark Wave D as partial with remaining ratchet items
+- Mark Wave D complete in doc 08
+- Ratchet apps/web coverage to 98%
+- Ratchet apps/worker coverage to 95%
+- Ratchet packages/api coverage to 95%
+- Record Wave C fix commit in 08 coverage gates doc
+- Mark Wave C complete in doc 08
+- Add version verification to release workflow
+- Mark Wave B complete in doc 08
+- Enable L2 and L3 in CI workflow
+- Wire gate:routes and gate:pages to pre-commit
+- Add doc 07 and 08 to README index
+- Update Wave A completion with fix commit
+- Mark Wave A complete in doc 08
+- Fix HTML title language to match UI (backy - AI Backup Service)
+- 234-experiment session wrap-up (test_count 688 +6.2%; api 95.63% stmts / 91.66% branches)
+- Webhook.test: ADD 3 branch tests (HEAD/GET non-Error catches + POST empty file.name/.type defaults)
+- Webhook.test: ADD 3 non-Error-throw tests covering instanceof Error ?: fallback branches (lines 349, 384, 419)
+- D1-rest-adapter.test: NEW file, 14 tests covering retry matrix + UNIQUE-constraint detection + baseUrl/cred branches
+- Extractors.test: ADD tar-parse-error test (covers extract.on(error) handler with gunzipped non-tar bytes)
+- Extractors.test: ADD ZIP metadata-bomb defense test (overwrites declared uncompressedSize via CD-header byte surgery)
+- Extractors.test: ADD TGZ streaming-gunzip bomb-defense test (covers MAX_DECOMPRESSED_SIZE overflow)
+- 228-experiment milestone (test_count 665, +2.6% over baseline; api branches 85.24%\u219287.38%)
+- Logs.test: ADD page/pageSize fallback test (covers parseInt-NaN || N branches)
+- Projects.test: ADD 3 prompt-builder branch tests (plural hours, header (not set), webhook (not set))
+- Hosts.test: ADD string-overload test (covers typeof-string branch in isAllowedHost)
+- Access-auth.test: REVERT JWT-success vi.mock(jose) tests (flaky under contention)
+- Document worker workspace contention flake post-#214
+- Url.test: ADD 2 allowlist edge-case tests (malformed-URL + malformed-entry catch arms)
+- Url.test: ADD 3 tests covering IPv4/IPv6 literal safe paths + No-DNS-records branch
+- Live.test: ADD 2 tests (R2 non-Error + uptime null) closes live.ts to 100%
+- Logs.test: ADD all-comma excludeProjectIds test (covers splitCsv empty-after-filter branch)
+- Hosts.test: ADD isAllowedHost(env)-only test (covers ?? '' fallback)
+- Ip-info.test: ADD ECHO_API_KEY-unset test (covers ?? '' fallback)
+- Me-routes.test: NEW direct unit test (closes me.ts to 100% via mount-without-middleware)
+- Routes.test: ADD cron-trigger no-auth-header test (covers ?? null branch in cron.ts route)
+- Access-auth.test: ADD JWKS cache-hit test (closes line 30 coverage)
+- Access-auth.test: ADD JWT-verified-success path coverage via vi.hoisted toggle
+- 213-experiment final coverage snapshot (worker branches 91% \u2192 95.89%)
+- Ideas backlog (access-auth JWT-verified path coverage gap)
+- 213-experiment milestone (state notes deduplicated; coverage 85.24% \u2192 85.58% branches)
+- Categories.test: ADD partial-update-without-name test (covers ?? fallback)
+- Webhook-logs.test: ADD filters-by-errorCode test (closes lines 180-181 coverage)
+- 211-experiment marker
+- Webhook-logs.test: tighten 2 missed excludeProjectIds toContain to toEqual
+- 210-experiment milestone (ctx.ts 100% statements; 5 prod bugs surfaced)
+- Ctx.test: ADD comprehensive pickEnv test (closes ctx.ts to 100% statements)
+- Ctx.test: ADD NEXT_PUBLIC_APP_VERSION forwarding test (closes ctx.ts coverage gap)
+- 208-experiment milestone (2 misnamed tests fixed in this session)
+- Routes.test: rename misleading me-401 test (was always asserting 500)
+- Ideas backlog (enforceIpRestriction dead code)
+- 207-experiment milestone (worker coverage 91% \u2192 93.83% branches)
+- Routes.test: ADD malformed-JSON tests for PUT /api/categories+/api/projects (completes catch-arrow matrix)
+- 205-experiment milestone (closing apps/worker route coverage gaps)
+- Routes.test: ADD malformed-JSON test for /api/projects (symmetric to categories)
+- Routes.test: ADD malformed-JSON test for /api/categories (covers catch arrow)
+- Routes.test: ADD webhook environment-query test (closes routes/webhook.ts coverage gap)
+- 202-experiment milestone (closing worker routes coverage gap)
+- Routes.test: ADD backups query-param test (closes routes/backups.ts coverage gap)
+- Projects.test: tighten create-201 to verify positional-args call-shape
+- 200-experiment milestone (round number wrap-up)
+- Categories.test: tighten create-201 to verify parsed-input forwarding
+- 199-experiment milestone (RequireAuth no-children-leak + ip-info default-fetcher contracts)
+- Auth-render.test: tighten loading-state to assert no children-leak
+- Auth-render.test: tighten renders-children to assert no wrapper-shell leak
+- Ip-info.test: tighten default-fetcher to pin URL+headers+body contracts
+- 196-experiment milestone (cron shouldTrigger both branches covered)
+- Cron.test: ADD real not-due-this-hour test using fake timers (closes coverage gap)
+- Cron.test: rename misleading 'not due this hour' to 'invalid interval' (documents actual branch)
+- 194-experiment milestone (cron no-retry contract symmetry across 4 failure paths)
+- Cron.test: tighten one-shot-fetch-throw to verify no-retry; full no-retry contract symmetry
+- Cron.test: tighten one-shot-failed-5xx to verify no-retry contract
+- Cron.test: tighten counts-fetch-throw to verify no-retry contract
+- Cron.test: tighten counts-non-2xx to verify no-retry (fetchCount=1) contract
+- 190-experiment milestone (cron URL+method+header forwarding contracts pinned)
+- Cron.test: tighten one-shot-success to verify POST method
+- Cron.test: tighten triggers-success to verify POST method
+- Cron.test: tighten one-shot-success to verify outbound URL targeting
+- Cron.test: tighten triggers-success to verify outbound URL targeting
+- 186-experiment milestone (state notes refresh)
+- Ip-info.test: ADD 503 not-configured test (covers previously-untested path)
+- 185-experiment milestone (cron auth-header forwarding contracts pinned)
+- Cron.test: tighten one-shot-success to verify outbound auth-header forwarding
+- Cron.test: tighten triggers-successfully to verify outbound auth-header forwarding
+- 183-experiment milestone (added isLocalhost vuln + state notes)
+- Is-localhost.test: ADD IPv4-form 127.0.0.1.evil.com vulnerability test
+- Is-localhost.test: ADD security test surfacing startsWith vulnerability
+- Access-auth.test: ADD 2 security tests for E2E_SKIP_AUTH exact-string bypass contract
+- 180-experiment milestone (state notes refresh; deduplicated)
+- Categories.test: tighten last list-500 status-only test (full body-coverage achieved)
+- Cron.test: ADD .not.toHaveProperty(results) for omit-when-empty contract documentation
+- Logs.test: tighten listWebhookLogs 200-default to verbatim pass-through
+- Db.test: tighten dbInit-500 to pin generic Schema-initialization-failed body (no error.message leak)
+- Db.test: tighten seed-403 to pin no-info-leak Forbidden message
+- Projects.test: tighten prompt 200 to verify project-name interpolation + no-extras body shape
+- Unify HTML title to "backy - AI 备份服务"
+- Handler-response.test: ADD bytes-with-extra-headers test (covers Content-Disposition contract)
+- Handler-response.test: ADD user-content-type-wins test (spread-order contract)
+- Storage.test: tighten generatePreviewKey auto-timestamp to full-shape regex
+- 170-experiment milestone (state notes refresh; 100% body-coverage achieved)
+- Categories.test: tighten 3 500-status-only tests; categories handler 100% body-coverage
+- Handler-response.test: ADD empty-with-headers test (surfaces real toResponse() bug, logged in ideas)
+- Projects.test: tighten updateProject 200 to assert sanitization contract (no webhook_token leak)
+- Projects.test: tighten 2 updateProject 400 tests (invalid-CIDR + unsafe-webhook bodies)
+- Projects.test: tighten last 2 404-status-only tests; projects handler 100% body-coverage
+- Ideas backlog refresh (distinct-error consistency, partial-envelope heuristic)
+- Restore.test: tighten last 500-status-only test; restoreHandler 100% body-coverage
+- Restore.test: consolidate 5 200-presigned property checks into full envelope toEqual
+- Webhook.test: consolidate environment-filter test (full envelope + forwarded-options contract)
+- Webhook.test: consolidate 4 webhookGet body property checks into full envelope toEqual
+- Webhook-logs.test: tighten 2 console.error assertions to pin prefix string (log-aggregation contract)
+- Db.test: tighten 2 seed-branch toMatchObject to full toEqual (pin TEST_PROJECT id+token)
+- Id.test: tighten URL-safe-chars regex to also pin length (defense-in-depth)
+- Access-auth.test: tighten 6 public-path tests to verify reached-downstream contract
+- Cli/index.test: tighten 4 toContain partial assertions to exact toBe placeholder strings
+- Categories+live: tighten last 2 status-only tests; packages/api/handlers/* now 100% body-coverage
+- Projects.test: tighten 8 500-status tests to distinct user-facing error messages
+- Hosts.test: tighten 2 partial-membership tests to full Set + add positive complementary checks
+- Webhook.test: tighten 2 201 success-path tests (zip key+contentType, senderIp surrounding context)
+- Routes.test: tighten cron-trigger 200 to full envelope (documents omit-results-when-empty)
+- Routes.test: tighten seed-test-project status-only to full TEST_PROJECT created envelope
+- 150-experiment milestone (state notes refresh)
+- Routes.test: tighten D1-propagate test to assert sanitizeProject integration contract
+- Routes.test: tighten 5 webhook+ctx-env tests (HEAD empty-body + 401/404 body shapes)
+- Routes.test: tighten 5 more status-only tests (204 No-Content body-empty contract)
+- Routes.test: tighten 13 4xx tests; documents Hono missing-handler default-404 plain-text contract
+- Routes.test: tighten 7 status-only 401/400/404/500 tests to full body shape
+- Auth-render.test: consolidate 4 useMe-default property checks into single toMatchObject
+- Access-auth.test: tighten 3 NOT-public tests to pin Access-misconfig body (proves matcher reached accessAuth)
+- Access-auth.test: tighten 2 401 tests to pin no-info-leak Unauthorized contract
+- Routes.test: tighten /api/live to full envelope toMatchObject (catches snake-case drift)
+- Webhook.test: tighten 5 webhookPost 4xx/5xx tests; webhook handlers now 100% body-coverage on errors
+- Webhook.test: tighten 6 webhookGet+Post 4xx/5xx tests with no-info-leak error contracts
+- Webhook.test: tighten 4 status-only tests (HEAD-500 empty + GET 401/403/403 with no-info-leak msgs)
+- Categories.test: consolidate 2 .toBeDefined into stronger toMatchObject (preserves test isolation)
+- Backups.test: tighten 2 .toBeDefined to toMatchObject (documents application/zip archive contract)
+- Sanitize.test: ADD positive allowlist test (catches future sensitive-field regressions)
+- Stats.test: tighten 2 500-status tests to distinct error messages (full body-coverage)
+- Refresh state notes (134 experiments, handlers/backups.ts 100% body-coverage)
+- Backups.test: tighten 5 final status-only tests; handlers/backups.ts now 100% body-coverage
+- Backups.test: tighten 5 extractBackup status-only tests (incl. templated size-limit reason)
+- Backups.test: tighten 6 previewBackup status-only tests; discover dead null-body branch
+- Backups.test: tighten 3 downloadBackup status-only tests (404 + 2x500 share generic error)
+- Backups.test: tighten 400-invalid-env + 500-createBackup-throw (documents outer-catch generic-error contract)
+- Backups.test: tighten 7 uploadBackup + deleteBackup status-only tests to body shape (incl. MAX_FILE_SIZE pin)
+- Backups.test: tighten 4 status-only tests (batchDelete + getBackup-500) incl. R2-non-fatal contract
+- Backups.test: tighten 4 batchDelete + list-500 status-only tests to full body shape (2 distinct error msgs)
+- Webhook.test: tighten createBackup arg from 4 boolean-only checks to single toMatchObject with 3 extra fields
+- Handlers/logs.test: tighten 3 more cron handler tests (listCron-500, deleteCron-204+kind, deleteCron-500) to full body shape
+- Handlers/logs.test: tighten 5 status-only tests (deleteWebhook + listCron + 500s) to full body shape
+- Dashboard.test: tighten formatBytes clamp to exact toBe('1048576 TB')
+- Charts.test: tighten 2 regex matches to exact toBe (formatBytes clamp + getChartColor negative-fallback)
+- Lib-coverage.test: tighten 2 pagination indexed-position checks to full toEqual arrays
+- Storage.test: replace 2 .not.toContain with positive regex pinning dashes-only timestamp shape
+- Extractors.test: tighten 'not size-limited' to positive exact reason (keep negative 'no limit' contract)
+- Live.test: tighten sanitizes-ok from .not.toContain to exact toBe (positive sanitizer contract)
+- Categories.test: tighten listCategories SQL toContain to full toBe + empty params toEqual
+- Routes.test: tighten 2 toMatch(/i) regex assertions to full toEqual body envelopes
+- Url.test: tighten 6 SSRF reason toContain to full toBe templated copy (incl. brackets-in-IPv6-host contract)
+- Extractors.test: tighten 3 TGZ tests to full toBe reason (incl. parse-order contract: gunzip-before-tar)
+- Extractors.test: tighten 7 partial reason toContain checks to full toBe exact user-facing copy
+- Cron-logs.test: tighten 7 partial param toContain checks to exact toEqual arrays (pins binding order)
+- Lib-coverage.test: tighten reload-on-401 to case-sensitive 'Redirecting to login\u2026' check
+- Auth-render.test: tighten 4 toLowerCase().toContain checks to case-sensitive exact UI text
+- Webhook-logs.test: tighten 5 more partial param toContain checks to exact toEqual arrays (pins binding order)
+- Webhook-logs.test: tighten 4 partial param toContain checks to exact toEqual arrays
+- Ctx.test: tighten env-key set-membership to full sorted toEqual (pins pickEnv allowlist contract)
+- Db.test: tighten getTestMarker error-path to full {marker:null,error} envelope
+- Db.test: tighten 4 handler tests (seed-500, seed-resets, getTestMarker x2) to full body shape
+- Db.test: tighten 'seed creates' from partial body.action to full toEqual incl. projectId+webhookToken
+- Categories handler tests: tighten 5 status-only tests (list/create/get) to body shape + Zod fieldErrors
+- Projects.test: tighten updateProject 400-schema-violation to error envelope with failing field path
+- 100-experiment milestone (state notes refresh)
+- Projects.test: tighten createProject 400-invalid-input to error envelope shape with fieldErrors path
+- Cron.test: tighten cronTriggerOneHandler 500-getProject-throws to body shape
+- Cron.test: tighten 4 cronTriggerHandler error tests (500/401/401/500) to full body shape (no-info-leak contract on 401)
+- Restore.test: tighten last 2 403 tests (IP-null + query-token-mismatch) to full body shape
+- Restore.test: tighten 3 403 tests to pin no-info-leak error messages (security contract)
+- Restore.test: tighten 3 status-only tests (401 no-auth, 401 not-Bearer, 404 missing) to full body shape
+- Backups.test: tighten 2 getBackupHandler tests (200-found row pass-through + 404 error body)
+- Backups.test: tighten 3 deleteBackupHandler tests (R2 deletes + body shape + non-fatal contract)
+- Auth-render.test: tighten error-state to pin joined 'Failed to load session: boom' line
+- Categories.test: tighten deleteCategory to full SQL toBe + params toEqual
+- Categories.test: tighten updateCategory 'all fields' to full row+SQL+params (with updated_at consistency check)
+- Categories.test: tighten getCategory to full result toEqual + full SQL toBe + params toEqual
+- Refresh state notes after #71-#87 quality batch
+- Restore.test: tighten 2 200-status tests (query-token + Bearer-precedence) to assert presign side effects
+- Projects.test: tighten regenerateTokenHandler '200' to full body shape (no extra fields)
+- Cron.test: tighten last 2 cronTriggerHandler tests (DNS-fail + thrown-fetch) to full counter shape
+- Cron.test: tighten 4 cronTriggerHandler summary tests to full counter shape (catches mis-categorization)
+- Ip-info.test: tighten 4 handler tests to full body shape (error messages + upstream pass-through)
+- Live.test: tighten 2 liveCheckHandler tests to full body envelope (200 up-up + 503 d1-down isolation)
+- Cron.test: tighten 2 cronTriggerOneHandler error-path tests (404+400) to full body shape
+- Categories.test: tighten createCategory 'all fields' to full SQL toBe + params toEqual
+- Cron.test: tighten 'failed when fetch throws' to full body shape (no responseCode field)
+- Cron.test: tighten 2 cronTriggerOneHandler tests (success+fetch-fail) to full body shape with responseCode + raw error body
+- Cron.test: tighten 2 cronTriggerOneHandler failure-path tests to assert the surfaced error message
+- Stats.test: tighten 3 handler tests to full toEqual body (snake\u2192camel mapping + empty defaults + charts shape)
+- Cron.test: tighten 2 cronTriggerHandler tests to full summary toEqual (total+triggered+skipped+failed)
+- Db.test: fix 'seed verifies clean existing' fixture (name drift made it silently exercise 'reset' branch)
+- Db.test: tighten dbInitHandler '200' to body shape ({ok:true, message})
+- Projects.test: tighten 3 updateProjectHandler tests to capture+assert forwarded patch object
+- Backups.test: tighten 2 extractBackupHandler '200' tests to verify side effects + body shape
+- Refresh state notes after quality batch (#50-#70)
+- Backups.test: tighten previewBackupHandler '200' to full body toEqual including parsed JSON
+- Restore.test: fix presignDownload mock dropping ttl arg + tighten '200 url' to assert TTL forwarding
+- Backups.test: tighten downloadBackupHandler '200' to assert ttl forwarding + body shape; fix adapter mock dropping ttl arg
+- Backups.test: tighten batchDeleteBackupsHandler '200 success' to capture R2 deletes + assert body shape
+- Backups.test: tighten 2 upload-handler 201 tests to capture R2 uploads (count + content-type + key prefix)
+- Backups.test: tighten 3 listBackupsHandler status-only tests to positively assert forwarded args / clamp / fallback
+- Logs.test (cron path): tighten '200 with valid status' to full toEqual on parsed filter
+- Logs.test: tighten 'all filters parsed' from 6 partial checks to full toEqual on parsed filter object
+- Projects.test: positively assert webhook_token IS exposed in create response (one-time disclosure) and IS NOT in get response (sanitization gate)
+- Projects.test: tighten listProjectsHandler sanitization to full literal-shape toEqual
+- Webhook.test: tighten recent_backups sanitization assertion to full toEqual on sanitized array
+- Webhook-logs+cron-logs: tighten 2 paginated-list tests to full toEqual on mock fixture
+- Categories.test: tighten listCategories from toHaveLength+id checks to full toEqual(mockData)
+- R2-binding-adapter.test: tighten presignDownload spy from toHaveBeenCalledTimes to toHaveBeenCalledExactlyOnceWith
+- Ctx.test: tighten presignDownload R2 URL to full SigV4 regex (was 2 toContain)
+- Backups.test (web): tighten 3 generatePageNumbers tests to full toEqual on the deterministic array
+- Projects.test: tighten 3 prompt-builder toContain assertions to specific markdown anchors
+- Backups.test: tighten restoreCommandHandler 3 toContain to exact toBe equality
+- Scan-weak-tests: detect vacuous union-narrow `if (X.kind === \"...\") { expect... }` without preceding kind guard
+- Handler tests: add explicit r.kind assertion before union-narrowing if-blocks (11 spots in restore/backups/webhook/cron)
+- Routes.test: tighten /db/init/marker from toHaveProperty to toEqual({marker:null})
+- Storage.test: tighten 'auto-generates timestamp' to full-shape regex (was length+prefix+suffix triplet)
+- Categories+sanitize tests: tighten 5 toBeDefined() to format/equality checks
+- Routes.test: tighten 5 list-endpoint smoke tests with full toEqual body shape
+- Refresh state with final session numbers
+- Scan-weak-tests: strip comments + string contents before regex (avoids false positives from English `test`/`it` in comments)
+- Refresh ideas backlog
+- Storage.test: use fake timers for 'defaults to current time' (replaces \u00b11ms time-window assertion with exact equality)
+- Worker setup: add net guard + dns mock (mirrors api safety net)
+- Refresh state notes
+- Api setup: add loud-failing globalThis.fetch net guard (defensive, prevents accidental real fetch escapes)
+- Scan-weak-tests: detect vacuous try/catch (no throw guard before catch with expects)
+- Api.test: fix vacuous-pass try/catch in ApiError text/json-parse branches (use rejects.toMatchObject)
+- Categories.test: assert exact 21-char nanoid format on createCategory id (was .length>0)
+- Routes.test: tighten last 2 webhook auth-precedence OR assertions to 401
+- Routes.test: tighten 7 more OR-of-statuses to deterministic 401/404/400
+- Routes.test: deterministic db/init + db/seed-test-project (was [200,500] OR)
+- Routes.test: deterministic /api/live (200 + dependencies.{d1,r2}.up)
+- Routes.test: deterministic stats/totals + stats/charts assertions (was [200,500] OR)
+- Routes.test: replace flaky ip-info smoke (real .example DNS) with deterministic 503/400 assertions
+- Hoist node:dns mock to setupFiles (fixes isolate:false module-cache race that left real DNS in the cache)
+- Routes.test: explicit assertion on cron-success path; weak_tests \u2192 0
+- Webhook-logs: assert exact error logged + non-throwing resolution (replace weak toHaveBeenCalled())
+- Sweep surface tests + heavy page imports across backups/logs/dashboard/auth; harden TZ-stable assertions
+- Trim layout.test.ts surface tests + heavy radix imports
+- Vitest 4 migration: maxWorkers:1, isolate:false (top-level)
+- Api+worker: pool=threads singleThread, isolate:false; benchmark: add warmup run
+- Pool=threads singleThread, isolate:false
+- Parallelize workspace test runs (& wait)
+- 4 workspaces (web 12/75 + api 26/488 + worker 5/80 + cli 1/5 = 44 files / 648 cases)
+- Gitignore wrangler state
+- Scaffold UT quality session
+- Update CLAUDE.md for local E2E architecture
+- Add L2 API E2E to pre-push
+- Simplify [env.test] for local-only E2E
+- Standardize release workflow to dove template
+- Pin accountId + explicit --env="" for wrangler
+- Auto-deploy worker to Cloudflare on push-to-main
+- Cover RequireAuth reload effect + pagination edge branches
+- Migrate to vitest; wire vitest coverage into root G1 (M.4)
+- Migrate to vitest + happy-dom (M.3)
+- Migrate apps/worker to vitest 4 (M.2)
+- Migrate packages/api to vitest 4 (M.1)
+- Wire prod (backy) + test (backy-test) workers (E.2)
+- Mark Wave E.1 ✅ — root scripts detached from web_legacy (E.1f)
+- Sync CLAUDE.md + README.md to new Vite/Worker stack (E.1e)
+- Refresh comment block and point osv-config at root (E.1d)
+- Pre-push runs only G2 after legacy L2 detach (E.1c)
+- Cut over root scripts from web_legacy to apps/web + apps/worker (E.1b)
+- Relocate root-level tooling out of web_legacy (E.1a)
+- Mark Wave D ✅ complete (D.1–D.12)
+- Coverage gate ≥90% for src/lib/** (D.11)
+- Wire apps/web into root scripts (D.10)
+- Mark Wave D.1–D.3 complete
+- Wire apps/worker into root scripts + mark Wave C ✅
+- Scaffold Hono + Cloudflare Workers app (Wave C.1)
+- Wave B — RuntimeContext DI for portable handlers
+- Rename apps/web → apps/web_legacy, scaffold new apps/web + apps/worker
+- Include /api/ip path in stubbed ECHO_API_URL
+- Make ip-info url assertion env-independent
+- Allowlist E2E test fixture token via .gitleaks.toml
+- Add base-ci quality workflow (L1+G1+G2)
+
+### Fixed
+- Make wrangler.toml version sync fatal in release script
+- Isolate BDD backup fixture and strengthen assertions
+- Use role-based locators and add port-safety to BDD runner
+- Align BDD specs with actual DOM and API contracts
+- Align API tests with actual handler contracts
+- Replace high-entropy mock webhook token with low-entropy placeholder
+- Remove 5 unused eslint-disable-next-line directives in webhook.test.ts
+- Adapt E2E runner and tests to backy API format
+- Use gitleaks protect --staged in pre-commit context
+- Add eslint config for apps/cli
+- Add gate:secrets/gate:deps split and update hooks
+- Correct logo path in README
+- Correct collapsed logo padding to pl-6 per B02-2c
+- Migrate shadcn L3 controls from bg-input/border-input to basalt tokens
+- Declare tw-animate-css dep; CI install lacks repo-root hoist
+- Declare typescript-eslint dep; CI install lacks repo-root hoist
+- Inject root pkg version + rotate CF Access AUD
+- Align fetch URLs with worker contracts + persist cleared description
+- Wire R2 presign config into wrangler.toml
+- Preserve legacy backups API contract
+- Address Wave B review
+- Point release script and root docs at apps/web_legacy
+- Preload env stubs for apps/web unit tests on CI
+- Declare @types/node devDep explicitly
+
+### Removed
+- Remove [env.test] from wrangler.toml
+- Remove basic.test.ts (superseded by domain files)
+- Ip-info.test: FIX 2 tests (delete env.X to actually trigger ?? '' fallback)
+- Routes.test: ADD malformed-JSON test for DELETE /api/logs/webhook (catch-arrow coverage)
+- Categories handler tests: tighten 5 update+delete tests (200/400/404) to body shape
+- Projects.test: tighten 3 delete+regenerate tests (200/404) to full body shape
+- Webhook.test: remove silent contentType default in adapter mock so tests can detect undefined pass-through
+- Worker setup: drop unused node:dns mock; keep net guard only
+- Routes.test: deterministic cron/trigger/:id 404 + DELETE /api/logs/{webhook,cron}
+- Delete ui.test.ts radix-ui surface smoke (was slowest single web test, 159ms)
+- Charts.test.ts: remove recharts surface assertions; tighten getChartColor negative test
+- Deterministic auth-render loading test + simplify projects.test.ts (drop 7 surface tests)
+- Url.test: stub node:dns to remove real DNS calls (stability)
+- Delete trivial scaffold.test.ts (302ms surface-only test)
+- Remove duplicate health.test.ts (covered by @backy/api)
+
 ## [1.8.0] - 2026-04-23
 
 ### Changed
