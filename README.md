@@ -240,8 +240,8 @@ L1 单元测试 + G1 静态分析由 pre-commit 执行，G2 安全扫描由 pre-
 L2 (API E2E) / L3 (Playwright) 当前仅 `apps/web_legacy` 留存历史套件，
 `legacy:test:e2e:*` 按需运行；worker 侧 L2 计划随 Wave B' 流式上传一起回归。
 
-E2E 测试使用**独立的测试资源**（D1: `backy-db-test`，R2: `backy-test`），通过
-`.env.test` 覆盖生产凭据，确保测试永远不会触及生产数据。
+L2 (API E2E) / L3 (Playwright BDD) 使用 `wrangler dev --local --persist-to` 全本地模拟
+（SQLite-backed D1/R2），零远程 CF 凭证依赖。通过 `_test_marker` 表验证安全性。
 
 ## 📄 License
 

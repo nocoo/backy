@@ -1,5 +1,7 @@
 # 05 — Test Resource Isolation: Dedicated D1 + R2 for E2E
 
+> **⚠️ SUPERSEDED** — This document describes the original remote D1/R2 isolation plan. As of 2026-05, E2E tests use `wrangler dev --local --persist-to` with fully local SQLite-backed bindings. No remote `backy-db-test` or `backy-test` bucket is needed. See `CLAUDE.md` "Test Resource Isolation" for the current mechanism.
+
 > Standardize Cloudflare resource naming. Separate production and test resources. Ensure no E2E test can corrupt production data.
 
 ## Background

@@ -34,7 +34,7 @@ packages/
 scripts/
   gate-security.ts         # G2 security gate (osv-scanner + gitleaks)
   release.ts               # Version bump + CHANGELOG + GitHub release
-  run-e2e.ts               # L2 E2E runner (wrangler dev --env test lifecycle)
+  run-e2e.ts               # L2 E2E runner (wrangler dev --local lifecycle)
 e2e/
   api/                     # L2 API E2E tests (bun test against local wrangler)
 osv-scanner.toml           # G2 osv-scanner config
@@ -84,7 +84,7 @@ apps/worker/
     __tests__/             # bun test (access-auth, ctx, handler-response, is-localhost, routes)
     index.ts               # Hono app + scheduled() cron handler
   static/                  # vite build output drops here (gitignored, served via [assets] binding)
-  wrangler.toml            # name, compatibility_date, D1/R2 bindings, [env.test], cron triggers
+  wrangler.toml            # name, compatibility_date, D1/R2 bindings, cron triggers
   scripts/check-coverage.ts
 ```
 
@@ -122,7 +122,7 @@ packages/api/
 |---|---|
 | Vite dev server | 7019 |
 | Wrangler dev (worker) | 7018 |
-| L2 API E2E (wrangler --env test) | 17018 |
+| L2 API E2E (wrangler --local) | 17018 |
 | Legacy Next.js dev | 7017 |
 | Legacy L2 API E2E | 17017 |
 | Legacy L3 BDD E2E | 27017 |
@@ -155,14 +155,14 @@ bun run legacy:test:e2e:api  # legacy L2 (port 17017) — superseded by test:e2e
 
 ## Test Resource Isolation
 
-L2 E2E tests use **local SQLite** via `wrangler dev --env test` — no remote D1/R2 deployment needed.
+L2 E2E tests use **local SQLite** via `wrangler dev --local --persist-to` — no remote D1/R2 deployment needed.
 
 | Resource | Production | Test (local) |
 |---|---|---|
-| D1 database | `backy-db` (remote) | `.wrangler/state/` (local SQLite) |
-| R2 bucket | `backy` (remote) | `.wrangler/state/` (local) |
+| D1 database | `backy-db` (remote) | `.wrangler/e2e-api/` (local SQLite) |
+| R2 bucket | `backy` (remote) | `.wrangler/e2e-api/` (local) |
 
-**Mechanism:** `apps/worker/wrangler.toml` `[env.test]` declares separate D1/R2 bindings with placeholder IDs (never deployed). `scripts/run-e2e.ts` spawns `wrangler dev --env test --port 17018`, waits for `/api/live`, initializes schema via `POST /api/db/init`, verifies `_test_marker` (safety check), runs tests, then kills the server.
+**Mechanism:** `scripts/run-e2e.ts` cleans the persist dir, spawns `wrangler dev --local --persist-to=.wrangler/e2e-api --port 17018 --var=ENVIRONMENT:test --var=E2E_SKIP_AUTH:true`, waits for `/api/live`, initializes schema via `POST /api/db/init`, verifies `_test_marker` (safety check), runs tests, then kills the server. L3 BDD uses `.wrangler/e2e-bdd/` for isolation.
 
 **Safety:** The `_test_marker` table with value `e2e-test-db` is inserted during schema init. The E2E runner refuses to proceed if this marker is missing or wrong — prevents accidentally running tests against production D1.
 
@@ -187,7 +187,7 @@ The script auto-detects project name and CHANGELOG format, then: bumps version �
 
 - **AWS SDK v3 Body is not ReadableStream**: When using `@aws-sdk/client-s3` `GetObjectCommand`, the `response.Body` is a `SdkStreamMixin` (not a Web `ReadableStream`). Must use `body.transformToByteArray()` or `body.transformToString()` instead of `body.getReader()`. This caused 500 errors in preview and extract routes — caught by E2E.
 - **Bun's `typeof fetch` requires `preconnect`**: When mocking `globalThis.fetch` in Bun tests, the type includes a `preconnect` property. Use a helper function that adds `fn.preconnect = () => {}` to satisfy the type.
-- **E2E self-bootstrap pattern**: The `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`) is auto-seeded in the test D1 (`backy-db-test`) via `POST /api/db/seed-test-project`. Tests upload real data to test R2 (`backy-test`), verify round-trip, then clean up. Uses `E2E_SKIP_AUTH=true` to bypass OAuth. Test resources are isolated from production — see "Test Resource Isolation" section.
+- **E2E self-bootstrap pattern**: The `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`) is auto-seeded in the local D1 via `POST /api/db/seed-test-project`. Tests upload real data to local R2, verify round-trip, then clean up. Uses `E2E_SKIP_AUTH=true` (passed via `--var`) to bypass OAuth. All bindings are local SQLite — see "Test Resource Isolation" section.
 - **D1 timeout (error 7429) needs retry**: Cloudflare D1 HTTP API can return transient `7429` timeout errors (`D1 DB storage operation exceeded timeout which caused object to be reset.`) even for simple INSERT queries. Without retry logic, this causes 500s in the webhook POST endpoint. Fixed by adding exponential backoff retry (3 attempts, 500/1000/2000ms) to `executeD1Query` in `d1-client.ts`.
 - **Schema migration ordering: indexes on migration columns**: When `initializeSchema` creates indexes in `SCHEMA_SQL` that reference columns added by later `ALTER TABLE` migrations, existing databases fail with `SQLITE_ERROR: no such column`. Fix: indexes depending on migration columns must execute *after* the migration, not in the main `SCHEMA_SQL` block.
 - **Next.js `.next/dev/lock` prevents parallel instances**: Two Next.js dev servers sharing the same project directory will conflict on `.next/dev/lock` even on different ports. The E2E runner must clean stale lock files before starting its own server on a dedicated port (17017). Never rely on detecting/reusing an existing dev server — always start a fresh one with known env vars.

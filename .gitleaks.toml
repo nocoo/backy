@@ -1,9 +1,9 @@
 # Gitleaks config — allowlist E2E test fixtures and their documentation.
 #
 # The webhook token below is a permanent, intentional fixture for the
-# `backy-test` project (in our isolated test D1/R2). It is not a real
-# secret — it only authorizes uploads to the test bucket which is
-# wiped routinely. We commit it so contributors and CI can run E2E
+# `backy-test` project (in our isolated local D1/R2). It is not a real
+# secret — it only authorizes uploads to the local test database which
+# is wiped on each E2E run. We commit it so contributors can run E2E
 # tests without provisioning a fresh token each time.
 
 title = "backy gitleaks config"
