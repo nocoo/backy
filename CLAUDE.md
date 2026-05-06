@@ -36,7 +36,7 @@ scripts/
   release.ts               # Version bump + CHANGELOG + GitHub release
   run-e2e.ts               # L2 E2E runner (wrangler dev --local lifecycle)
 e2e/
-  api/                     # L2 API E2E tests (bun test against local wrangler)
+  api/                     # L2 API E2E tests (vitest run against local wrangler)
 osv-scanner.toml           # G2 osv-scanner config
 .gitleaks.toml             # G2 gitleaks config
 ```
@@ -48,7 +48,7 @@ The root `package.json` fans out to `apps/web`, `apps/worker`,
 runs `vite build` which writes the SPA bundle into `apps/worker/static/`
 (gitignored) so `wrangler deploy` ships frontend + API in one Worker.
 
-`apps/web_legacy` is no longer touched by `bun dev` / `bun test` /
+`apps/web_legacy` is no longer touched by `bun dev` / `vitest run` /
 `bun run gate:security`; it's reachable only via `legacy:*` aliases
 (`legacy:dev`, `legacy:test:coverage`, `legacy:test:e2e:api`, etc.) and
 can be deleted whenever its history isn't needed for reference.
@@ -65,7 +65,7 @@ apps/web/
       ui/                  # shadcn/ui primitives (cn helper, badges, dialogs, …)
     hooks/                 # useIsMobile etc.
     lib/                   # api fetcher (swrFetcher), formatters, utils
-    __tests__/             # bun test + happy-dom (api/auth/backups/charts/dashboard/layout/logs/projects/scaffold/ui)
+    __tests__/             # vitest + happy-dom (api/auth/backups/charts/dashboard/layout/logs/projects/scaffold/ui)
     App.tsx                # react-router routes
     AppLayout.tsx          # shell wrapper
     main.tsx               # vite entry
@@ -81,7 +81,7 @@ apps/worker/
     routes/                # backups / categories / cron / db / ip-info / live / logs / me / projects / restore / stats / webhook
     middleware/            # accessAuth (CF Access JWT), ctx (D1/R2 bindings → RuntimeContext)
     lib/                   # is-localhost, handler-response adapter
-    __tests__/             # bun test (access-auth, ctx, handler-response, is-localhost, routes)
+    __tests__/             # vitest (access-auth, ctx, handler-response, is-localhost, routes)
     index.ts               # Hono app + scheduled() cron handler
   static/                  # vite build output drops here (gitignored, served via [assets] binding)
   wrangler.toml            # name, compatibility_date, D1/R2 bindings, cron triggers
@@ -95,15 +95,15 @@ packages/api/
   src/
     handlers/              # backups, projects, logs, stats, webhook, restore, etc.
     lib/                   # runtime context (D1/R2/env), id generation, sanitize, hosts, ip
-    __tests__/             # bun test
+    __tests__/             # vitest
 ```
 
 ## Quality System (3 Test Layers + 2 Gates)
 
 | Layer | Tool | Script | Trigger | Requirement |
 |---|---|---|---|---|
-| L1 Unit | bun test | `bun run test:coverage` | pre-commit | 90%+ coverage on `src/lib/**` |
-| L2 Integration/API | bun test + wrangler dev | `bun run test:e2e:api` | pre-push | 8 tests (local SQLite) |
+| L1 Unit | vitest | `bun run test:coverage` | pre-commit | 90%+ coverage on `src/lib/**` |
+| L2 Integration/API | vitest + wrangler dev | `bun run test:e2e:api` | pre-push | 8 tests (local SQLite) |
 | L3 System/E2E | Playwright (legacy only) | `bun run legacy:test:e2e:bdd` | on-demand | 5 specs, returns with Wave B' |
 | G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings (`--max-warnings 0`) |
 | G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
@@ -141,7 +141,7 @@ All commands run from the repo root.
 bun dev                    # wrangler dev (7018) + vite (7019) in parallel
 bun run build              # vite build → apps/worker/static/
 bun run worker:deploy      # wrangler deploy
-bun test                   # all workspaces (web + worker + api + cli)
+vitest run                 # all workspaces (web + worker + api + cli)
 bun run test:coverage      # web + worker + api with 90% gate
 bun run test:e2e:api       # L2 API E2E (local SQLite, port 17018)
 bun run typecheck          # tsc --noEmit across all workspaces
