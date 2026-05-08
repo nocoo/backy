@@ -15,6 +15,12 @@ useDefault = true
 description = "E2E test fixtures (backy-test webhook token) + non-secret CF Access AUD"
 paths = [
   '''packages/api/src/lib/test-project\.ts''',
+  '''src/lib/test-project\.ts''',
+  '''packages/api/src/__tests__/handlers/db\.test\.ts''',
+  '''apps/worker/src/__tests__/routes\.test\.ts''',
+  '''e2e/api/config\.ts''',
+  '''scripts/e2e-tests\.ts''',
+  '''apps/worker/\.wrangler/tmp/''',
   '''docs/05-test-resource-isolation\.md''',
   '''apps/worker/wrangler\.toml''',
   '''docs/07-vite-web-migration-plan\.md''',
