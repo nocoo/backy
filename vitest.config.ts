@@ -41,7 +41,6 @@ export default defineConfig({
         "**/types.ts",
         "**/hooks/**",
         "**/e2e/**",
-        "apps/web_legacy/**",
         "**/*auth*",
         "**/*Auth*",
         "packages/api/src/runtime.ts",

@@ -1,9 +1,6 @@
 import type { HandlerResponse } from "@backy/api/http";
 
-/**
- * Translate a framework-agnostic HandlerResponse into a Fetch Response.
- * Mirrors the legacy adapter at `apps/web_legacy/src/lib/handler-response.ts`.
- */
+/** Translate a framework-agnostic HandlerResponse into a Fetch Response. */
 export function toResponse(r: HandlerResponse): Response {
   switch (r.kind) {
     case "json":

@@ -27,7 +27,6 @@ This is a **Bun monorepo** (`workspaces: ["apps/*", "packages/*"]`).
 apps/
   web/                     # @backy/web — Vite + React 19 SPA (production frontend)
   worker/                  # @backy/worker — Hono on Cloudflare Workers (API + cron + assets host)
-  web_legacy/              # @backy/web-legacy — frozen Next.js snapshot (deletion pending)
   cli/                     # @backy/cli — placeholder, AI-facing CLI (next wave)
 packages/
   api/                     # @backy/api — shared business logic (handlers, lib, runtime context)
@@ -47,11 +46,6 @@ The root `package.json` fans out to `apps/web`, `apps/worker`,
 (port 7019) in parallel; vite proxies `/api/*` to the worker. `build`
 runs `vite build` which writes the SPA bundle into `apps/worker/static/`
 (gitignored) so `wrangler deploy` ships frontend + API in one Worker.
-
-`apps/web_legacy` is no longer touched by `bun dev` / `vitest run` /
-`bun run gate:security`; it's reachable only via `legacy:*` aliases
-(`legacy:dev`, `legacy:test:coverage`, `legacy:test:e2e:api`, etc.) and
-can be deleted whenever its history isn't needed for reference.
 
 The new web workspace:
 
@@ -104,7 +98,7 @@ packages/api/
 |---|---|---|---|---|
 | L1 Unit | vitest | `bun run test:coverage` | pre-commit | 90%+ coverage on `src/lib/**` |
 | L2 Integration/API | vitest + wrangler dev | `bun run test:e2e:api` | pre-push | 8 tests (local SQLite) |
-| L3 System/E2E | Playwright (legacy only) | `bun run legacy:test:e2e:bdd` | on-demand | 5 specs, returns with Wave B' |
+| L3 System/E2E | Playwright | `bun run test:e2e:bdd` | on-demand | 5 specs |
 | G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings (`--max-warnings 0`) |
 | G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
 
@@ -114,7 +108,7 @@ packages/api/
 |---|---|---|
 | pre-commit | <30s | G1 → L1 (sequential) |
 | pre-push | <60s | L2 + G2 (parallel) |
-| on-demand | — | legacy L3 |
+| on-demand | — | L3 |
 
 ### Port Convention
 
@@ -123,9 +117,6 @@ packages/api/
 | Vite dev server | 7019 |
 | Wrangler dev (worker) | 7018 |
 | L2 API E2E (wrangler --local) | 17018 |
-| Legacy Next.js dev | 7017 |
-| Legacy L2 API E2E | 17017 |
-| Legacy L3 BDD E2E | 27017 |
 
 ### Core Principles
 
@@ -149,8 +140,6 @@ bun run lint               # ESLint across all workspaces
 bun run lint:staged        # ESLint on staged files (per-workspace lint-staged)
 bun run gate:security      # osv-scanner + gitleaks (root configs)
 bun run release            # bump version + CHANGELOG + GitHub release
-bun run legacy:dev         # legacy Next.js (port 7017) — deletion pending
-bun run legacy:test:e2e:api  # legacy L2 (port 17017) — superseded by test:e2e:api
 ```
 
 ## Test Resource Isolation

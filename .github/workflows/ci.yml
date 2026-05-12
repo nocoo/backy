@@ -16,7 +16,6 @@ jobs:
   #   apps/worker   — Hono on Cloudflare Workers (API + cron + assets)
   #   packages/api  — shared business logic
   #   apps/cli      — AI-facing CLI (skeleton)
-  #   apps/web_legacy — frozen Next.js snapshot (deletion pending; see docs/07)
   #
   # Root scripts forward into each workspace, so the standard
   # `bun run typecheck` / `bun run test:coverage` / `bun run gate:security`

@@ -77,7 +77,6 @@ backy/
 │   │   ├── 📂 static/             # vite 构建产物落盘点 (gitignored)
 │   │   ├── wrangler.toml
 │   │   └── package.json
-│   ├── 📂 web_legacy/             # @backy/web-legacy — 旧 Next.js 16 主应用 (FROZEN, 待删)
 │   └── 📂 cli/                    # @backy/cli — 占位包，下一波将实现 AI-facing CLI
 ├── 📂 packages/
 │   └── 📂 api/                    # @backy/api — 共享业务逻辑 (handlers/lib)
@@ -95,8 +94,7 @@ backy/
 
 > 根 `package.json` 的 `dev` / `build` / `typecheck` / `test` / `test:coverage` /
 > `lint` 等都 fan-out 到 `apps/web`、`apps/worker`、`packages/api`、`apps/cli`；
-> `gate:security` / `release` 直接调用根 `scripts/`。`apps/web_legacy` 仅通过
-> `legacy:*` 别名访问，pre-commit / pre-push 不再触达，可随时整目录删除。
+> `gate:security` / `release` 直接调用根 `scripts/`。
 
 `apps/web/src/` 与 `apps/worker/src/` 内部布局参见 `CLAUDE.md` 的
 *Project Structure* 章节。
@@ -224,9 +222,6 @@ curl https://your-domain.example.com/api/restore/{backupId} \
 | `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |
 | `bun run release` | 版本号 + CHANGELOG + tag |
 
-> Legacy 备份命令仍在 `legacy:*` 前缀下可用（`legacy:dev` / `legacy:test:e2e:api` 等），
-> 直到 `apps/web_legacy` 整目录删除。
-
 ## 🧪 质量体系
 
 L1 单元测试 + G1 静态分析由 pre-commit 执行，G2 安全扫描由 pre-push 执行：
@@ -239,7 +234,6 @@ L1 单元测试 + G1 静态分析由 pre-commit 执行，G2 安全扫描由 pre-
 
 L2 (`bun run test:e2e:api`) 和 L3 (`bun run test:e2e:bdd`) 使用 `wrangler dev --local --persist-to`
 全本地模拟（SQLite-backed D1/R2），零远程 CF 凭证依赖，通过 `_test_marker` 表验证安全性。
-Legacy `legacy:test:e2e:*` 是冻结的历史套件，按需运行。
 
 ## 📄 License
 

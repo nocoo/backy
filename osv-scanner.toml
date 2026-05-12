@@ -11,13 +11,3 @@
 id = "GHSA-gh4j-gqv2-49f6"
 ignoreUntil = 2026-07-22
 reason = "Indirect: fast-xml-parser@5.5.8 pinned by @aws-sdk/xml-builder — waiting on AWS SDK upstream bump"
-
-# --- postcss transitive dep (legacy-only) ---
-# postcss@8.4.31 is pinned by next@16.2.3 (apps/web_legacy). The vulnerability
-# is in build-time CSS parsing only; new apps/web uses postcss via vite which
-# already resolves to 8.5.6+. Disappears once web_legacy is removed.
-
-[[IgnoredVulns]]
-id = "GHSA-qx2v-qp2m-jg93"
-ignoreUntil = 2026-07-22
-reason = "Indirect: postcss@8.4.31 pinned by next@16.2.3 in apps/web_legacy (frozen). Removed when web_legacy is deleted."
