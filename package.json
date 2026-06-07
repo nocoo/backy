@@ -35,10 +35,10 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
-    "@vitest/coverage-v8": "4.0.18",
+    "@playwright/test": "^1.60.0",
+    "@vitest/coverage-v8": "4.1.8",
     "husky": "^9.1.7",
-    "vitest": "4.0.18"
+    "vitest": "4.1.8"
   },
   "overrides": {
     "minimatch": "^9.0.7",
