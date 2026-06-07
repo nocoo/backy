@@ -18,7 +18,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.1",
     "lint-staged": "^17.0.7",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "8.60.1",
     "vitest": "^4.1.8"
   },
