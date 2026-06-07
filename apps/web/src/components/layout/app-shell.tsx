@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useLocation } from "react-router";
-import { Menu, Github, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { Github } from "@/components/icons/github";
 import { Sidebar } from "./sidebar";
 import { SidebarProvider, useSidebar } from "./sidebar-context";
 import { ThemeToggle } from "./theme-toggle";
