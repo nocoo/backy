@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.5] - 2026-06-07
+
+### Changed
+- Bump lucide-react 0.577 → 1.17
+- Extract Github icon from lucide-react 0.577
+- Bump vite 7 → 8 + @vitejs/plugin-react 5 → 6
+- Bump typescript 5 → 6
+- Bump eslint 9 → 10
+- Bump lint-staged 16 → 17
+- Bump minor/patch deps across all workspaces
+- Pass --ignore-scripts to bun install (Shai-Hulud defense)
+
 ## [1.8.4] - 2026-05-12
 
 ### Changed
