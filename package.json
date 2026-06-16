@@ -45,6 +45,7 @@
     "flatted": "^3.4.0",
     "picomatch": "^4.0.4",
     "fast-xml-builder": "^1.1.7",
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "vite": "^8.0.16"
   }
 }
