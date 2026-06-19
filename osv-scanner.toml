@@ -3,11 +3,5 @@
 #
 # Review and re-evaluate on the ignoreUntil date.
 
-# --- fast-xml-parser transitive dep ---
-# fast-xml-parser@5.5.8 is pinned by @aws-sdk/xml-builder@3.972.18.
-# Cannot upgrade until AWS SDK bumps the pin to 5.7.0+.
-
-[[IgnoredVulns]]
-id = "GHSA-gh4j-gqv2-49f6"
-ignoreUntil = 2026-07-22
-reason = "Indirect: fast-xml-parser@5.5.8 pinned by @aws-sdk/xml-builder — waiting on AWS SDK upstream bump"
+# (no active ignores — fast-xml-parser GHSA-gh4j-gqv2-49f6 resolved upstream
+#  via @aws-sdk/xml-builder bumping fast-xml-parser to 5.7.3)
