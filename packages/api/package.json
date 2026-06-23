@@ -39,8 +39,8 @@
     "./handlers/webhook": "./src/handlers/webhook.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1073.0",
-    "@aws-sdk/s3-request-presigner": "^3.1073.0",
+    "@aws-sdk/client-s3": "^3.1074.0",
+    "@aws-sdk/s3-request-presigner": "^3.1074.0",
     "jszip": "^3.10.1",
     "nanoid": "^5.1.15",
     "tar-stream": "^3.2.0",
@@ -54,7 +54,7 @@
     "eslint": "^10.5.0",
     "lint-staged": "^17.0.8",
     "typescript": "^6.0.3",
-    "typescript-eslint": "8.61.1",
+    "typescript-eslint": "8.62.0",
     "vitest": "^4.1.9"
   },
   "scripts": {
