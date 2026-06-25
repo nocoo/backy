@@ -42,7 +42,7 @@
     "@aws-sdk/client-s3": "^3.1075.0",
     "@aws-sdk/s3-request-presigner": "^3.1075.0",
     "jszip": "^3.10.1",
-    "nanoid": "^5.1.15",
+    "nanoid": "^5.1.16",
     "tar-stream": "^3.2.0",
     "zod": "^4.4.3"
   },
