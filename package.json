@@ -36,9 +36,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@vitest/coverage-v8": "4.1.9",
+    "@vitest/coverage-v8": "4.1.10",
     "husky": "^9.1.7",
-    "vitest": "4.1.9"
+    "vitest": "4.1.10"
   },
   "overrides": {
     "minimatch": "^9.0.7",
