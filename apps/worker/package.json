@@ -15,14 +15,14 @@
   },
   "dependencies": {
     "@backy/api": "workspace:*",
-    "hono": "^4.12.28",
+    "hono": "^4.12.29",
     "jose": "^6.2.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260708.1",
+    "@cloudflare/workers-types": "5.20260710.1",
     "@types/bun": "^1.3.14",
     "@vitest/coverage-v8": "^4.1.9",
-    "eslint": "^10.6.0",
+    "eslint": "^10.7.0",
     "lint-staged": "^17.0.8",
     "typescript": "^6.0.3",
     "typescript-eslint": "8.63.0",
