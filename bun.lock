@@ -71,7 +71,7 @@
       "dependencies": {
         "@backy/api": "workspace:*",
         "hono": "^4.12.31",
-        "jose": "6.2.4",
+        "jose": "^6.2.4",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "5.20260721.1",
@@ -89,8 +89,8 @@
       "name": "@backy/api",
       "version": "0.0.0",
       "dependencies": {
-        "@aws-sdk/client-s3": "3.1092.0",
-        "@aws-sdk/s3-request-presigner": "3.1092.0",
+        "@aws-sdk/client-s3": "^3.1092.0",
+        "@aws-sdk/s3-request-presigner": "^3.1092.0",
         "jszip": "^3.10.1",
         "nanoid": "^6.0.0",
         "tar-stream": "^3.2.0",
