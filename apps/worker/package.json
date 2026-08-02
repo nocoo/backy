@@ -27,7 +27,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "8.65.0",
     "vitest": "^4.1.10",
-    "wrangler": "4.113.0"
+    "wrangler": "4.118.0"
   },
   "lint-staged": {
     "*.ts": "eslint --max-warnings=0 --no-warn-ignored"
