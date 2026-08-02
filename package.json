@@ -2,7 +2,10 @@
   "name": "backy",
   "version": "1.8.5",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bun --cwd apps/worker dev & bun --cwd apps/web dev; wait",
     "build": "bun --cwd apps/web build",
@@ -35,7 +38,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@vitest/coverage-v8": "4.1.10",
     "husky": "^9.1.7",
     "vitest": "4.1.10"
