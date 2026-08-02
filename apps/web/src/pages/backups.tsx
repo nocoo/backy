@@ -283,11 +283,11 @@ export function BackupsPage() {
     );
   }
 
-  function getAriaSort(
-    column: SortBy,
-  ): "ascending" | "descending" | "none" {
-    if (sortBy !== column) return "none";
-    return sortOrder === "asc" ? "ascending" : "descending";
+  function getSortAriaLabel(column: SortBy, label: string): string {
+    if (sortBy !== column) return `${label}, not sorted`;
+    return sortOrder === "desc"
+      ? `${label}, sorted descending`
+      : `${label}, sorted ascending`;
   }
 
   return (
@@ -438,13 +438,8 @@ export function BackupsPage() {
         </div>
       ) : data ? (
         <>
-          {/* biome-ignore lint/a11y/useFocusableInteractive: header row hosts nested controls */}
-          <div
-            role="row"
-            className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border"
-          >
-            {/* biome-ignore lint/a11y/useFocusableInteractive: checkbox provides the focus target */}
-            <div role="columnheader" className="w-5 shrink-0">
+          <div className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
+            <div className="w-5 shrink-0">
               <Checkbox
                 checked={
                   allSelected
@@ -456,54 +451,41 @@ export function BackupsPage() {
                 onCheckedChange={(checked) =>
                   handleSelectAll(checked === true)
                 }
+                aria-label="Select all backups on this page"
               />
             </div>
-            {/* biome-ignore lint/a11y/useFocusableInteractive: decorative spacer header */}
-            <div role="columnheader" className="w-9 shrink-0" />
-            {/* biome-ignore lint/a11y/useFocusableInteractive: sort button is the focus target */}
-            <div
-              role="columnheader"
-              aria-sort={getAriaSort("project_name")}
-              className="min-w-0 flex-1"
-            >
+            <div className="w-9 shrink-0" />
+            <div className="min-w-0 flex-1">
               <button
                 type="button"
                 className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                 onClick={() => handleSort("project_name")}
+                aria-label={getSortAriaLabel("project_name", "Project")}
               >
                 Project <SortIcon column="project_name" />
               </button>
             </div>
-            {/* biome-ignore lint/a11y/useFocusableInteractive: sort button is the focus target */}
-            <div
-              role="columnheader"
-              aria-sort={getAriaSort("created_at")}
-              className="w-[140px] shrink-0"
-            >
+            <div className="w-[140px] shrink-0">
               <button
                 type="button"
                 className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                 onClick={() => handleSort("created_at")}
+                aria-label={getSortAriaLabel("created_at", "Date")}
               >
                 Date <SortIcon column="created_at" />
               </button>
             </div>
-            {/* biome-ignore lint/a11y/useFocusableInteractive: sort button is the focus target */}
-            <div
-              role="columnheader"
-              aria-sort={getAriaSort("file_size")}
-              className="w-[80px] shrink-0"
-            >
+            <div className="w-[80px] shrink-0">
               <button
                 type="button"
                 className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                 onClick={() => handleSort("file_size")}
+                aria-label={getSortAriaLabel("file_size", "Size")}
               >
                 Size <SortIcon column="file_size" />
               </button>
             </div>
-            {/* biome-ignore lint/a11y/useFocusableInteractive: decorative spacer header */}
-            <div role="columnheader" className="w-[110px] shrink-0" />
+            <div className="w-[110px] shrink-0" />
           </div>
 
           <div className="flex flex-col gap-1">
