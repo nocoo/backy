@@ -218,7 +218,7 @@ curl https://your-domain.example.com/api/restore/{backupId} \
 | `vitest run` | 运行所有 workspace 单元测试 |
 | `bun run test:coverage` | 单元测试 + 90% 覆盖率门禁 |
 | `bun run typecheck` | TypeScript 类型检查 |
-| `bun run lint` | ESLint 检查 |
+| `bun run lint` | Biome 检查 |
 | `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |
 | `bun run release` | 版本号 + CHANGELOG + tag |
 
@@ -229,7 +229,7 @@ L1 单元测试 + G1 静态分析由 pre-commit 执行，G2 安全扫描由 pre-
 | 层级 | 工具 | 触发时机 | 要求 |
 |------|------|----------|------|
 | L1 单元测试 | vitest | pre-commit | 90%+ 覆盖率 |
-| G1 静态分析 | tsc + ESLint | pre-commit | 0 错误 / 0 警告 |
+| G1 静态分析 | tsc + Biome | pre-commit | 0 错误 / 0 警告 |
 | G2 安全扫描 | osv-scanner + gitleaks | pre-push | 0 漏洞 / 0 泄露 |
 
 L2 (`bun run test:e2e:api`) 和 L3 (`bun run test:e2e:bdd`) 使用 `wrangler dev --local --persist-to`
