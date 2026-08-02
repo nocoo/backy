@@ -9,7 +9,7 @@ routes = [
 
 [vars]
 ENVIRONMENT = "production"
-NEXT_PUBLIC_APP_VERSION = "1.8.5"
+NEXT_PUBLIC_APP_VERSION = "1.9.0"
 CF_ACCESS_TEAM_DOMAIN = "nocoo.cloudflareaccess.com"
 CF_ACCESS_AUD = "677c4df5d98c379b766a18f6cff5d3a1162ae2e6c56aee835aa810a795e0d3d5"
 # R2 binding doesn't natively support presigned URLs. Download/restore

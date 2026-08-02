@@ -5,6 +5,186 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-08-02
+
+### Changed
+- Update README lint tool to biome
+- Switch G1 lint docs to biome
+- Bump typescript to 7.0.2
+- Replace eslint with biome
+- Add biome 2.5.6 config
+- Bump s3-request-presigner to 3.1101.0
+- Bump aws-sdk client-s3 to 3.1101.0
+- Bump workers-types to 5.20260801.1
+- Bump wrangler to 4.118.0
+- Bump jose to 6.2.7
+- Bump hono to 4.12.33
+- Bump radix-ui to 1.6.7
+- Bump @types/react-dom to 19.2.4
+- Bump @types/react to 19.2.18
+- Bump plugin-react to 6.0.5
+- Bump lucide-react to 1.28.0
+- Bump vite to 8.2.0
+- Bump playwright to 1.62.1
+- Bump lint-staged to 17.3.0
+- Bump eslint to 10.8.0
+- Batch B — bump AWS SDK client-s3 + s3-request-presigner
+- Batch A — bump low-risk patch/minor upgrades
+- STU-2203: deps: bump brace-expansion 5.0.8 + minimatch 10.2.5 (GHSA-mh99-v99m-4gvg) (#280)
+- Restore caret ranges on aws-sdk, radix-ui, react-router, @vitejs/plugin-react, happy-dom (Reviewer-04 P2)
+- Bump react-router 8.2.0 → 8.3.0
+- Bump radix-ui 1.6.4 → 1.6.5
+- Bump lint-staged 17.1.0 → 17.1.1 (all workspaces)
+- Bump happy-dom 20.11.0 → 20.11.1
+- Bump @vitejs/plugin-react 6.0.3 → 6.0.4
+- Bump @cloudflare/workers-types 5.20260721.1 → 5.20260722.1
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1092.0 → 3.1093.0
+- Restore caret ranges on jose + aws-sdk (Reviewer-02 P2)
+- Pin sharp ≥0.35.0 via root override (GHSA-f88m-g3jw-g9cj)
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1091.0 → 3.1092.0
+- Bump react + react-dom 19.2.7 → 19.2.8
+- Bump jose 6.2.3 → 6.2.4
+- Bump @cloudflare/workers-types 5.20260719.1 → 5.20260721.1
+- Bump wrangler 4.112.0 → 4.113.0
+- Pin brace-expansion ≥2.1.2 via root override (GHSA-3jxr-9vmj-r5cp)
+- Bump typescript-eslint 8.64.0 → 8.65.0 (all workspaces)
+- Bump recharts 3.9.2 → 3.10.0
+- Bump radix-ui 1.6.2 → 1.6.4
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1090.0 → 3.1091.0
+- Bump @cloudflare/workers-types 5.20260718.1 → 5.20260719.1
+- STU-2002: deps: batch bump backy dependencies (2026-07-19) (#250)
+- STU-1968: deps: batch bump backy dependencies (2026-07-18) (#245)
+- STU-1927: deps: batch bump backy dependencies (2026-07-17) (#239)
+- Bump wrangler 4.110.0 → 4.111.0
+- Bump @cloudflare/workers-types 5.20260713.1 → 5.20260715.1
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1086.0 → 3.1088.0
+- Bump @cloudflare/workers-types 5.20260712.1 → 5.20260713.1
+- Bump typescript-eslint 8.63.0 → 8.64.0 (all workspaces)
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1085.0 → 3.1086.0
+- Bump nanoid 5.1.16 → 6.0.0
+- Bump hono 4.12.29 → 4.12.30, @cloudflare/workers-types 5.20260711.1 → 5.20260712.1
+- Bump @cloudflare/workers-types 5.20260710.1 → 5.20260711.1
+- Restore caret ranges after bun add pin (review feedback)
+- Bump eslint 10.6.0 → 10.7.0 (all workspaces)
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1084.0 → 3.1085.0
+- Bump @cloudflare/workers-types 5.20260708.1 → 5.20260710.1
+- Bump hono 4.12.28 → 4.12.29
+- Bump minor/patch batch (5)
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1080.0 → 3.1083.0
+- Bump react-router 8.1.0 → 8.2.0
+- Bump @types/node 26.1.0 → 26.1.1
+- Bump @cloudflare/workers-types 5.20260706.1 → 5.20260708.1
+- Bump wrangler 4.107.0 → 4.107.1
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1079.0 → 3.1080.0
+- Bump @cloudflare/workers-types 5.20260705.1 → 5.20260706.1
+- Bump hono 4.12.27 → 4.12.28
+- Bump radix-ui 1.6.1 → 1.6.2
+- Bump typescript-eslint 8.62.1 → 8.63.0
+- Bump vitest + @vitest/coverage-v8 4.1.9 → 4.1.10
+- Bump @cloudflare/workers-types 5.20260704.1 → 5.20260705.1
+- Bump @cloudflare/workers-types 5.20260703.1 → 5.20260704.1
+- Bump recharts 3.9.1 → 3.9.2
+- Bump @cloudflare/workers-types 4.20260702.1 → 5.20260703.1
+- Bump wrangler 4.106.0 → 4.107.0
+- Bump vite 8.1.2 → 8.1.3
+- Bump @cloudflare/workers-types 4.20260701.1 → 4.20260702.1
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1078.0 → 3.1079.0
+- Add root .npmrc for supply chain security baseline
+- Upgrade dependencies (batch 2026-07-02) (#170)
+- Upgrade dependencies (batch 2026-07-01) (#164)
+- Upgrade dependencies (batch 2026-06-30)
+- Bump lucide-react 1.21.0 → 1.22.0
+- Bump @cloudflare/workers-types 4.20260626.1 → 4.20260628.1
+- Bump @cloudflare/workers-types 4.20260625.1 → 4.20260626.1
+- Bump eslint 10.5.0 → 10.6.0 across workspaces
+- Bump wrangler 4.104.0 → 4.105.0
+- Bump @cloudflare/workers-types 4.20260624.1 → 4.20260625.1
+- Bump nanoid 5.1.15 → 5.1.16
+- Bump @types/node 26.0.0 → 26.0.1
+- Bump @cloudflare/workers-types 4.20260623.1 → 4.20260624.1
+- Bump wrangler 4.103.0 → 4.104.0
+- Bump vite 8.0.16 → 8.1.0
+- Bump recharts 3.8.1 → 3.9.0
+- Bump hono 4.12.26 → 4.12.27
+- Bump @vitejs/plugin-react 6.0.2 → 6.0.3
+- Bump @playwright/test 1.61.0 → 1.61.1
+- Bump @cloudflare/workers-types 4.20260621.1 → 4.20260623.1
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1074.0 → 3.1075.0
+- Bump typescript-eslint 8.61.1 → 8.62.0 across workspaces
+- Bump swr 2.4.1 → 2.4.2
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1073.0 → 3.1074.0
+- Bump @cloudflare/workers-types 4.20260620.1 → 4.20260621.1
+- Weekly bump (workers-types, lint-staged, nanoid)
+- Bump nanoid 5.1.14 → 5.1.15
+- Bump lint-staged 17.0.7 → 17.0.8 across workspaces
+- Bump @cloudflare/workers-types 4.20260619.1 → 4.20260620.1
+- Bump hono 4.12.25 → 4.12.26
+- Bump lucide-react 1.20.0 → 1.21.0
+- Bump nanoid 5.1.11 → 5.1.14
+- Bump react-router 8.0.0 → 8.0.1
+- Bump @aws-sdk/client-s3 and s3-request-presigner 3.1071.0 → 3.1073.0
+- Bump @cloudflare/workers-types 4.20260617.1 → 4.20260619.1
+- Bump @types/node 25.9.3 → 26.0.0
+- Bump wrangler 4.102.0 → 4.103.0
+- Bump wrangler 4.101 → 4.102 to fix undici GHSAs
+- Pin base-ci reusable workflow to v2026.5 SHA
+- Bump react-router 7.18.0 → 8.0.0
+- Bump happy-dom 20.10.5 → 20.10.6
+- Bump @cloudflare/workers-types 4.20260616.1 → 4.20260617.1
+- Bump @aws-sdk/s3-request-presigner 3.1070.0 → 3.1071.0
+- Bump @aws-sdk/client-s3 3.1070.0 → 3.1071.0
+- Bump react-router 7.17.0 → 7.18.0
+- Bump lucide-react 1.18.0 → 1.20.0
+- Bump happy-dom 20.10.4 → 20.10.5
+- Bump wrangler 4.98.0 → 4.101.0
+- Bump @cloudflare/workers-types 4.20260615.1 → 4.20260616.1
+- Bump @aws-sdk/client-s3 and s3-request-presigner 3.1069.0 → 3.1070.0
+- Bump @aws-sdk/client-s3 and s3-request-presigner 3.1068.0 → 3.1069.0
+- Bump @cloudflare/workers-types 4.20260613.1 → 4.20260615.1
+- Bump @playwright/test 1.60.0 → 1.61.0
+- Bump happy-dom 20.10.3 → 20.10.4
+- Bump radix-ui 1.5.0 → 1.6.0
+- Bump typescript-eslint 8.61.0 → 8.61.1 across workspaces
+- Bump vitest and @vitest/coverage-v8 4.1.8 → 4.1.9
+- Force ws ≥8.21.0 via override to fix GHSA-96hv-2xvq-fx4p
+- Force vite ≥8.0.16 via override to fix GHSA-fx2h-pf6j-xcff
+- Bump @cloudflare/workers-types from 4.20260612.1 to 4.20260613.1
+- Upgrade base-ci to v2026.4
+- Restore caret ranges for the 8 new dep bumps
+- Bump @aws-sdk/client-s3 from 3.1067.0 to 3.1068.0
+- Bump @aws-sdk/s3-request-presigner from 3.1067.0 to 3.1068.0
+- Bump @cloudflare/workers-types from 4.20260611.1 to 4.20260612.1
+- Bump eslint from 10.4.1 to 10.5.0
+- Bump @tailwindcss/vite from 4.3.0 to 4.3.1
+- Bump happy-dom from 20.10.2 to 20.10.3
+- Bump lucide-react from 1.17.0 to 1.18.0
+- Bump tailwindcss from 4.3.0 to 4.3.1
+- Override esbuild ^0.28.1 to fix GHSA-gv7w-rqvm-qjhr / GHSA-g7r4-m6w7-qqqr
+- Restore caret ranges for s3/presigner/workers-types bumps
+- Bump @cloudflare/workers-types from 4.20260610.1 to 4.20260611.1
+- Bump @aws-sdk/s3-request-presigner from 3.1066.0 to 3.1067.0
+- Bump @aws-sdk/client-s3 from 3.1066.0 to 3.1067.0
+- Bump @types/node from 25.9.2 to 25.9.3
+- Bump @cloudflare/workers-types from 4.20260609.1 to 4.20260610.1
+- Bump @aws-sdk/s3-request-presigner from 3.1065.0 to 3.1066.0
+- Bump @aws-sdk/client-s3 from 3.1065.0 to 3.1066.0
+- Bump hono from 4.12.24 to 4.12.25
+- Bump @cloudflare/workers-types from 4.20260608.1 to 4.20260609.1
+- Bump @aws-sdk/s3-request-presigner from 3.1064.0 to 3.1065.0
+- Bump @aws-sdk/client-s3 from 3.1064.0 to 3.1065.0
+- Bump typescript-eslint 8.60.1 → 8.61.0 across workspaces
+- Bump hono 4.12.23 → 4.12.24
+- Bump @aws-sdk/client-s3 + s3-request-presigner 3.1063 → 3.1064
+- Converge backy dependency ranges
+
+### Fixed
+- Drop incomplete table roles on backups
+- Restore backup table header a11y roles
+- Clear selection when backup list changes
+
+### Removed
+- Drop stale fast-xml-parser ignore from osv-scanner.toml
+
 ## [1.8.5] - 2026-06-07
 
 ### Changed
