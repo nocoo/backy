@@ -99,7 +99,7 @@ packages/api/
 | L1 Unit | vitest | `bun run test:coverage` | pre-commit | 90%+ coverage on `src/lib/**` |
 | L2 Integration/API | vitest + wrangler dev | `bun run test:e2e:api` | pre-push | 8 tests (local SQLite) |
 | L3 System/E2E | Playwright | `bun run test:e2e:bdd` | on-demand | 5 specs |
-| G1 Static Analysis | tsc + ESLint | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings (`--max-warnings 0`) |
+| G1 Static Analysis | tsc + Biome | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings |
 | G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
 
 ### Hooks Mapping
@@ -136,8 +136,8 @@ vitest run                 # all workspaces (web + worker + api + cli)
 bun run test:coverage      # web + worker + api with 90% gate
 bun run test:e2e:api       # L2 API E2E (local SQLite, port 17018)
 bun run typecheck          # tsc --noEmit across all workspaces
-bun run lint               # ESLint across all workspaces
-bun run lint:staged        # ESLint on staged files (per-workspace lint-staged)
+bun run lint               # Biome check across repo
+bun run lint:staged        # Biome check on staged files (root lint-staged)
 bun run gate:security      # osv-scanner + gitleaks (root configs)
 bun run release            # bump version + CHANGELOG + GitHub release
 ```
@@ -173,6 +173,7 @@ bun run release -- --dry-run # preview without side effects
 The script auto-detects project name and CHANGELOG format, then: bumps version → syncs lockfile → generates CHANGELOG → commits → pushes → tags → creates GitHub release.
 
 ## Retrospective
+- **TypeScript 7 + Biome replaces typescript-eslint**: TS 7.0 drops the classic `lib/typescript.js` Compiler API surface some tools relied on. Backy does not use Next.js path resolution via that API (Vite already registers `@` explicitly), so `@typescript/native-preview` was not required. `typescript-eslint` is incompatible with the TS 7 major for our stack — remove it entirely and gate lint with `@biomejs/biome` (root `biome.json`, `lint` / `lint:staged`). Keep formatter off during migration to avoid a repo-wide reformat.
 
 - **AWS SDK v3 Body is not ReadableStream**: When using `@aws-sdk/client-s3` `GetObjectCommand`, the `response.Body` is a `SdkStreamMixin` (not a Web `ReadableStream`). Must use `body.transformToByteArray()` or `body.transformToString()` instead of `body.getReader()`. This caused 500 errors in preview and extract routes — caught by E2E.
 - **Bun's `typeof fetch` requires `preconnect`**: When mocking `globalThis.fetch` in Bun tests, the type includes a `preconnect` property. Use a helper function that adds `fn.preconnect = () => {}` to satisfy the type.
