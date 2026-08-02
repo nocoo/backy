@@ -438,11 +438,13 @@ export function BackupsPage() {
         </div>
       ) : data ? (
         <>
+          {/* biome-ignore lint/a11y/useFocusableInteractive: header row hosts nested controls */}
           <div
-           
+            role="row"
             className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border"
           >
-            <div className="w-5 shrink-0">
+            {/* biome-ignore lint/a11y/useFocusableInteractive: checkbox provides the focus target */}
+            <div role="columnheader" className="w-5 shrink-0">
               <Checkbox
                 checked={
                   allSelected
@@ -456,9 +458,11 @@ export function BackupsPage() {
                 }
               />
             </div>
-            <div className="w-9 shrink-0" />
+            {/* biome-ignore lint/a11y/useFocusableInteractive: decorative spacer header */}
+            <div role="columnheader" className="w-9 shrink-0" />
+            {/* biome-ignore lint/a11y/useFocusableInteractive: sort button is the focus target */}
             <div
-             
+              role="columnheader"
               aria-sort={getAriaSort("project_name")}
               className="min-w-0 flex-1"
             >
@@ -470,8 +474,9 @@ export function BackupsPage() {
                 Project <SortIcon column="project_name" />
               </button>
             </div>
+            {/* biome-ignore lint/a11y/useFocusableInteractive: sort button is the focus target */}
             <div
-             
+              role="columnheader"
               aria-sort={getAriaSort("created_at")}
               className="w-[140px] shrink-0"
             >
@@ -483,8 +488,9 @@ export function BackupsPage() {
                 Date <SortIcon column="created_at" />
               </button>
             </div>
+            {/* biome-ignore lint/a11y/useFocusableInteractive: sort button is the focus target */}
             <div
-             
+              role="columnheader"
               aria-sort={getAriaSort("file_size")}
               className="w-[80px] shrink-0"
             >
@@ -496,7 +502,8 @@ export function BackupsPage() {
                 Size <SortIcon column="file_size" />
               </button>
             </div>
-            <div className="w-[110px] shrink-0" />
+            {/* biome-ignore lint/a11y/useFocusableInteractive: decorative spacer header */}
+            <div role="columnheader" className="w-[110px] shrink-0" />
           </div>
 
           <div className="flex flex-col gap-1">
