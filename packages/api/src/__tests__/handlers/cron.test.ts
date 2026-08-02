@@ -20,11 +20,8 @@ const realIsUrlSafe = (await import("../../lib/url")).isUrlSafe;
 const realResolveAndValidateUrl = (await import("../../lib/url"))
   .resolveAndValidateUrl;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListAutoBackupProjects: () => Promise<any[]> = async () => [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProject: (id: string) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateCronLog: (...a: any[]) => Promise<void> = async () => {};
 
 // Default to real implementations so other test files (e.g. projects.test.ts)

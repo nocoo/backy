@@ -15,13 +15,16 @@
       content="Receive, store, preview, and restore backups sent by AI agents"
     />
     <script>
-      (function () {
+      (() => {
         try {
-          var s = localStorage.getItem("theme");
-          var d = window.matchMedia("(prefers-color-scheme:dark)").matches;
-          if (s === "dark" || (s !== "light" && d))
+          const s = localStorage.getItem("theme");
+          const d = window.matchMedia("(prefers-color-scheme:dark)").matches;
+          if (s === "dark" || (s !== "light" && d)) {
             document.documentElement.classList.add("dark");
-        } catch (e) {}
+          }
+        } catch {
+          // theme bootstrap must not block paint
+        }
       })();
     </script>
   </head>

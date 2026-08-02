@@ -94,7 +94,6 @@ export function makeProject(overrides: Record<string, unknown> = {}) {
 // defaults and override only the functions your test cares about.
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Stub = Record<string, ((...args: any[]) => any) | object>;
 
 /** Default stubs for `@backy/api/db/projects`. */

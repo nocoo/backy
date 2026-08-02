@@ -488,7 +488,7 @@ describe("decompression bomb defense", () => {
     header.write("0000000\0", 108, "ascii"); // uid
     header.write("0000000\0", 116, "ascii"); // gid
     // size: 11-char octal + NUL
-    header.write(liedSize.toString(8).padStart(11, "0") + "\0", 124, "ascii");
+    header.write(`${liedSize.toString(8).padStart(11, "0")}\0`, 124, "ascii");
     header.write("00000000000\0", 136, "ascii"); // mtime
     header.write("        ", 148, "ascii"); // checksum placeholder (spaces)
     header.write("0", 156, "ascii"); // typeflag = regular file
@@ -498,7 +498,7 @@ describe("decompression bomb defense", () => {
     let sum = 0;
     for (let i = 0; i < 512; i++) sum += header[i]!;
     // Write checksum: 6-char octal + NUL + space
-    const chk = sum.toString(8).padStart(6, "0") + "\0 ";
+    const chk = `${sum.toString(8).padStart(6, "0")}\0 `;
     header.write(chk, 148, "ascii");
 
     // Append two empty 512-byte blocks (tar end-of-archive marker) so the

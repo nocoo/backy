@@ -118,7 +118,7 @@ function discoverE2ERequests(): Route[] {
     const urlHelperRe = /url\(\s*[`"']([^`"']+)[`"']\s*\)/g;
     for (const m of src.matchAll(urlHelperRe)) {
       const rawPath = m[1];
-      if (!rawPath || !rawPath.startsWith("/api/")) continue;
+      if (!rawPath?.startsWith("/api/")) continue;
       // Need to find the method from context — check nearby fetch/jsonRequest
       requests.push({ method: "GET", path: rawPath });
     }
@@ -150,7 +150,7 @@ function discoverE2ERequests(): Route[] {
       /fetch\(\s*url\(\s*[`"']([^`"']+)[`"']\s*\)\s*\)/g;
     for (const m of src.matchAll(fetchSimpleRe)) {
       const rawPath = m[1];
-      if (!rawPath || !rawPath.startsWith("/api/")) continue;
+      if (!rawPath?.startsWith("/api/")) continue;
       requests.push({ method: "GET", path: rawPath });
     }
 

@@ -7,13 +7,10 @@ import {
   makeMockR2,
 } from "../helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProjectByToken: (token: string) => Promise<any> = async () =>
   undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateBackup: (data: any) => Promise<any> = async () => ({});
 let mockCountBackups: (projectId: string) => Promise<number> = async () => 0;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListBackups: (opts: any) => Promise<any> = async () => ({
   items: [],
   total: 0,
@@ -26,7 +23,6 @@ let mockUploadToR2: (
   body: Uint8Array,
   contentType: string | undefined,
 ) => Promise<void> = async () => {};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateWebhookLog: (entry: any) => Promise<void> = async () => {};
 
 vi.doMock("../../lib/db/projects", () => ({
@@ -37,16 +33,13 @@ vi.doMock("../../lib/db/projects", () => ({
 
 vi.doMock("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createBackup: (_db: unknown, data: any) => mockCreateBackup(data),
   countBackups: (_db: unknown, projectId: string) => mockCountBackups(projectId),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   listBackups: (_db: unknown, opts: any) => mockListBackups(opts),
 }));
 
 vi.doMock("../../lib/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createWebhookLog: (_db: unknown, entry: any) => mockCreateWebhookLog(entry),
 }));
 

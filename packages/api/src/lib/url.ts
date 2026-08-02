@@ -154,7 +154,7 @@ function expandIpv6(addr: string): string | null {
     const v4Parts = tail.split(".");
     if (v4Parts.length !== 4) return null;
     const nums = v4Parts.map((p) => parseInt(p, 10));
-    if (nums.some((n) => isNaN(n) || n < 0 || n > 255)) return null;
+    if (nums.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return null;
     /* v8 ignore next 2 -- @preserve defensive: nums[0..3] guaranteed by length===4 check above; ?? 0 is TS strict-mode narrowing */
     const hi = (((nums[0] ?? 0) << 8) | (nums[1] ?? 0)) & 0xffff;
     const lo = (((nums[2] ?? 0) << 8) | (nums[3] ?? 0)) & 0xffff;

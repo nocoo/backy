@@ -3,6 +3,7 @@ import {
   createBackup,
   listBackups,
   countBackups,
+  type Backup,
 } from "../lib/db/backups";
 import { isIpAllowed } from "../lib/ip";
 import {
@@ -361,7 +362,7 @@ export async function webhookPostHandler(
 
     const senderIp = input.clientIp ?? "unknown";
 
-    let backup;
+    let backup: Backup;
     try {
       backup = await createBackup(ctx.db, {
         projectId: input.projectId,

@@ -80,7 +80,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
 }
 
 function formatDate(dateStr: string): string {
@@ -169,7 +169,7 @@ export function BackupsPage() {
 
   useEffect(() => {
     setSelected(new Set());
-  }, [data]);
+  }, []);
 
   function handleSort(column: SortBy) {
     if (sortBy === column) {
@@ -437,10 +437,10 @@ export function BackupsPage() {
       ) : data ? (
         <>
           <div
-            role="row"
+           
             className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border"
           >
-            <div role="columnheader" className="w-5 shrink-0">
+            <div className="w-5 shrink-0">
               <Checkbox
                 checked={
                   allSelected
@@ -454,9 +454,9 @@ export function BackupsPage() {
                 }
               />
             </div>
-            <div role="columnheader" className="w-9 shrink-0" />
+            <div className="w-9 shrink-0" />
             <div
-              role="columnheader"
+             
               aria-sort={getAriaSort("project_name")}
               className="min-w-0 flex-1"
             >
@@ -469,7 +469,7 @@ export function BackupsPage() {
               </button>
             </div>
             <div
-              role="columnheader"
+             
               aria-sort={getAriaSort("created_at")}
               className="w-[140px] shrink-0"
             >
@@ -482,7 +482,7 @@ export function BackupsPage() {
               </button>
             </div>
             <div
-              role="columnheader"
+             
               aria-sort={getAriaSort("file_size")}
               className="w-[80px] shrink-0"
             >
@@ -494,7 +494,7 @@ export function BackupsPage() {
                 Size <SortIcon column="file_size" />
               </button>
             </div>
-            <div role="columnheader" className="w-[110px] shrink-0" />
+            <div className="w-[110px] shrink-0" />
           </div>
 
           <div className="flex flex-col gap-1">

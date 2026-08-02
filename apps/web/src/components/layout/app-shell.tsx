@@ -19,6 +19,7 @@ function AppShellInner({ children, breadcrumbs = [] }: AppShellProps) {
   const { pathname } = useLocation();
   const drawerRef = useRef<HTMLDivElement | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close drawer when route changes
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname, setMobileOpen]);

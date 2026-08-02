@@ -5,19 +5,15 @@ import {
   makeMockCtx,
 } from "../helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListWebhookLogs: (...a: any[]) => Promise<any> = async () => ({
   items: [],
   total: 0,
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteWebhookLogs: (...a: any[]) => Promise<void> = async () => {};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListCronLogs: (...a: any[]) => Promise<any> = async () => ({
   items: [],
   total: 0,
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteCronLogs: (...a: any[]) => Promise<void> = async () => {};
 
 vi.doMock("../../lib/db/webhook-logs", () => ({

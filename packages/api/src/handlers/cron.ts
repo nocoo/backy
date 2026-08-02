@@ -1,4 +1,4 @@
-import { listAutoBackupProjects, getProject } from "../lib/db/projects";
+import { listAutoBackupProjects, getProject, type Project } from "../lib/db/projects";
 import { createCronLog } from "../lib/db/cron-logs";
 import { isUrlSafe, resolveAndValidateUrl } from "../lib/url";
 import { json, type HandlerResponse } from "../http/response";
@@ -164,7 +164,7 @@ export async function cronTriggerOneHandler(
   input: CronTriggerOneInput,
   ctx: RuntimeContext,
 ): Promise<HandlerResponse> {
-  let project;
+  let project: Project | undefined;
   try {
     project = await getProject(ctx.db, input.projectId);
   } catch (error) {

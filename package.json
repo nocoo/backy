@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "bun --cwd apps/worker dev & bun --cwd apps/web dev; wait",
     "build": "bun --cwd apps/web build",
-    "lint": "bun --cwd apps/web lint && bun --cwd packages/api lint && bun --cwd apps/worker lint && bun --cwd apps/cli lint",
-    "lint:staged": "bun --cwd apps/web lint:staged && bun --cwd packages/api lint:staged && bun --cwd apps/worker lint:staged && bun --cwd apps/cli lint:staged",
+    "lint": "biome check --error-on-warnings --no-errors-on-unmatched --max-diagnostics=500 .",
+    "lint:staged": "lint-staged",
     "typecheck": "bun --cwd apps/web typecheck && bun --cwd packages/api typecheck && bun --cwd apps/worker typecheck && bun --cwd apps/cli typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -35,12 +35,15 @@
     "worker:test": "bun --cwd apps/worker test",
     "worker:test:coverage": "bun --cwd apps/worker test:coverage",
     "worker:deploy": "bun --cwd apps/worker deploy",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint:fix": "biome check --write --error-on-warnings --no-errors-on-unmatched --max-diagnostics=500 ."
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.6",
     "@playwright/test": "^1.62.1",
     "@vitest/coverage-v8": "4.1.10",
     "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
     "vitest": "4.1.10"
   },
   "overrides": {
@@ -53,5 +56,13 @@
     "vite": "^8.2.0",
     "ws": "^8.21.0",
     "sharp": "^0.35.0"
+  },
+  "trustedDependencies": [
+    "@biomejs/biome"
+  ],
+  "lint-staged": {
+    "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json}": [
+      "biome check --no-errors-on-unmatched --error-on-warnings --max-diagnostics=500 --staged"
+    ]
   }
 }

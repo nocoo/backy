@@ -11,7 +11,7 @@
  *   GET    /api/projects/:id/prompt
  */
 
-import { describe, expect, test, beforeAll } from "bun:test";
+import { describe, expect, test, } from "bun:test";
 import { url, jsonRequest } from "./config";
 
 describe("L2: API /api/projects", () => {

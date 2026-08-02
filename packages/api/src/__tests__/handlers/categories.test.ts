@@ -1,15 +1,10 @@
 import { describe, expect, test, beforeEach, vi } from "vitest";
 import { makeMockCtx } from "../helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListCategories: () => Promise<any[]> = async () => [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateCategory: (...args: any[]) => Promise<any> = async () => ({});
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetCategory: (id: string) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUpdateCategory: (...args: any[]) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteCategory: (id: string) => Promise<any> = async () => false;
 
 function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {

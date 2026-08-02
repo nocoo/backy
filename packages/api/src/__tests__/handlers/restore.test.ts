@@ -6,9 +6,7 @@ import {
   makeMockR2,
 } from "../helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetBackup: (id: string) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProject: (id: string) => Promise<any> = async () => undefined;
 let mockCreatePresignedDownloadUrl: (key: string, ttl: number) => Promise<string> =
   async () => "https://mock.example.com/signed";

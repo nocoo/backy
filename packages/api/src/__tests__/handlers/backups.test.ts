@@ -6,32 +6,23 @@ import {
   makeMockR2,
 } from "../helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListBackups: (...args: any[]) => Promise<any> = async () => ({
   rows: [],
   total: 0,
 });
 let mockListEnvironments: () => Promise<string[]> = async () => [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListProjects: () => Promise<any[]> = async () => [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProject: (id: string) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetBackup: (id: string) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteBackup: (id: string) => Promise<any> = async () => null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteBackups: (ids: string[]) => Promise<any[]> = async () => [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateBackup: (...args: any[]) => Promise<any> = async () => ({
   id: "b1",
   project_id: "p1",
   created_at: "now",
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUploadToR2: (...args: any[]) => Promise<void> = async () => {};
 let mockDeleteFromR2: (k: string) => Promise<void> = async () => {};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDownloadFromR2: (k: string) => Promise<any> = async () => ({
   body: null,
   bytes: async () => new Uint8Array(),
@@ -40,7 +31,6 @@ let mockDownloadFromR2: (k: string) => Promise<any> = async () => ({
 });
 let mockCreatePresignedDownloadUrl: (k: string, ttl: number) => Promise<string> = async () =>
   "https://example.com/presigned";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUpdateBackup: (...args: any[]) => Promise<any> = async () => ({});
 
 function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {

@@ -21,10 +21,10 @@
  *   Requires `rg` (ripgrep) for stale version verification.
  */
 
-import { spawn } from 'child_process';
-import { resolve as pathResolve, relative as pathRelative } from 'path';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import * as readline from 'readline';
+import { spawn } from 'node:child_process';
+import { resolve as pathResolve, relative as pathRelative } from 'node:path';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import * as readline from 'node:readline';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -332,10 +332,10 @@ function updateChangelog(newSection: string, vPrefix: boolean): void {
   let updated: string;
   if (idx === -1) {
     // No existing entries — append after header
-    updated = content.trimEnd() + '\n\n' + newSection + '\n';
+    updated = `${content.trimEnd()}\n\n${newSection}\n`;
   } else {
     updated =
-      content.slice(0, idx) + newSection + '\n\n' + content.slice(idx);
+      `${content.slice(0, idx) + newSection}\n\n${content.slice(idx)}`;
   }
 
   writeFileSync(CHANGELOG_MD, updated);
@@ -698,7 +698,7 @@ async function main(): Promise<void> {
   }
 
   // Summary
-  console.log('\n' + '='.repeat(50));
+  console.log(`\n${'='.repeat(50)}`);
   console.log(`✅ Released v${newVersion}`);
   console.log(`   📋 Commit:  chore: bump version to ${newVersion}`);
   console.log(`   🏷️  Tag:     v${newVersion}`);

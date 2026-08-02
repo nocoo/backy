@@ -51,7 +51,7 @@ export async function listWebhookLogsHandler(
       excludeClientIps: splitCsv(input.excludeClientIps),
       method: input.method ?? undefined,
       statusCode:
-        statusCode !== undefined && !isNaN(statusCode) ? statusCode : undefined,
+        statusCode !== undefined && !Number.isNaN(statusCode) ? statusCode : undefined,
       errorCode: input.errorCode ?? undefined,
       success,
       page,

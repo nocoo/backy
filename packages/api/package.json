@@ -51,20 +51,13 @@
     "@types/node": "26.1.2",
     "@types/tar-stream": "^3.1.4",
     "@vitest/coverage-v8": "^4.1.9",
-    "eslint": "^10.8.0",
-    "lint-staged": "^17.3.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "8.65.0",
     "vitest": "^4.1.10"
   },
   "scripts": {
-    "lint": "eslint --max-warnings=0 src",
-    "lint:staged": "lint-staged",
+    "lint": "biome check --error-on-warnings --no-errors-on-unmatched src",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
-  },
-  "lint-staged": {
-    "*.ts": "eslint --max-warnings=0 --no-warn-ignored"
   }
 }

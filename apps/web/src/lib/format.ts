@@ -6,7 +6,7 @@ export function formatBytes(bytes: number): string {
     Math.max(0, Math.floor(Math.log(bytes) / Math.log(k))),
     sizes.length - 1,
   );
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
 }
 
 export function formatDate(dateStr: string): string {

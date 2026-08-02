@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, test, beforeAll } from "bun:test";
-import { url, jsonRequest } from "./config";
+import { jsonRequest } from "./config";
 
 describe("L2: API /api/cron", () => {
   let testProjectId: string;

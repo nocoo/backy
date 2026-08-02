@@ -1,17 +1,11 @@
 import { describe, expect, test, beforeEach, vi } from "vitest";
 import { PROJECT_STUBS, makeMockCtx, makeProject } from "../helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockListProjects: () => Promise<any> = async () => [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockCreateProject: (...args: any[]) => Promise<any> = async () => ({});
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockGetProject: (id: string) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockUpdateProject: (...args: any[]) => Promise<any> = async () => undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDeleteProject: (id: string) => Promise<any> = async () => false;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockRegenerateToken: (id: string) => Promise<any> = async () => undefined;
 
 function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {

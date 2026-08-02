@@ -34,7 +34,7 @@ export function isValidCidr(cidr: string): boolean {
   if (parts.length === 2) {
     const prefixStr = parts[1] ?? "";
     const prefix = parseInt(prefixStr, 10);
-    if (isNaN(prefix) || prefix < 0 || prefix > 32) return false;
+    if (Number.isNaN(prefix) || prefix < 0 || prefix > 32) return false;
     if (prefixStr !== String(prefix)) return false; // no leading zeros
   }
 
@@ -109,7 +109,7 @@ function isIpInCidr(ip: string, cidr: string): boolean {
   if (rangeIp === null) return false;
 
   const prefix = parts.length === 2 ? parseInt(parts[1] ?? "", 10) : 32;
-  if (isNaN(prefix) || prefix < 0 || prefix > 32) return false;
+  if (Number.isNaN(prefix) || prefix < 0 || prefix > 32) return false;
 
   if (prefix === 0) return true; // 0.0.0.0/0 matches everything
 

@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { swrFetcher, ApiError } from "./api";
+import { swrFetcher, type ApiError } from "./api";
 
 export interface MeResponse {
   authenticated: boolean;

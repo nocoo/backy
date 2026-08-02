@@ -126,15 +126,15 @@ function* iterateCases(srcRaw: string): Generator<{
   const src = stripCommentsAndStrings(srcRaw);
   // Match "it(", "test(", "it.skip(", "it.only(", "it.todo(", "xit(", "xtest("
   const re = /(?<![\w.])(?:x?it|x?test)(?:\.(skip|only|todo|concurrent|sequential|each))?\s*\(/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(src)) !== null) {
-    const headerStart = m.index;
+  let m: RegExpExecArray | null = re.exec(src);
+  while (m !== null) {
     const modifier = m[1] ?? "";
     const isSkipped = /^x/.test(m[0]) || modifier === "skip" || modifier === "todo";
     // .todo often has no body (just a string). Bail by scanning to next ).
     if (modifier === "todo") {
       counts.skipped++;
       yield { header: m[0], body: "", isSkipped: true };
+      m = re.exec(src);
       continue;
     }
     // Find arrow/function body opening { after the args.
@@ -144,7 +144,6 @@ function* iterateCases(srcRaw: string): Generator<{
     let paren = 1;
     let bodyStart = -1;
     let inStr: string | null = null;
-    let depthCurly = 0;
     while (i < src.length && paren > 0) {
       const c = src[i];
       if (inStr) {
@@ -157,9 +156,6 @@ function* iterateCases(srcRaw: string): Generator<{
         else if (c === "{" && paren === 1) {
           // first top-level { inside args = function body opening
           if (bodyStart === -1) bodyStart = i;
-          depthCurly++;
-        } else if (c === "}" && paren === 1) {
-          depthCurly--;
         }
       }
       i++;
@@ -168,6 +164,7 @@ function* iterateCases(srcRaw: string): Generator<{
       // arrow w/o braces: () => expr  — treat whole arg as body
       yield { header: m[0], body: src.slice(m.index + m[0].length, i), isSkipped };
       re.lastIndex = i;
+      m = re.exec(src);
       continue;
     }
     // bodyStart points to '{'. Find matching '}'.
@@ -189,6 +186,7 @@ function* iterateCases(srcRaw: string): Generator<{
     const body = src.slice(bodyStart + 1, bi - 1);
     yield { header: m[0], body, isSkipped };
     re.lastIndex = bi;
+    m = re.exec(src);
   }
 }
 
@@ -284,9 +282,9 @@ for (const file of files) {
     // `expect(<same>.kind)` assertion outside the if.
     const kindIfRe =
       /\bif\s*\(\s*([\w$.]+)\.kind\s*===\s*["'][^"']+["']\s*\)/g;
-    let kindMatch: RegExpExecArray | null;
+    let kindMatch: RegExpExecArray | null = kindIfRe.exec(body);
     let foundVacuousKind = false;
-    while ((kindMatch = kindIfRe.exec(body)) !== null) {
+    while (kindMatch !== null) {
       const subject = kindMatch[1];
       const before = body.slice(0, kindMatch.index);
       // Region starting at the if. Cheap heuristic: take next ~400 chars,
@@ -301,12 +299,12 @@ for (const file of files) {
         foundVacuousKind = true;
         break;
       }
+      kindMatch = kindIfRe.exec(body);
     }
     if (foundVacuousKind) {
       counts.vacuousKindNarrow++;
       total++;
       weakInFile++;
-      continue;
     }
   }
   if (weakInFile > 0) byFile.push({ file, weak: weakInFile });

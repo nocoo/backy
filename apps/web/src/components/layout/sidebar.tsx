@@ -177,6 +177,7 @@ export function Sidebar() {
             />
           </div>
           <button
+            type="button"
             onClick={toggle}
             aria-label="Expand sidebar"
             title="Expand sidebar"
@@ -254,6 +255,7 @@ export function Sidebar() {
                 </span>
               </div>
               <button
+                type="button"
                 onClick={toggle}
                 aria-label="Collapse sidebar"
                 className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors"

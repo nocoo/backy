@@ -14,7 +14,7 @@
  */
 
 import { describe, expect, test, beforeAll } from "bun:test";
-import { url, jsonRequest, TEST_PROJECT } from "./config";
+import { url, jsonRequest, } from "./config";
 
 describe("L2: API /api/backups", () => {
   let testProjectId: string;

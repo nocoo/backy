@@ -613,6 +613,7 @@ export function ProjectDetailPage() {
                   Enable Auto Backup
                 </Label>
                 <button
+                  type="button"
                   id="auto-backup-toggle"
                   role="switch"
                   aria-checked={autoBackupEnabled === 1}
