@@ -167,9 +167,11 @@ export function BackupsPage() {
     void fetchBackups();
   }, [fetchBackups]);
 
+  // Clear multi-select when list data changes (page/filter/sort/refresh).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: data is the intentional trigger
   useEffect(() => {
     setSelected(new Set());
-  }, []);
+  }, [data]);
 
   function handleSort(column: SortBy) {
     if (sortBy === column) {
