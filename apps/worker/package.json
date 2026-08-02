@@ -16,7 +16,7 @@
   "dependencies": {
     "@backy/api": "workspace:*",
     "hono": "^4.12.33",
-    "jose": "^6.2.5"
+    "jose": "^6.2.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260722.1",
