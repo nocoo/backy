@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@backy/api": "workspace:*",
-    "hono": "^4.12.33",
+    "hono": "^4.13.0",
     "jose": "^6.2.8"
   },
   "devDependencies": {
