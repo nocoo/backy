@@ -39,7 +39,7 @@
     "lint:fix": "biome check --write --error-on-warnings --no-errors-on-unmatched --max-diagnostics=500 ."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
+    "@biomejs/biome": "2.5.9",
     "@playwright/test": "^1.62.1",
     "@vitest/coverage-v8": "4.1.10",
     "husky": "^9.1.7",
