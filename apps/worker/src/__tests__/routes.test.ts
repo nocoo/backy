@@ -47,6 +47,8 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     expect((await res.json()) as unknown).toEqual({
       authenticated: true,
       email: "dev@local",
+      name: null,
+      avatar: null,
     });
   });
 

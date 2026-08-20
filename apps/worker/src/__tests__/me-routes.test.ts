@@ -41,6 +41,40 @@ describe("meRoutes — direct", () => {
     expect(await res.json()).toEqual({
       authenticated: true,
       email: "alice@x.com",
+      name: null,
+      avatar: null,
     });
+  });
+
+  test("forwards public name and avatar and drops extra author fields", async () => {
+    const prev = globalThis.fetch;
+    globalThis.fetch = Object.assign(
+      async () =>
+        new Response(
+          JSON.stringify({
+            name: "Zheng Li",
+            avatar: "https://example.com/avatar-80.jpg",
+            email: "secret@example.com",
+            id: "hidden",
+            slug: "zheng-li",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      { preconnect: () => {} },
+    ) as typeof fetch;
+    try {
+      const res = await mount((c) =>
+        c.set("accessEmail", "architie@gmail.com"),
+      ).request("/api/me");
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({
+        authenticated: true,
+        email: "architie@gmail.com",
+        name: "Zheng Li",
+        avatar: "https://example.com/avatar-80.jpg",
+      });
+    } finally {
+      globalThis.fetch = prev;
+    }
   });
 });

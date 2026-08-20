@@ -21,6 +21,7 @@
     "./backup/extractors": "./src/lib/backup/extractors.ts",
     "./id": "./src/lib/id.ts",
     "./hosts": "./src/lib/hosts.ts",
+    "./blog-profile": "./src/lib/blog-profile.ts",
     "./ip": "./src/lib/ip.ts",
     "./sanitize": "./src/lib/sanitize.ts",
     "./url": "./src/lib/url.ts",

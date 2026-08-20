@@ -12,7 +12,12 @@ beforeAll(() => {
     const url = typeof input === "string" ? input : input.toString();
     if (url.includes("/api/me")) {
       return new Response(
-        JSON.stringify({ authenticated: true, email: "you@example.com" }),
+        JSON.stringify({
+          authenticated: true,
+          email: "you@example.com",
+          name: null,
+          avatar: null,
+        }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
@@ -55,6 +60,8 @@ describe("useMe", () => {
     // changed default value (e.g. authenticated:undefined vs false).
     expect(snapshot).toMatchObject({
       email: null,
+      name: null,
+      avatar: null,
       authenticated: false,
       isLoading: true,
       mutate: expect.any(Function),

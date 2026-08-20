@@ -26,7 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const AVATAR_COLORS = [
   "bg-red-600",
@@ -152,10 +152,11 @@ function NavGroupSection({
 export function Sidebar() {
   const { pathname } = useLocation();
   const { collapsed, toggle } = useSidebar();
-  const { email } = useMe();
+  const { email, name, avatar } = useMe();
 
   const userEmail = email ?? "";
-  const userName = userEmail ? (userEmail.split("@")[0] ?? "User") : "User";
+  const userName =
+    name || (userEmail ? (userEmail.split("@")[0] ?? "User") : "User");
   const userInitial = userName[0]?.toUpperCase() ?? "?";
 
   return (
@@ -223,6 +224,9 @@ export function Sidebar() {
               className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all rounded-full"
             >
               <Avatar className="h-9 w-9 shrink-0">
+                {avatar ? (
+                  <AvatarImage src={avatar} alt={userName} />
+                ) : null}
                 <AvatarFallback
                   className={cn(
                     "text-xs text-white",
@@ -280,6 +284,9 @@ export function Sidebar() {
           <div className="px-4 py-3">
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 shrink-0">
+                {avatar ? (
+                  <AvatarImage src={avatar} alt={userName} />
+                ) : null}
                 <AvatarFallback
                   className={cn(
                     "text-xs text-white",
