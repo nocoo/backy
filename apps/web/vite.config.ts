@@ -19,7 +19,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 7019,
+    port: 7017,
+    strictPort: true,
+    host: true,
+    allowedHosts: ["backy.dev.hexly.ai"],
     proxy: {
       "/api": "http://127.0.0.1:7018",
     },
