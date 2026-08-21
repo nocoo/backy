@@ -41,7 +41,15 @@ export function __resetJwksCacheForTests(): void {
   jwksCacheTeamDomain = null;
 }
 
+const NANOID = "[A-Za-z0-9_-]{21}";
+const DIRECT_INIT = new RegExp(`^/api/webhook/${NANOID}/uploads$`);
+const DIRECT_COMPLETE = new RegExp(
+  `^/api/webhook/${NANOID}/uploads/${NANOID}/complete$`,
+);
+const DIRECT_ABORT = new RegExp(`^/api/webhook/${NANOID}/uploads/${NANOID}$`);
+
 function isPublicPath(method: string, path: string): boolean {
+  if (path.includes("%")) return false;
   if (method === "GET" && path === "/api/live") return true;
   if (method === "POST" && path === "/api/cron/trigger") return true;
   if (
@@ -53,6 +61,9 @@ function isPublicPath(method: string, path: string): boolean {
   ) {
     return true;
   }
+  if (method === "POST" && DIRECT_INIT.test(path)) return true;
+  if (method === "POST" && DIRECT_COMPLETE.test(path)) return true;
+  if (method === "DELETE" && DIRECT_ABORT.test(path)) return true;
   if (
     method === "GET" &&
     path.startsWith("/api/restore/") &&

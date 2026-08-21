@@ -165,6 +165,18 @@ export async function deleteBackups(
 /**
  * Get a single backup by ID.
  */
+export async function getBackupByFileKey(
+  db: D1Adapter,
+  fileKey: string,
+): Promise<Backup | undefined> {
+  const rows = await q<Backup>(
+    db,
+    "SELECT * FROM backups WHERE file_key = ?",
+    [fileKey],
+  );
+  return rows[0];
+}
+
 export async function getBackup(
   db: D1Adapter,
   id: string,

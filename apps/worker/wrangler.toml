@@ -29,6 +29,7 @@ database_id = "7ecc6581-6f0e-4e8c-8783-7e58b8676f93"
 [[r2_buckets]]
 binding = "R2"
 bucket_name = "backy"
+local_dev = { experimental_s3_credentials = { accessKeyId = "backy-local", secretAccessKey = "backy-local-secret" } }
 
 [assets]
 directory = "./static"

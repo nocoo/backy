@@ -52,6 +52,9 @@ function spawnDevServer(): Subprocess {
       `--persist-to=${PERSIST_DIR}`,
       "--var=ENVIRONMENT:test",
       "--var=E2E_SKIP_AUTH:true",
+      "--var=R2_ACCESS_KEY_ID:backy-local",
+      "--var=R2_SECRET_ACCESS_KEY:backy-local-secret",
+      "--var=R2_S3_ENDPOINT:http://127.0.0.1:17018/cdn-cgi/local/r2/s3",
     ],
     {
       cwd: WORKER_DIR,

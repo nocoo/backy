@@ -108,6 +108,60 @@ describe("accessAuth — public path whitelist", () => {
       error: "Cloudflare Access not configured",
     });
   });
+
+  const nid = "abcdefghijklmnopqrstu";
+  const nid2 = "abcdefghijklmnopqrstv";
+
+  test("POST nanoid /uploads is public", async () => {
+    const res = await buildApp().request(`/api/webhook/${nid}/uploads`, {
+      method: "POST",
+      headers: { host: "backy.example.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
+  });
+
+  test("POST nanoid /uploads/:id/complete is public", async () => {
+    const res = await buildApp().request(
+      `/api/webhook/${nid}/uploads/${nid2}/complete`,
+      {
+        method: "POST",
+        headers: { host: "backy.example.com" },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
+  });
+
+  test("DELETE nanoid /uploads/:id is public", async () => {
+    const res = await buildApp().request(`/api/webhook/${nid}/uploads/${nid2}`, {
+      method: "DELETE",
+      headers: { host: "backy.example.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, email: null });
+  });
+
+  test("encoded separators and trailing slash are NOT public", async () => {
+    const denied = [
+      [`/api/webhook/${nid}%2Fuploads`, "POST"],
+      [`/api/webhook/${nid}/uploads%2e%2e`, "POST"],
+      [`/api/webhook/${nid}%252Fuploads`, "POST"],
+      [`/api/webhook/${nid}/uploads/`, "POST"],
+      [`/api/webhook/${nid}/uploads/${nid2}/complete/extra`, "POST"],
+      [`/api/webhook/${nid}/uploads`, "GET"],
+      [`/api/webhook/${nid}/uploads`, "PUT"],
+      [`/api/webhook/${nid}/uploads/${nid2}/complete`, "GET"],
+      [`/api/webhook//uploads`, "POST"],
+    ] as const;
+    for (const [path, method] of denied) {
+      const res = await buildApp().request(path, {
+        method,
+        headers: { host: "backy.example.com" },
+      });
+      expect(res.status).toBe(500);
+    }
+  });
 });
 
 describe("accessAuth — short-circuits", () => {

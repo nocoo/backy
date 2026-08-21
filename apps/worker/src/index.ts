@@ -15,10 +15,7 @@
 
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
-import {
-  cronTriggerHandler,
-  type CronTriggerInput,
-} from "@backy/api/handlers/cron";
+import { runHourlyJobs } from "@backy/api/handlers/gc";
 import {
   createBindingD1Adapter,
   type D1Binding,
@@ -95,19 +92,10 @@ function ctxFromBindings(env: Bindings): RuntimeContext {
 export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: Bindings): Promise<void> {
-    // Cron is binding-only: synthesize the Bearer header so the shared
-    // handler accepts it without exposing CRON_SECRET on the public HTTP
-    // path. If CRON_SECRET isn't configured, the handler returns 500 —
-    // we surface that as a thrown error so the platform retries.
     const cronSecret = env.CRON_SECRET;
-    if (!cronSecret) {
-      throw new Error("CRON_SECRET not configured");
-    }
     const ctx = ctxFromBindings(env);
-    const input: CronTriggerInput = { authorization: `Bearer ${cronSecret}` };
-    const result = await cronTriggerHandler(input, ctx);
-    if (result.kind === "json" && result.status >= 400) {
-      throw new Error(`cron trigger failed: ${JSON.stringify(result.body)}`);
-    }
+    await runHourlyJobs(ctx, {
+      authorization: cronSecret ? `Bearer ${cronSecret}` : null,
+    });
   },
 };

@@ -659,6 +659,33 @@ describe("worker routes — input shaping", () => {
   });
 });
 
+describe("worker routes — direct upload", () => {
+  test("POST /uploads with invalid JSON is 401 without token", async () => {
+    const res = await fetchWith("/api/webhook/abcdefghijklmnopqrstu/uploads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{not-json",
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("POST /uploads/:id/complete without token is 401", async () => {
+    const res = await fetchWith(
+      "/api/webhook/abcdefghijklmnopqrstu/uploads/abcdefghijklmnopqrstv/complete",
+      { method: "POST" },
+    );
+    expect(res.status).toBe(401);
+  });
+
+  test("DELETE /uploads/:id without token is 401", async () => {
+    const res = await fetchWith(
+      "/api/webhook/abcdefghijklmnopqrstu/uploads/abcdefghijklmnopqrstv",
+      { method: "DELETE" },
+    );
+    expect(res.status).toBe(401);
+  });
+});
+
 describe("worker scheduled()", () => {
   test("succeeds with valid CRON_SECRET", async () => {
     const env = makeEnv();

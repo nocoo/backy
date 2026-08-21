@@ -4,6 +4,11 @@ import {
   webhookGetHandler,
   webhookPostHandler,
 } from "@backy/api/handlers/webhook";
+import {
+  webhookInitUploadHandler,
+  webhookCompleteUploadHandler,
+  webhookAbortUploadHandler,
+} from "@backy/api/handlers/webhook-direct";
 import type { AppEnv } from "../lib/types";
 import { toResponse, clientIpOf } from "../lib/handler-response";
 
@@ -36,6 +41,48 @@ app.get("/:projectId", async (c) => {
     ),
   );
 });
+
+app.post("/:projectId/uploads/:uploadId/complete", async (c) =>
+  toResponse(
+    await webhookCompleteUploadHandler(
+      {
+        ...commonInput(c),
+        uploadId: c.req.param("uploadId"),
+      },
+      c.get("ctx"),
+    ),
+  ),
+);
+
+app.post("/:projectId/uploads", async (c) => {
+  let body: unknown = null;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = null;
+  }
+  return toResponse(
+    await webhookInitUploadHandler(
+      {
+        ...commonInput(c),
+        body,
+      },
+      c.get("ctx"),
+    ),
+  );
+});
+
+app.delete("/:projectId/uploads/:uploadId", async (c) =>
+  toResponse(
+    await webhookAbortUploadHandler(
+      {
+        ...commonInput(c),
+        uploadId: c.req.param("uploadId"),
+      },
+      c.get("ctx"),
+    ),
+  ),
+);
 
 app.post("/:projectId", async (c) =>
   toResponse(

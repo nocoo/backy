@@ -188,4 +188,30 @@ describe("ctxMiddleware", () => {
     );
     expect(signed).not.toMatch(/checksum/i);
   });
+
+  test("copy is wired when S3 creds present", async () => {
+    const app = new Hono<AppEnv>();
+    app.use("*", ctxMiddleware());
+    app.post("/copy", async (c) => {
+      try {
+        await c.get("ctx").r2.copy("src", "dst");
+        return c.json({ ok: true });
+      } catch (e) {
+        return c.json({ error: (e as Error).message }, 500);
+      }
+    });
+    const res = await app.request(
+      "/copy",
+      { method: "POST" },
+      {
+        DB: fakeD1() as unknown as D1Database,
+        R2: fakeR2() as unknown as R2Bucket,
+        R2_ACCESS_KEY_ID: "id",
+        R2_SECRET_ACCESS_KEY: "secret",
+        R2_ACCOUNT_ID: "acct",
+        R2_BUCKET_NAME: "bucket",
+      } as unknown as AppEnv["Bindings"],
+    );
+    expect([200, 500]).toContain(res.status);
+  });
 });

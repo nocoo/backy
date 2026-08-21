@@ -111,6 +111,7 @@ export const PROJECT_STUBS: Stub = {
 /** Default stubs for `@backy/api/db/backups`. */
 export const BACKUP_STUBS: Stub = {
   getBackup: async () => undefined,
+  getBackupByFileKey: async () => undefined,
   createBackup: async () => ({}),
   listBackups: async () => ({
     items: [],

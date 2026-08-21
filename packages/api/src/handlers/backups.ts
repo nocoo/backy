@@ -24,6 +24,17 @@ import {
 import { extractJson, MAX_DECOMPRESSED_SIZE } from "../lib/backup/extractors";
 import { json, type HandlerResponse } from "../http/response";
 import type { RuntimeContext } from "../runtime";
+import { isDirectFinalKey } from "../lib/direct-upload";
+
+async function deleteStoredObjects(
+  ctx: RuntimeContext,
+  fileKey: string,
+  jsonKey: string | null,
+): Promise<void> {
+  if (isDirectFinalKey(fileKey)) return;
+  await ctx.r2.delete(fileKey);
+  if (jsonKey) await ctx.r2.delete(jsonKey);
+}
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_PREVIEW_SIZE = 5 * 1024 * 1024;
@@ -129,8 +140,7 @@ export async function batchDeleteBackupsHandler(
     const keys = await deleteBackups(ctx.db, ids as string[]);
     for (const { fileKey, jsonKey } of keys) {
       try {
-        await ctx.r2.delete(fileKey);
-        if (jsonKey) await ctx.r2.delete(jsonKey);
+        await deleteStoredObjects(ctx, fileKey, jsonKey);
       } catch (r2Error) {
         console.error("R2 cleanup error (non-fatal):", r2Error);
       }
@@ -164,8 +174,7 @@ export async function deleteBackupHandler(
     const keys = await deleteBackup(ctx.db, input.id);
     if (!keys) return json(404, { error: "Backup not found" });
     try {
-      await ctx.r2.delete(keys.fileKey);
-      if (keys.jsonKey) await ctx.r2.delete(keys.jsonKey);
+      await deleteStoredObjects(ctx, keys.fileKey, keys.jsonKey);
     } catch (r2Error) {
       console.error("R2 cleanup error (non-fatal):", r2Error);
     }

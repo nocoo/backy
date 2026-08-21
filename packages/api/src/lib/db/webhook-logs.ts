@@ -20,6 +20,12 @@ export type WebhookErrorCode =
   | "env_invalid"
   | "upload_failed"
   | "db_failed"
+  | "quota_exceeded"
+  | "upload_gone"
+  | "upload_conflict"
+  | "size_mismatch"
+  | "s3_unconfigured"
+  | "validation"
   | "internal_error";
 
 /** A single webhook log entry. */

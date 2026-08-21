@@ -13,6 +13,7 @@
     "./db/categories": "./src/lib/db/categories.ts",
     "./db/cron-logs": "./src/lib/db/cron-logs.ts",
     "./db/webhook-logs": "./src/lib/db/webhook-logs.ts",
+    "./db/direct-uploads": "./src/lib/db/direct-uploads.ts",
     "./db/schema": "./src/lib/db/schema.ts",
     "./r2/s3-adapter": "./src/lib/r2/s3-adapter.ts",
     "./r2/binding-adapter": "./src/lib/r2/binding-adapter.ts",
@@ -37,7 +38,9 @@
     "./handlers/logs": "./src/handlers/logs.ts",
     "./handlers/cron": "./src/handlers/cron.ts",
     "./handlers/restore": "./src/handlers/restore.ts",
-    "./handlers/webhook": "./src/handlers/webhook.ts"
+    "./handlers/webhook": "./src/handlers/webhook.ts",
+    "./handlers/webhook-direct": "./src/handlers/webhook-direct.ts",
+    "./handlers/gc": "./src/handlers/gc.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1115.0",

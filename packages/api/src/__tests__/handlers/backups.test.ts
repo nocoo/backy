@@ -335,6 +335,20 @@ describe("backups handlers", () => {
       expect((r as { body: unknown }).body).toEqual({ success: true });
     });
 
+    test("skips R2 delete for direct-upload keys", async () => {
+      const deletes: string[] = [];
+      mockDeleteFromR2 = async (key: string) => {
+        deletes.push(key);
+      };
+      mockDeleteBackup = async () => ({
+        fileKey: "backups/p1/direct/u.bin",
+        jsonKey: "backups/p1/direct/u.bin",
+      });
+      const r = await deleteBackupHandler({ id: "b1" });
+      expect(r.status).toBe(200);
+      expect(deletes).toEqual([]);
+    });
+
     test("404 when missing", async () => {
       const r = await deleteBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
