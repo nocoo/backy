@@ -17,6 +17,10 @@ import {
 import { getBackupByFileKey } from "../lib/db/backups";
 import type { RuntimeContext } from "../runtime";
 
+function futureGcAt(now: number, candidate: number): number {
+  return Math.max(now + 1, candidate);
+}
+
 async function sweepOne(
   ctx: RuntimeContext,
   row: DirectUploadRow,
@@ -48,10 +52,9 @@ async function sweepOne(
       if (row.lease_expires_at !== null && row.lease_expires_at >= now) {
         await updateDirectUploadGc(ctx.db, {
           id: row.id,
-          nextGcAt: Math.min(
-            row.purge_after,
-            row.lease_expires_at,
-            now + 3600,
+          nextGcAt: futureGcAt(
+            now,
+            Math.min(row.purge_after, row.lease_expires_at, now + 3600),
           ),
         });
         return;
@@ -102,10 +105,13 @@ async function sweepOne(
 
     await updateDirectUploadGc(ctx.db, {
       id: row.id,
-      nextGcAt: Math.min(
-        row.purge_after,
-        row.lease_expires_at ?? row.purge_after,
-        now + 3600,
+      nextGcAt: futureGcAt(
+        now,
+        Math.min(
+          row.purge_after,
+          row.lease_expires_at ?? row.purge_after,
+          now + 3600,
+        ),
       ),
     });
   } catch (err) {

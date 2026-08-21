@@ -370,10 +370,28 @@ export async function webhookInitUploadHandler(
       return json(429, { error: "Direct upload quota exceeded" });
     }
 
-    const putUrl = await ctx.r2.presignUpload(stagingKey, PUT_TTL_SECONDS, {
-      contentType,
-      contentLength: fileSize,
-    });
+    let putUrl: string;
+    try {
+      putUrl = await ctx.r2.presignUpload(stagingKey, PUT_TTL_SECONDS, {
+        contentType,
+        contentLength: fileSize,
+      });
+    } catch (signError) {
+      await abortPendingDirectUpload(ctx.db, uploadId, input.projectId);
+      fireLog(ctx.db, {
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 500,
+        errorCode: "internal_error",
+        errorMessage:
+          signError instanceof Error ? signError.message : "presign failed",
+        metadata: logMeta({ upload_id: uploadId, file_name: fileName }),
+        startTime,
+        ctx: reqCtx,
+      });
+      return json(500, { error: "Internal server error" });
+    }
     fireLog(ctx.db, {
       projectId: project.id,
       method: "POST",
@@ -478,7 +496,7 @@ export async function webhookCompleteUploadHandler(
     const auth = await authenticate(input, ctx, "POST", path);
     if (!auth.ok) return auth.response;
     const { project, startTime, reqCtx } = auth;
-    const now = unixNow();
+    let now = unixNow();
     const upload = await getDirectUpload(ctx.db, input.uploadId, input.projectId);
     if (!upload) {
       fireLog(ctx.db, {
@@ -557,7 +575,24 @@ export async function webhookCompleteUploadHandler(
       }
       if (latest?.status === "completed" && latest.backup_id) {
         const existing = await getBackup(ctx.db, latest.backup_id);
-        if (existing) return json(201, backupBody(existing));
+        if (existing) {
+          fireLog(ctx.db, {
+            projectId: project.id,
+            method: "POST",
+            path,
+            statusCode: 201,
+            errorCode: null,
+            errorMessage: null,
+            metadata: logMeta({
+              upload_id: upload.id,
+              backup_id: existing.id,
+              file_size: existing.file_size,
+            }),
+            startTime,
+            ctx: reqCtx,
+          });
+          return json(201, backupBody(existing));
+        }
       }
       return completeGone(ctx, auth, path, latest ?? upload, "Upload is no longer completable");
     }
@@ -637,6 +672,7 @@ export async function webhookCompleteUploadHandler(
       return json(201, backupBody(existingByKey));
     }
 
+    now = unixNow();
     const renewed = await renewDirectUploadLease(ctx.db, {
       id: upload.id,
       leaseToken,
@@ -659,7 +695,24 @@ export async function webhookCompleteUploadHandler(
     }
 
     await ctx.r2.copy(upload.staging_key, upload.file_key);
+    const finalHead = await ctx.r2.head(upload.file_key);
+    if (!finalHead || finalHead.contentLength !== upload.declared_size) {
+      await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
+      fireLog(ctx.db, {
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 409,
+        errorCode: "size_mismatch",
+        errorMessage: "Copied object missing or size mismatch",
+        metadata: logMeta({ upload_id: upload.id, file_key: upload.file_key }),
+        startTime,
+        ctx: reqCtx,
+      });
+      return json(409, { error: "Copied object missing or size mismatch" });
+    }
 
+    now = unixNow();
     const renewedAfterCopy = await renewDirectUploadLease(ctx.db, {
       id: upload.id,
       leaseToken,
@@ -683,7 +736,7 @@ export async function webhookCompleteUploadHandler(
 
     const fileType = detectFileType(upload.file_name, upload.content_type);
     const previewableJson =
-      fileType === "json" && head.contentLength <= MAX_PREVIEW_SIZE;
+      fileType === "json" && finalHead.contentLength <= MAX_PREVIEW_SIZE;
 
     let backup: Backup;
     try {
@@ -694,37 +747,69 @@ export async function webhookCompleteUploadHandler(
         ...(upload.tag ? { tag: upload.tag } : {}),
         fileKey: upload.file_key,
         ...(previewableJson ? { jsonKey: upload.file_key } : {}),
-        fileSize: head.contentLength,
+        fileSize: finalHead.contentLength,
         isSingleJson: previewableJson,
         jsonExtracted: false,
         fileType,
       });
     } catch (dbError) {
-      const conflict = await getBackupByFileKey(ctx.db, upload.file_key);
-      if (conflict && conflict.project_id === input.projectId) {
-        await attachCompletedBackup(ctx.db, {
-          id: upload.id,
-          backupId: conflict.id,
-          now,
+      const message =
+        dbError instanceof Error ? dbError.message : "backup insert failed";
+      if (/unique/i.test(message)) {
+        const conflict = await getBackupByFileKey(ctx.db, upload.file_key);
+        if (conflict && conflict.project_id === input.projectId) {
+          now = unixNow();
+          await attachCompletedBackup(ctx.db, {
+            id: upload.id,
+            backupId: conflict.id,
+            now,
+          });
+          fireLog(ctx.db, {
+            projectId: project.id,
+            method: "POST",
+            path,
+            statusCode: 201,
+            errorCode: null,
+            errorMessage: null,
+            metadata: logMeta({
+              upload_id: upload.id,
+              backup_id: conflict.id,
+              file_size: conflict.file_size,
+            }),
+            startTime,
+            ctx: reqCtx,
+          });
+          return json(201, backupBody(conflict));
+        }
+        await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
+        fireLog(ctx.db, {
+          projectId: project.id,
+          method: "POST",
+          path,
+          statusCode: 409,
+          errorCode: "upload_conflict",
+          errorMessage: message,
+          metadata: logMeta({ upload_id: upload.id, file_key: upload.file_key }),
+          startTime,
+          ctx: reqCtx,
         });
-        return json(201, backupBody(conflict));
+        return json(409, { error: "file_key conflict" });
       }
-      await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
       fireLog(ctx.db, {
         projectId: project.id,
         method: "POST",
         path,
-        statusCode: 409,
-        errorCode: "upload_conflict",
-        errorMessage:
-          dbError instanceof Error ? dbError.message : "backup insert conflict",
+        statusCode: 500,
+        errorCode: "db_failed",
+        errorMessage: message,
         metadata: logMeta({ upload_id: upload.id, file_key: upload.file_key }),
         startTime,
         ctx: reqCtx,
       });
-      return json(409, { error: "file_key conflict" });
+      return json(500, { error: "Internal server error" });
     }
 
+    now = unixNow();
     const finalized = await completeDirectUpload(ctx.db, {
       id: upload.id,
       leaseToken,

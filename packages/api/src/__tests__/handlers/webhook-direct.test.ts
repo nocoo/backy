@@ -212,6 +212,17 @@ describe("webhookInitUploadHandler", () => {
       ).status,
     ).toBe(429);
     mockInsert = async () => true;
+    const signFail = await handlers.webhookInitUploadHandler(
+      { ...auth, body: { file_name: "a.bin", file_size: 4 } },
+      ctx({
+        r2: makeMockR2({
+          presignUpload: async () => {
+            throw new Error("sign");
+          },
+        }),
+      }),
+    );
+    expect(signFail.status).toBe(500);
     const r = await handlers.webhookInitUploadHandler(
       {
         ...auth,
@@ -386,6 +397,20 @@ describe("webhookCompleteUploadHandler", () => {
       (await handlers.webhookCompleteUploadHandler({ ...auth, uploadId: "u" }, ctx())).status,
     ).toBe(409);
     mockRenew = async () => true;
+    let heads = 0;
+    const missingFinal = await handlers.webhookCompleteUploadHandler(
+      { ...auth, uploadId: "u" },
+      ctx({
+        r2: makeMockR2({
+          head: async () => {
+            heads++;
+            if (heads === 1) return { contentLength: 4 };
+            return null;
+          },
+        }),
+      }),
+    );
+    expect(missingFinal.status).toBe(409);
     const ok = await handlers.webhookCompleteUploadHandler(
       { ...auth, uploadId: "u" },
       ctx(),
@@ -415,6 +440,12 @@ describe("webhookCompleteUploadHandler", () => {
     expect(
       (await handlers.webhookCompleteUploadHandler({ ...auth, uploadId: "u" }, ctx())).status,
     ).toBe(409);
+    mockCreateBackup = async () => {
+      throw new Error("D1 timeout");
+    };
+    expect(
+      (await handlers.webhookCompleteUploadHandler({ ...auth, uploadId: "u" }, ctx())).status,
+    ).toBe(500);
     mockCreateBackup = async () => ({
       id: "b1",
       project_id: "p1",
