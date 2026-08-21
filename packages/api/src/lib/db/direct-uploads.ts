@@ -193,6 +193,20 @@ export async function claimDirectUpload(
   return changesOf(result.meta) > 0;
 }
 
+export async function purgeUnissuedDirectUpload(
+  db: D1Adapter,
+  id: string,
+  now: number,
+): Promise<void> {
+  await db.query(
+    `UPDATE direct_uploads
+     SET status = 'aborted', purged_at = ?, next_gc_at = ?,
+         lease_token = NULL, lease_expires_at = NULL
+     WHERE id = ? AND status = 'pending' AND purged_at IS NULL`,
+    [now, now + 3600, id],
+  );
+}
+
 export async function abortPendingDirectUpload(
   db: D1Adapter,
   id: string,

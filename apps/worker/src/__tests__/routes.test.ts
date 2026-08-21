@@ -693,6 +693,7 @@ describe("worker scheduled()", () => {
       worker.scheduled(
         { scheduledTime: Date.now(), cron: "0 * * * *" } as unknown as ScheduledEvent,
         env as unknown as Bindings,
+        { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as ExecutionContext,
       ),
     ).resolves.toBeUndefined();
   });
@@ -703,6 +704,7 @@ describe("worker scheduled()", () => {
       worker.scheduled(
         { scheduledTime: Date.now(), cron: "0 * * * *" } as unknown as ScheduledEvent,
         env as unknown as Bindings,
+        { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as ExecutionContext,
       ),
     ).rejects.toThrow(/CRON_SECRET not configured/);
   });

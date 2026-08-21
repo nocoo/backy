@@ -48,6 +48,7 @@ export function ctxMiddleware() {
       r2,
       env,
       info: workerRuntimeInfo(),
+      defer: (promise) => c.executionCtx.waitUntil(promise),
     };
     c.set("ctx", ctx);
     await next();

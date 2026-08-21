@@ -11,6 +11,7 @@ import {
   getDirectUpload,
   insertPendingDirectUpload,
   listGcBatch,
+  purgeUnissuedDirectUpload,
   renewDirectUploadLease,
   updateDirectUploadGc,
 } from "../lib/db/direct-uploads";
@@ -105,6 +106,7 @@ describe("direct-uploads db", () => {
       backupId: "b1",
     });
     await updateDirectUploadGc(db, { id: "u1", nextGcAt: 100 });
+    await purgeUnissuedDirectUpload(db, "u1", 50);
     await deleteArchivedDirectUploads(db, 1);
     expect(db.calls.some((c) => c.sql.includes("DELETE FROM direct_uploads"))).toBe(
       true,

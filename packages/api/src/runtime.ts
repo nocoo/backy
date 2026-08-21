@@ -104,6 +104,7 @@ export interface RuntimeContext {
   r2: R2Adapter;
   env: BackyEnv;
   info: RuntimeInfo;
+  defer?: (promise: Promise<unknown>) => void;
 }
 
 /** Node/Bun runtime info backed by `process.uptime()`. */

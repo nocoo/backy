@@ -75,7 +75,7 @@ describe("gcDirectUploads", () => {
 
   test("completed with backup isolates staging delete failure", async () => {
     mockList = async () => [row({ status: "completed" })];
-    mockGetBackupByFileKey = async () => ({ id: "b1" });
+    mockGetBackupByFileKey = async () => ({ id: "b1", project_id: "p1" });
     const r2 = makeMockR2({
       delete: async () => {
         throw new Error("staging");
@@ -98,7 +98,7 @@ describe("gcDirectUploads", () => {
 
   test("completed with backup deletes staging only", async () => {
     mockList = async () => [row({ status: "completed" })];
-    mockGetBackupByFileKey = async () => ({ id: "b1" });
+    mockGetBackupByFileKey = async () => ({ id: "b1", project_id: "p1" });
     const r2 = makeMockR2();
     await gcDirectUploads(makeMockCtx({ r2 }), 100);
     expect(r2.deletes).toEqual(["direct-staging/p1/u1/in.bin"]);
@@ -150,11 +150,11 @@ describe("gcDirectUploads", () => {
     mockList = async () => [
       row({ status: "completing", lease_expires_at: 10 }),
     ];
-    mockGetBackupByFileKey = async () => ({ id: "b9" });
+    mockGetBackupByFileKey = async () => ({ id: "b9", project_id: "p1" });
     await gcDirectUploads(makeMockCtx(), 100);
     expect(updates.at(-1)).toMatchObject({
-      status: "completed",
-      backupId: "b9",
+      id: "u1",
+      nextGcAt: 100 + 7 * 24 * 3600,
     });
   });
 

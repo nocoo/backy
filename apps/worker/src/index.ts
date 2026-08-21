@@ -68,7 +68,10 @@ app.route("/api/me", meRoutes);
  * Build a RuntimeContext from raw bindings (no Hono Context). Used by
  * `scheduled()` since the cron event has no request to drive middleware.
  */
-function ctxFromBindings(env: Bindings): RuntimeContext {
+function ctxFromBindings(
+  env: Bindings,
+  exec?: ExecutionContext,
+): RuntimeContext {
   const backyEnv: BackyEnv = {
     ...(env.CRON_SECRET !== undefined && { CRON_SECRET: env.CRON_SECRET }),
     ...(env.ALLOWED_HOSTS !== undefined && { ALLOWED_HOSTS: env.ALLOWED_HOSTS }),
@@ -86,14 +89,19 @@ function ctxFromBindings(env: Bindings): RuntimeContext {
     r2: createBindingR2Adapter(env.R2 as unknown as R2Binding),
     env: backyEnv,
     info: workerRuntimeInfo(),
+    ...(exec && { defer: (promise) => exec.waitUntil(promise) }),
   };
 }
 
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledEvent, env: Bindings): Promise<void> {
+  async scheduled(
+    _event: ScheduledEvent,
+    env: Bindings,
+    exec: ExecutionContext,
+  ): Promise<void> {
     const cronSecret = env.CRON_SECRET;
-    const ctx = ctxFromBindings(env);
+    const ctx = ctxFromBindings(env, exec);
     await runHourlyJobs(ctx, {
       authorization: cronSecret ? `Bearer ${cronSecret}` : null,
     });

@@ -37,6 +37,7 @@ import {
   abortCompletingWithLease,
   abortPendingDirectUpload,
   attachCompletedBackup,
+  purgeUnissuedDirectUpload,
   claimDirectUpload,
   completeDirectUpload,
   getDirectUpload,
@@ -44,7 +45,7 @@ import {
   renewDirectUploadLease,
   type DirectUploadRow,
 } from "../lib/db/direct-uploads";
-import type { D1Adapter, RuntimeContext } from "../runtime";
+import type { RuntimeContext } from "../runtime";
 import type { Project } from "../lib/db/projects";
 
 interface RequestContext {
@@ -64,9 +65,9 @@ interface LogEntry {
   ctx: RequestContext;
 }
 
-function fireLog(db: D1Adapter, entry: LogEntry) {
+function fireLog(runtime: RuntimeContext, entry: LogEntry) {
   const durationMs = Date.now() - entry.startTime;
-  void createWebhookLog(db, {
+  const pending = createWebhookLog(runtime.db, {
     projectId: entry.projectId,
     method: entry.method,
     path: entry.path,
@@ -78,6 +79,8 @@ function fireLog(db: D1Adapter, entry: LogEntry) {
     durationMs,
     metadata: entry.metadata,
   });
+  if (runtime.defer) runtime.defer(pending);
+  else void pending;
 }
 
 function checkIp(allowedIps: string | null, clientIp: string | null): boolean {
@@ -134,7 +137,7 @@ async function authenticate(
   };
   const token = bearer(input.authorization);
   if (!token) {
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: null,
       method,
       path,
@@ -152,7 +155,7 @@ async function authenticate(
   }
   const project = await getProjectByToken(ctx.db, token);
   if (!project || project.id !== input.projectId) {
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: project?.id ?? null,
       method,
       path,
@@ -169,7 +172,7 @@ async function authenticate(
     };
   }
   if (!checkIp(project.allowed_ips, input.clientIp)) {
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: project.id,
       method,
       path,
@@ -208,7 +211,7 @@ export async function webhookInitUploadHandler(
         ? (input.body as Record<string, unknown>)
         : null;
     if (!body) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -224,7 +227,7 @@ export async function webhookInitUploadHandler(
 
     const nameError = validateFileName(body.file_name);
     if (nameError) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -246,7 +249,7 @@ export async function webhookInitUploadHandler(
       fileSize < 1 ||
       fileSize > MAX_DIRECT_BYTES
     ) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -270,7 +273,7 @@ export async function webhookInitUploadHandler(
         environment as (typeof VALID_ENVIRONMENTS)[number],
       )
     ) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -301,7 +304,7 @@ export async function webhookInitUploadHandler(
       utf8ByteLength(stagingKey) > MAX_KEY_BYTES ||
       utf8ByteLength(fileKey) > MAX_KEY_BYTES
     ) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -316,7 +319,7 @@ export async function webhookInitUploadHandler(
     }
 
     if (!isS3R2Configured(ctx.env)) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -352,7 +355,7 @@ export async function webhookInitUploadHandler(
       createdAt: now,
     });
     if (!inserted) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -377,8 +380,8 @@ export async function webhookInitUploadHandler(
         contentLength: fileSize,
       });
     } catch (signError) {
-      await abortPendingDirectUpload(ctx.db, uploadId, input.projectId);
-      fireLog(ctx.db, {
+      await purgeUnissuedDirectUpload(ctx.db, uploadId, unixNow());
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -392,7 +395,7 @@ export async function webhookInitUploadHandler(
       });
       return json(500, { error: "Internal server error" });
     }
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: project.id,
       method: "POST",
       path,
@@ -426,7 +429,7 @@ export async function webhookInitUploadHandler(
     });
   } catch (error) {
     console.error("Direct upload init error:", error);
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: null,
       method: "POST",
       path,
@@ -470,7 +473,7 @@ async function completeGone(
   upload: DirectUploadRow | undefined,
   message: string,
 ): Promise<HandlerResponse> {
-  fireLog(ctx.db, {
+  fireLog(ctx, {
     projectId: auth.project.id,
     method: "POST",
     path,
@@ -499,7 +502,7 @@ export async function webhookCompleteUploadHandler(
     let now = unixNow();
     const upload = await getDirectUpload(ctx.db, input.uploadId, input.projectId);
     if (!upload) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -517,7 +520,7 @@ export async function webhookCompleteUploadHandler(
       if (upload.backup_id) {
         const existing = await getBackup(ctx.db, upload.backup_id);
         if (existing) {
-          fireLog(ctx.db, {
+          fireLog(ctx, {
             projectId: project.id,
             method: "POST",
             path,
@@ -560,7 +563,7 @@ export async function webhookCompleteUploadHandler(
         latest.lease_expires_at !== null &&
         latest.lease_expires_at > now
       ) {
-        fireLog(ctx.db, {
+        fireLog(ctx, {
           projectId: project.id,
           method: "POST",
           path,
@@ -576,7 +579,7 @@ export async function webhookCompleteUploadHandler(
       if (latest?.status === "completed" && latest.backup_id) {
         const existing = await getBackup(ctx.db, latest.backup_id);
         if (existing) {
-          fireLog(ctx.db, {
+          fireLog(ctx, {
             projectId: project.id,
             method: "POST",
             path,
@@ -600,7 +603,7 @@ export async function webhookCompleteUploadHandler(
     const head = await ctx.r2.head(upload.staging_key);
     if (!head) {
       await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -615,7 +618,7 @@ export async function webhookCompleteUploadHandler(
     }
     if (head.contentLength !== upload.declared_size) {
       await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -636,7 +639,7 @@ export async function webhookCompleteUploadHandler(
     if (existingByKey) {
       if (existingByKey.project_id !== input.projectId) {
         await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
-        fireLog(ctx.db, {
+        fireLog(ctx, {
           projectId: project.id,
           method: "POST",
           path,
@@ -654,7 +657,7 @@ export async function webhookCompleteUploadHandler(
         backupId: existingByKey.id,
         now,
       });
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -680,7 +683,7 @@ export async function webhookCompleteUploadHandler(
       leaseExpiresAt: now + LEASE_TTL_SECONDS,
     });
     if (!renewed) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -698,7 +701,7 @@ export async function webhookCompleteUploadHandler(
     const finalHead = await ctx.r2.head(upload.file_key);
     if (!finalHead || finalHead.contentLength !== upload.declared_size) {
       await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -720,7 +723,7 @@ export async function webhookCompleteUploadHandler(
       leaseExpiresAt: now + LEASE_TTL_SECONDS,
     });
     if (!renewedAfterCopy) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -764,7 +767,7 @@ export async function webhookCompleteUploadHandler(
             backupId: conflict.id,
             now,
           });
-          fireLog(ctx.db, {
+          fireLog(ctx, {
             projectId: project.id,
             method: "POST",
             path,
@@ -782,7 +785,7 @@ export async function webhookCompleteUploadHandler(
           return json(201, backupBody(conflict));
         }
         await abortCompletingWithLease(ctx.db, upload.id, leaseToken);
-        fireLog(ctx.db, {
+        fireLog(ctx, {
           projectId: project.id,
           method: "POST",
           path,
@@ -795,7 +798,7 @@ export async function webhookCompleteUploadHandler(
         });
         return json(409, { error: "file_key conflict" });
       }
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -817,7 +820,7 @@ export async function webhookCompleteUploadHandler(
       now,
     });
     if (!finalized) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "POST",
         path,
@@ -834,7 +837,7 @@ export async function webhookCompleteUploadHandler(
       return json(409, { error: "Upload lease lost" });
     }
 
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: project.id,
       method: "POST",
       path,
@@ -857,7 +860,7 @@ export async function webhookCompleteUploadHandler(
     return json(201, backupBody(backup));
   } catch (error) {
     console.error("Direct upload complete error:", error);
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: null,
       method: "POST",
       path,
@@ -891,7 +894,7 @@ export async function webhookAbortUploadHandler(
     const { project, startTime, reqCtx } = auth;
     const upload = await getDirectUpload(ctx.db, input.uploadId, input.projectId);
     if (!upload) {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "DELETE",
         path,
@@ -910,7 +913,7 @@ export async function webhookAbortUploadHandler(
       input.projectId,
     );
     if (aborted || upload.status === "aborted") {
-      fireLog(ctx.db, {
+      fireLog(ctx, {
         projectId: project.id,
         method: "DELETE",
         path,
@@ -923,7 +926,7 @@ export async function webhookAbortUploadHandler(
       });
       return json(200, { ok: true });
     }
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: project.id,
       method: "DELETE",
       path,
@@ -937,7 +940,7 @@ export async function webhookAbortUploadHandler(
     return json(409, { error: "Cannot abort upload in its current state" });
   } catch (error) {
     console.error("Direct upload abort error:", error);
-    fireLog(ctx.db, {
+    fireLog(ctx, {
       projectId: null,
       method: "DELETE",
       path,

@@ -9,6 +9,7 @@ import {
   unixNow,
 } from "../lib/direct-upload";
 import {
+  attachCompletedBackup,
   deleteArchivedDirectUploads,
   listGcBatch,
   updateDirectUploadGc,
@@ -27,10 +28,19 @@ async function sweepOne(
   now: number,
 ): Promise<void> {
   const backup = await getBackupByFileKey(ctx.db, row.file_key);
+  const ownBackup = Boolean(backup && backup.project_id === row.project_id);
   const hasBackup = Boolean(backup);
 
   try {
-    if (row.status === "completed" && hasBackup) {
+    if (hasBackup && !ownBackup) {
+      await updateDirectUploadGc(ctx.db, {
+        id: row.id,
+        nextGcAt: now + ARCHIVE_AFTER_SECONDS,
+      });
+      return;
+    }
+
+    if (row.status === "completed" && ownBackup) {
       try {
         await ctx.r2.delete(row.staging_key);
       } catch (err) {
@@ -59,12 +69,15 @@ async function sweepOne(
         });
         return;
       }
-      if (hasBackup) {
+      if (ownBackup && backup) {
+        await attachCompletedBackup(ctx.db, {
+          id: row.id,
+          backupId: backup.id,
+          now,
+        });
         await updateDirectUploadGc(ctx.db, {
           id: row.id,
           nextGcAt: now + ARCHIVE_AFTER_SECONDS,
-          status: "completed",
-          backupId: backup?.id ?? null,
         });
         return;
       }
@@ -80,7 +93,7 @@ async function sweepOne(
     ) {
       try {
         await ctx.r2.delete(row.staging_key);
-        await ctx.r2.delete(row.file_key);
+        if (!hasBackup) await ctx.r2.delete(row.file_key);
       } catch (err) {
         console.error("GC object delete failed:", err);
         await updateDirectUploadGc(ctx.db, {
