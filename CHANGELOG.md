@@ -5,6 +5,106 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-08-21
+
+### Added
+- Add large-file direct upload ingest
+- Add r2 head, copy, and upload presign
+- Add direct_uploads schema and unique file_key
+- Lookup public author profile in sidebar
+
+### Changed
+- Document large-file ingest path
+- Align indexes prefixes and summaries
+- Reserve outstanding bytes in quotas
+- Add complete quotas and staging lifecycle
+- Close remaining copyobject review gaps
+- Require copyobject for staging promote
+- Staging keys and lease tokens
+- Tighten direct-upload state machine
+- Address codex review on direct upload
+- Design r2 presigned large-file ingest
+- Bump patch and minor deps
+- Ignore wrangler local .dev.vars
+- Bump @aws-sdk/client-s3 to 3.1114.0
+- Bump @aws-sdk/s3-request-presigner to 3.1114.0
+- Bump workers-types to 5.20260820.1
+- Bump happy-dom to 20.11.6
+- Bump lucide-react to 1.33.0
+- Bump hono to 4.13.3 (#444)
+- Bump @aws-sdk/client-s3 to 3.1113.0
+- Bump vitest and @vitest/coverage-v8 to 4.1.11
+- Bump workers-types to 5.20260819.1
+- Bump @aws-sdk/s3-request-presigner to 3.1113.0 (#438)
+- Bump lucide-react to 1.32.0
+- Bump wrangler to 4.124.0
+- Bump @biomejs/biome to 2.5.9
+- Bump workers-types to 5.20260818.1
+- STU-3680: chore(deps): bump @aws-sdk client-s3 & s3-request-presigner to 3.1112.0 (#426)
+- Bump jose to 6.2.9
+- Bump workers-types to 5.20260817.1
+- Bump s3 request presigner to 3.1110.0 (#411)
+- Bump wrangler to 4.123.0 (#414)
+- Bump hono to 4.13.2 (#413)
+- Bump workers-types to 5.20260814.1 (#412)
+- Bump @aws-sdk/client-s3 to 3.1110.0 (#410)
+- Bump s3 request presigner to 3.1109.0
+- Bump @aws-sdk/client-s3 to 3.1109.0
+- Bump swr to 2.5.1
+- Bump wrangler to 4.122.0
+- Bump aws s3 client to 3.1108.0
+- Bump @biomejs/biome to 2.5.8
+- Bump workers types to 5.20260812.1
+- Bump wrangler to 4.121.0
+- Bump s3 request presigner to 3.1108.0
+- Bump workers types to 5.20260811.1
+- Bump wrangler to 4.120.1
+- Bump s3 request presigner to 3.1107.0
+- Bump aws s3 client to 3.1107.0
+- Bump sonner to 2.0.8
+- Bump workers types to 5.20260810.1
+- Bump lucide-react to 1.31.0
+- Bump workers types to 5.20260809.1
+- Bump @types/node to 26.2.0
+- Bump transitive nanoid to 3.3.17
+- Bump aws s3 client to 3.1106.0
+- Bump lucide-react to 1.30.0
+- Bump s3 request presigner to 3.1106.0
+- Bump happy-dom to 20.11.2
+- Bump cloudflare workers types to 5.20260808.1
+- Bump hono to 4.13.1
+- Bump nanoid to 3.3.17
+- Bump wrangler to 4.120.0
+- Bump aws s3 client to 3.1105.0
+- Bump s3 request presigner to 3.1105.0
+- Bump vite to 8.2.1
+- Bump lucide-react to 1.29.0
+- Bump aws s3 client to 3.1104.0 (#340)
+- Bump s3 request presigner to 3.1104.0
+- Upgrade wrangler to 4.119.0
+- Bump s3 request presigner to 3.1103.0
+- Bump @biomejs/biome to 2.5.7
+- Bump aws-sdk client-s3 to 3.1103.0
+- Bump Cloudflare workers types
+- Bump hono to 4.13.0
+- Bump jose to 6.2.8
+- Bump nanoid to 6.0.1
+- Bump swr to 2.5.0
+
+### Fixed
+- Protect gc keys and keep webhook logs
+- Apply d1 migration before worker deploy
+- Harden complete lease copy and gc cursor
+- Sign local r2 against custom domain host
+- Add missing site favicon
+- Bind vite to caddy port 7017
+- Bump transitive nanoid to 3.3.18 (#409)
+- Bump transitive nanoid to 3.3.17
+- Pin nanoid to 3.3.17
+- Update transitive nanoid to 3.3.17
+- Restore swr caret range
+- Override undici to 7.29.0
+
 ## [1.9.0] - 2026-08-02
 
 ### Changed
