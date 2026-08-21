@@ -436,6 +436,9 @@ describe("projects handlers", () => {
       // from makeProject), not just a generic webhook substring. Catches
       // a regression that hard-codes a different project-id pattern.
       expect(prompt).toContain("https://x.example.com/api/webhook/proj-test");
+      expect(prompt).toContain("3b. Send a large backup");
+      expect(prompt).toContain("5,000,000,000");
+      expect(prompt).toContain("max 50 MB");
       // Also positively verify the prompt contains the project name and
       // the canonical SaaS-agent role description (catches a regression
       // that drops the project-name interpolation or rewrites the prompt

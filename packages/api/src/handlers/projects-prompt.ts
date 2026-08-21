@@ -183,9 +183,9 @@ Response:
 }
 \`\`\`
 
-### 3. Send a Backup (POST)
+### 3. Send a small backup (POST, max 50 MB)
 
-Upload a backup file (\`.zip\` or \`.json\`, max 50 MB) as \`multipart/form-data\`:
+Upload a backup file (\`.zip\` or \`.json\`, max 50 MB) as \`multipart/form-data\`. Larger files must use the direct-upload path in section 3b.
 
 \`\`\`
 POST ${webhookEndpoint}
@@ -215,7 +215,30 @@ Response (201):
 | **400** | Missing file, empty file, invalid type, or invalid environment |
 | **401** | Missing or malformed Authorization header |
 | **403** | Invalid token, project mismatch, or IP blocked |
-| **413** | File exceeds 50 MB limit |
+| **413** | File exceeds 50 MB limit — use section 3b for larger files |
+
+### 3b. Send a large backup (direct upload, max 5,000,000,000 bytes)
+
+Do **not** POST the bytes through the webhook. Init a presigned PUT, upload to R2, then complete:
+
+\`\`\`bash
+# 1. Init
+curl -X POST ${webhookEndpoint}/uploads \\
+  -H "Authorization: Bearer ${token}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"file_name":"dump.tar.gz","content_type":"application/gzip","file_size":1073741824,"environment":"prod","tag":"nightly"}'
+
+# 2. PUT the file to put_url with the exact headers from the init response
+#    (Content-Type, Content-Length, If-None-Match: *)
+
+# 3. Complete
+curl -X POST ${webhookEndpoint}/uploads/{upload_id}/complete \\
+  -H "Authorization: Bearer ${token}"
+\`\`\`
+
+Abort an unused upload with \`DELETE ${webhookEndpoint}/uploads/{upload_id}\`.
+
+The complete response is the same 201 body as the small-file POST.
 
 ### 4. Restore a Backup (GET)
 

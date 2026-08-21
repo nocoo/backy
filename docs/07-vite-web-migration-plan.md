@@ -143,7 +143,7 @@ export interface RuntimeContext {
 | Team | `nocoo` (`nocoo.cloudflareaccess.com`) |
 | AUD  | `a920d3430b1e5a636590cd5d4f04dc657f89f9939c76a6870140015c0381d9b3` |
 | 受保护路径 | `/`、`/api/*` 中除下方"公开路径"明列项外的全部 |
-| 公开路径 | `POST/GET/HEAD /api/webhook/[projectId]`（自带 token）<br>`GET /api/restore/[id]`（自带 token）<br>`GET /api/live`（健康检查）<br>`POST /api/cron/trigger`（**且仅此一条** —— 自带 `CRON_SECRET` Bearer 校验） |
+| 公开路径 | `POST/GET/HEAD /api/webhook/[projectId]`（自带 token）<br>`POST /api/webhook/[nanoid]/uploads` + complete/abort（docs/09）<br>`GET /api/restore/[id]`（自带 token）<br>`GET /api/live`（健康检查）<br>`POST /api/cron/trigger`（**且仅此一条** —— 自带 `CRON_SECRET` Bearer 校验） |
 | 明确受保护（cron 子路径，易误公开） | `POST /api/cron/trigger/[projectId]` 必须继续走 Access。它本身**不**校验 CRON_SECRET（依赖上层认证保护，见 `apps/web_legacy/src/app/api/cron/trigger/[projectId]/route.ts`），公开等于无认证手动触发任意项目 |
 
 `wrangler.toml` 关键片段（与 surety 对齐）：

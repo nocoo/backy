@@ -171,6 +171,19 @@ curl -X POST https://your-domain.example.com/api/webhook/{projectId} \
 | `environment` | String? | `dev` / `prod` / `staging` / `test` |
 | `tag` | String? | 描述性标签 |
 
+超过 50MB 时不要走这条 multipart 路径（会返回 **413**）。改用直传：
+
+```bash
+# 1. 申请 PUT URL（file_size 最大 5000000000）
+curl -X POST https://your-domain.example.com/api/webhook/{projectId}/uploads \
+  -H "Authorization: Bearer {webhook_token}" \
+  -H "Content-Type: application/json" \
+  -d '{"file_name":"dump.tar.gz","file_size":1073741824}'
+
+# 2. 用返回的 put_url 和 headers 直传 R2（不经过 Worker）
+# 3. POST .../uploads/{upload_id}/complete
+```
+
 ### 恢复备份 (Restore)
 
 ```bash
