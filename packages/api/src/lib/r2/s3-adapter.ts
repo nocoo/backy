@@ -11,6 +11,8 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadBucketCommand,
+  HeadObjectCommand,
+  CopyObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -20,7 +22,14 @@ type R2EnvKeys =
   | "R2_ACCESS_KEY_ID"
   | "R2_SECRET_ACCESS_KEY"
   | "R2_ACCOUNT_ID"
-  | "R2_BUCKET_NAME";
+  | "R2_BUCKET_NAME"
+  | "R2_S3_ENDPOINT";
+
+const SIGNABLE_UPLOAD_HEADERS = new Set([
+  "content-type",
+  "content-length",
+  "if-none-match",
+]);
 
 function readConfig(env: Pick<BackyEnv, R2EnvKeys>) {
   const accessKeyId = env.R2_ACCESS_KEY_ID;
@@ -33,8 +42,25 @@ function readConfig(env: Pick<BackyEnv, R2EnvKeys>) {
       "Missing R2 configuration. Required: R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET_NAME",
     );
   }
-  const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
-  return { accessKeyId, secretAccessKey, endpoint, bucket };
+  const endpoint =
+    env.R2_S3_ENDPOINT ?? `https://${accountId}.r2.cloudflarestorage.com`;
+  return {
+    accessKeyId,
+    secretAccessKey,
+    endpoint,
+    bucket,
+    forcePathStyle: Boolean(env.R2_S3_ENDPOINT),
+  };
+}
+
+function isNotFound(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+  return (
+    e.name === "NotFound" ||
+    e.name === "NoSuchKey" ||
+    e.$metadata?.httpStatusCode === 404
+  );
 }
 
 interface SdkBody {
@@ -49,10 +75,12 @@ export function createS3R2Adapter(env: Pick<BackyEnv, R2EnvKeys>): R2Adapter {
     _client = new S3Client({
       region: "auto",
       endpoint: cfg.endpoint,
+      forcePathStyle: cfg.forcePathStyle,
       credentials: {
         accessKeyId: cfg.accessKeyId,
         secretAccessKey: cfg.secretAccessKey,
       },
+      requestChecksumCalculation: "WHEN_REQUIRED",
     });
     return _client;
   }
@@ -96,16 +124,57 @@ export function createS3R2Adapter(env: Pick<BackyEnv, R2EnvKeys>): R2Adapter {
       };
       return result;
     },
+    async head(key) {
+      const { bucket } = readConfig(env);
+      try {
+        const response = await client().send(
+          new HeadObjectCommand({ Bucket: bucket, Key: key }),
+        );
+        return {
+          contentLength: response.ContentLength ?? 0,
+          ...(response.ContentType !== undefined && {
+            contentType: response.ContentType,
+          }),
+        };
+      } catch (err) {
+        if (isNotFound(err)) return null;
+        throw err;
+      }
+    },
     async delete(key) {
       const { bucket } = readConfig(env);
       await client().send(
         new DeleteObjectCommand({ Bucket: bucket, Key: key }),
       );
     },
+    async copy(sourceKey, destKey) {
+      const { bucket } = readConfig(env);
+      await client().send(
+        new CopyObjectCommand({
+          Bucket: bucket,
+          CopySource: `${bucket}/${sourceKey}`,
+          Key: destKey,
+        }),
+      );
+    },
     async presignDownload(key, ttlSeconds) {
       const { bucket } = readConfig(env);
       const command = new GetObjectCommand({ Bucket: bucket, Key: key });
       return getSignedUrl(client(), command, { expiresIn: ttlSeconds });
+    },
+    async presignUpload(key, ttlSeconds, opts) {
+      const { bucket } = readConfig(env);
+      const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: opts.contentType,
+        ContentLength: opts.contentLength,
+        IfNoneMatch: "*",
+      });
+      return getSignedUrl(client(), command, {
+        expiresIn: ttlSeconds,
+        signableHeaders: SIGNABLE_UPLOAD_HEADERS,
+      });
     },
     async ping() {
       const { bucket } = readConfig(env);

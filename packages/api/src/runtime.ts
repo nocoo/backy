@@ -28,6 +28,16 @@ export interface R2GetResult {
   contentLength?: number;
 }
 
+export interface R2HeadResult {
+  contentLength: number;
+  contentType?: string;
+}
+
+export interface R2PresignUploadOpts {
+  contentType: string;
+  contentLength: number;
+}
+
 export interface R2Adapter {
   put(
     key: string,
@@ -35,8 +45,15 @@ export interface R2Adapter {
     opts?: { contentType?: string },
   ): Promise<void>;
   get(key: string): Promise<R2GetResult | null>;
+  head(key: string): Promise<R2HeadResult | null>;
   delete(key: string): Promise<void>;
+  copy(sourceKey: string, destKey: string): Promise<void>;
   presignDownload(key: string, ttlSeconds: number): Promise<string>;
+  presignUpload(
+    key: string,
+    ttlSeconds: number,
+    opts: R2PresignUploadOpts,
+  ): Promise<string>;
   ping(): Promise<void>;
 }
 
@@ -56,6 +73,7 @@ export interface BackyEnv {
   R2_SECRET_ACCESS_KEY?: string;
   R2_ACCOUNT_ID?: string;
   R2_BUCKET_NAME?: string;
+  R2_S3_ENDPOINT?: string;
 
   // Cron auth shared secret
   CRON_SECRET?: string;

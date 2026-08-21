@@ -229,6 +229,9 @@ export interface MockR2 extends R2Adapter {
   puts: Array<{ key: string; body: unknown; opts?: { contentType?: string } }>;
   deletes: string[];
   presigns: string[];
+  heads: string[];
+  copies: Array<{ sourceKey: string; destKey: string }>;
+  uploadPresigns: string[];
   pings: number;
 }
 
@@ -239,9 +242,12 @@ export function makeMockR2(
   const puts: MockR2["puts"] = [];
   const deletes: string[] = [];
   const presigns: string[] = [];
+  const heads: string[] = [];
+  const copies: MockR2["copies"] = [];
+  const uploadPresigns: string[] = [];
   let pings = 0;
   const adapter: MockR2 = {
-    puts, deletes, presigns,
+    puts, deletes, presigns, heads, copies, uploadPresigns,
     get pings() { return pings; },
     set pings(v) { pings = v; },
     async put(key, body, opts) {
@@ -252,14 +258,28 @@ export function makeMockR2(
       if (overrides.get) return overrides.get(key);
       return null;
     },
+    async head(key) {
+      heads.push(key);
+      if (overrides.head) return overrides.head(key);
+      return null;
+    },
     async delete(key) {
       deletes.push(key);
       if (overrides.delete) await overrides.delete(key);
+    },
+    async copy(sourceKey, destKey) {
+      copies.push({ sourceKey, destKey });
+      if (overrides.copy) await overrides.copy(sourceKey, destKey);
     },
     async presignDownload(key, ttl) {
       presigns.push(key);
       if (overrides.presignDownload) return overrides.presignDownload(key, ttl);
       return `https://mock.example.com/signed/${encodeURIComponent(key)}`;
+    },
+    async presignUpload(key, ttl, opts) {
+      uploadPresigns.push(key);
+      if (overrides.presignUpload) return overrides.presignUpload(key, ttl, opts);
+      return `https://mock.example.com/upload/${encodeURIComponent(key)}`;
     },
     async ping() {
       pings++;

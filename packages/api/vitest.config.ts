@@ -15,9 +15,7 @@ export default defineConfig({
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
       // Excludes: tests, package entrypoint re-exports, runtime bootstrap,
-      // DB schema (declarative drizzle), thin DB wrappers (covered via the
-      // adapter layer below), and the S3 presign adapter (needs real AWS
-      // SDK + R2 endpoint; covered by E2E).
+      // DB schema DDL, and thin DB wrappers covered via the adapter layer.
       exclude: [
         "src/__tests__/**",
         "src/index.ts",
@@ -26,7 +24,6 @@ export default defineConfig({
         "src/lib/db/schema.ts",
         "src/lib/db/backups.ts",
         "src/lib/db/projects.ts",
-        "src/lib/r2/s3-adapter.ts",
       ],
       thresholds: {
         statements: 95,

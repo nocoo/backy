@@ -14,7 +14,7 @@
  * presigning helper using R2's signed URL API.
  */
 
-import type { R2Adapter, R2GetResult } from "../../runtime";
+import type { R2Adapter, R2GetResult, R2PresignUploadOpts } from "../../runtime";
 
 export interface R2BindingObject {
   body: ReadableStream<Uint8Array> | null;
@@ -46,6 +46,12 @@ export interface BindingR2AdapterOptions {
    * proxies the bytes through the worker).
    */
   presignDownload?: (key: string, ttlSeconds: number) => Promise<string>;
+  presignUpload?: (
+    key: string,
+    ttlSeconds: number,
+    opts: R2PresignUploadOpts,
+  ) => Promise<string>;
+  copy?: (sourceKey: string, destKey: string) => Promise<void>;
 }
 
 export function createBindingR2Adapter(
@@ -80,6 +86,24 @@ export function createBindingR2Adapter(
     async delete(key) {
       await bucket.delete(key);
     },
+    async head(key) {
+      const obj = await bucket.head(key);
+      if (!obj) return null;
+      return {
+        contentLength: obj.size ?? 0,
+        ...(obj.httpMetadata?.contentType !== undefined && {
+          contentType: obj.httpMetadata.contentType,
+        }),
+      };
+    },
+    async copy(sourceKey, destKey) {
+      if (!options.copy) {
+        throw new Error(
+          "R2 binding adapter has no copy implementation; provide one in BindingR2AdapterOptions",
+        );
+      }
+      await options.copy(sourceKey, destKey);
+    },
     async presignDownload(key, ttlSeconds) {
       if (!options.presignDownload) {
         throw new Error(
@@ -87,6 +111,14 @@ export function createBindingR2Adapter(
         );
       }
       return options.presignDownload(key, ttlSeconds);
+    },
+    async presignUpload(key, ttlSeconds, opts) {
+      if (!options.presignUpload) {
+        throw new Error(
+          "R2 binding adapter has no presignUpload implementation; provide one in BindingR2AdapterOptions",
+        );
+      }
+      return options.presignUpload(key, ttlSeconds, opts);
     },
     async ping() {
       // Cheapest probe: HEAD a sentinel key. We don't care if it exists —

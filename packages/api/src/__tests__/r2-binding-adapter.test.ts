@@ -149,4 +149,62 @@ describe("createBindingR2Adapter", () => {
     await adapter.ping();
     expect(heads).toEqual(["__healthcheck__"]);
   });
+
+  test("head returns contentLength and contentType", async () => {
+    const obj: R2BindingObject = {
+      body: null,
+      arrayBuffer: async () => new ArrayBuffer(4),
+      httpMetadata: { contentType: "application/gzip" },
+      size: 4,
+    };
+    const { bucket } = makeBucket({ head: async () => obj });
+    const adapter = createBindingR2Adapter(bucket);
+    await expect(adapter.head("k")).resolves.toEqual({
+      contentLength: 4,
+      contentType: "application/gzip",
+    });
+  });
+
+  test("head returns null when missing and defaults size to 0", async () => {
+    const { bucket } = makeBucket({ head: async () => null });
+    const adapter = createBindingR2Adapter(bucket);
+    expect(await adapter.head("missing")).toBeNull();
+
+    const empty: R2BindingObject = {
+      body: null,
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+    const { bucket: bucket2 } = makeBucket({ head: async () => empty });
+    await expect(createBindingR2Adapter(bucket2).head("k")).resolves.toEqual({
+      contentLength: 0,
+    });
+  });
+
+  test("copy and presignUpload throw without hooks and delegate when wired", async () => {
+    const { bucket } = makeBucket();
+    const bare = createBindingR2Adapter(bucket);
+    await expect(bare.copy("a", "b")).rejects.toThrow(/no copy implementation/);
+    await expect(
+      bare.presignUpload("k", 60, {
+        contentType: "application/octet-stream",
+        contentLength: 1,
+      }),
+    ).rejects.toThrow(/no presignUpload implementation/);
+
+    const copy = vi.fn(async () => {});
+    const presignUpload = vi.fn(async () => "https://signed.example/put");
+    const wired = createBindingR2Adapter(bucket, { copy, presignUpload });
+    await wired.copy("src", "dst");
+    expect(copy).toHaveBeenCalledExactlyOnceWith("src", "dst");
+    await expect(
+      wired.presignUpload("k", 90, {
+        contentType: "application/gzip",
+        contentLength: 8,
+      }),
+    ).resolves.toBe("https://signed.example/put");
+    expect(presignUpload).toHaveBeenCalledExactlyOnceWith("k", 90, {
+      contentType: "application/gzip",
+      contentLength: 8,
+    });
+  });
 });

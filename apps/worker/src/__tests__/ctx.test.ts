@@ -79,6 +79,7 @@ describe("ctxMiddleware", () => {
       R2_SECRET_ACCESS_KEY: "r2-secret",
       R2_ACCOUNT_ID: "r2-account",
       R2_BUCKET_NAME: "r2-bucket",
+      R2_S3_ENDPOINT: "http://127.0.0.1:17018/cdn-cgi/local/r2/s3",
       NEXT_PUBLIC_APP_VERSION: "1.2.3",
     });
     const res = await probe().request(
@@ -97,6 +98,7 @@ describe("ctxMiddleware", () => {
       "R2_ACCESS_KEY_ID",
       "R2_ACCOUNT_ID",
       "R2_BUCKET_NAME",
+      "R2_S3_ENDPOINT",
       "R2_SECRET_ACCESS_KEY",
       "SSRF_ALLOWLIST",
     ]);
@@ -154,5 +156,36 @@ describe("ctxMiddleware", () => {
     expect(body.url).toMatch(
       /^https:\/\/bucket\.acct\.r2\.cloudflarestorage\.com\/k\?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=id%2F\d{8}%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=\d{8}T\d{6}Z&X-Amz-Expires=60&X-Amz-Signature=[0-9a-f]{64}&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject$/,
     );
+  });
+
+  test("presignUpload uses S3 fallback when creds present", async () => {
+    const app = new Hono<AppEnv>();
+    app.use("*", ctxMiddleware());
+    app.get("/sign", async (c) => {
+      const url = await c.get("ctx").r2.presignUpload("k.bin", 60, {
+        contentType: "application/octet-stream",
+        contentLength: 4,
+      });
+      return c.json({ url });
+    });
+    const res = await app.request(
+      "/sign",
+      undefined,
+      {
+        DB: fakeD1() as unknown as D1Database,
+        R2: fakeR2() as unknown as R2Bucket,
+        R2_ACCESS_KEY_ID: "id",
+        R2_SECRET_ACCESS_KEY: "secret",
+        R2_ACCOUNT_ID: "acct",
+        R2_BUCKET_NAME: "bucket",
+      } as unknown as AppEnv["Bindings"],
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { url: string };
+    const signed = new URL(body.url).searchParams.get("X-Amz-SignedHeaders") ?? "";
+    expect(signed.split(";")).toEqual(
+      expect.arrayContaining(["content-type", "content-length", "if-none-match"]),
+    );
+    expect(signed).not.toMatch(/checksum/i);
   });
 });

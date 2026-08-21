@@ -38,6 +38,9 @@ export function ctxMiddleware() {
     const r2 = createBindingR2Adapter(c.env.R2 as unknown as R2Binding, {
       ...(presigner && {
         presignDownload: (key, ttl) => presigner.presignDownload(key, ttl),
+        presignUpload: (key, ttl, opts) =>
+          presigner.presignUpload(key, ttl, opts),
+        copy: (sourceKey, destKey) => presigner.copy(sourceKey, destKey),
       }),
     });
     const ctx: RuntimeContext = {
@@ -64,6 +67,7 @@ function pickEnv(env: AppEnv["Bindings"]): BackyEnv {
     out.R2_SECRET_ACCESS_KEY = env.R2_SECRET_ACCESS_KEY;
   if (env.R2_ACCOUNT_ID !== undefined) out.R2_ACCOUNT_ID = env.R2_ACCOUNT_ID;
   if (env.R2_BUCKET_NAME !== undefined) out.R2_BUCKET_NAME = env.R2_BUCKET_NAME;
+  if (env.R2_S3_ENDPOINT !== undefined) out.R2_S3_ENDPOINT = env.R2_S3_ENDPOINT;
   if (env.E2E_SKIP_AUTH !== undefined) out.E2E_SKIP_AUTH = env.E2E_SKIP_AUTH;
   if (env.NEXT_PUBLIC_APP_VERSION !== undefined)
     out.NEXT_PUBLIC_APP_VERSION = env.NEXT_PUBLIC_APP_VERSION;

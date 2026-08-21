@@ -32,6 +32,7 @@ export type Bindings = {
   R2_SECRET_ACCESS_KEY?: string;
   R2_ACCOUNT_ID?: string;
   R2_BUCKET_NAME?: string;
+  R2_S3_ENDPOINT?: string;
 
   // E2E skip flag — both auth bypass and seed handler gate
   E2E_SKIP_AUTH?: string;
