@@ -54,7 +54,7 @@ via `initializeSchema`.
 | Transport | S3 presigned `PUT` to `https://{account}.r2.cloudflarestorage.com` | Same signer as restore; no `x-forwarded-host` in the URL |
 | Max size | `1 … 5_000_000_000` | Single CopyObject limit (stricter than PutObject 5 GiB − 5 MiB). Pin tests at `5000000000` (accept) and `5000000001` (400). |
 | Min size | 1 byte | Old path stays the small-file default; no artificial >50 MiB gate |
-| Key prefix | staging `…/direct/{uploadId}/in{ext}`; final `…/direct/{uploadId}{ext}` | Client never writes the restore key |
+| Key prefix | staging `direct-staging/{projectId}/{uploadId}/in{ext}`; final `backups/{projectId}/direct/{uploadId}{ext}` | Client never writes the restore key |
 | Auth | Same Bearer `webhook_token` as today's webhook | Agents already have it |
 | Access JWT | Explicit extra public paths + nanoid grammar (not a prefix glob) | Today's matcher allows only `/api/webhook/:id` with **one** extra segment |
 | PUT integrity | Sign `content-type`, `content-length`, `if-none-match`; client writes a **staging** key; complete copies to a **final** key the client never PUT | Late PUT after GC cannot mutate a completed backup; `If-None-Match: *` still makes staging one-shot while it exists |
@@ -144,7 +144,15 @@ CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_created
   ON direct_uploads(project_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_status_purged
   ON direct_uploads(project_id, status, purged_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_purged_global
+  ON direct_uploads(status, purged_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_status_completed
+  ON direct_uploads(project_id, status, completed_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_completed
+  ON direct_uploads(status, completed_at);
 ```
+
+This full DDL (table + **all** indexes) is applied in the remote wrangler migration **and** in `initializeSchema`.
 
 All time columns are **unix seconds** (INTEGER). Handlers bind `Math.floor(Date.now()/1000)`. Never mix ISO strings with `datetime('now')` for these comparisons.
 
@@ -332,10 +340,10 @@ Init uses `presignUpload`. Complete uses `head`. GC uses `delete` only after `pu
 |---|---|
 | Client-chosen key | Server generates `file_key`; unique on both tables |
 | Host-header injection | Presign host is R2 S3, never `buildBaseUrl` |
-| PUT URL leak / replay after complete | `If-None-Match: *`; object retained until `purge_after` |
+| PUT URL leak / replay after complete | Staging key + CopyObject to final; `If-None-Match: *`; D1 GC + R2 lifecycle on `direct-staging/` |
 | Size lie | Signed `Content-Length` + complete `head.size` |
-| Token floods D1/R2 | Per-project pending count/bytes + 30/60s init cap |
-| Incomplete uploads | Tombstone rows; sole deleter is GC at `purge_after` |
+| Token floods D1/R2 | Pending caps + rolling hourly/daily completed+outstanding bytes |
+| Incomplete uploads | Tombstones; D1 GC at `purge_after`/`reap_until`; lifecycle backstop |
 | Extract bomb | Complete does not extract |
 | Secrets in API/logs | Allowlisted JSON and `fireLog` metadata; no `put_url` |
 | Access matcher too broad | Nanoid regex, encoded-separator tests |
@@ -360,13 +368,7 @@ Eligible: `purged_at IS NULL AND next_gc_at <= now`, limit 100, order by `next_g
 | `completing` AND `lease_expires_at < now` AND no backup | treat as pending (above) |
 | otherwise | `next_gc_at = min(purge_after, lease_expires_at ?? purge_after, now+3600)` |
 
-Do **not** set `purged_at` until `now ≥ reap_until` (last scheduled reap). Then `DELETE FROM direct_uploads WHERE purged_at < now-7d` (**mandatory**, every GC run, bounded). The data-model “optional archive” sentence is void; this pass is required.
-
-`CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_purged_global ON direct_uploads(status, purged_at);
-CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_status_completed
-  ON direct_uploads(project_id, status, completed_at);
-CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_completed
-  ON direct_uploads(status, completed_at);` for the global quota.
+Do **not** set `purged_at` until `now ≥ reap_until` (last scheduled reap). Then `DELETE FROM direct_uploads WHERE purged_at < now-7d` (**mandatory**, every GC run, bounded).
 
 Successful sweeps **must** move `next_gc_at` into the future so old tombstones cannot starve new work. Process additional 100-row batches while under a 10s budget (global 200 unpurged cap keeps this finite).
 
@@ -408,8 +410,8 @@ Do not send 1 GiB through L2.
 
 | Layer | What |
 |---|---|
-| L1 | handlers, adapter presign headers, Access matcher, GC isolation, quotas |
-| L2 | three Backy routes: init, complete, abort (+ 503 / 409 / 410); **required** real PUT against local S3; single/batch/project delete of direct keys defer to GC while timestamp keys still delete immediately |
+| L1 | handlers, adapter presign headers, Access matcher, GC isolation, quotas, **503 without S3 keys** |
+| L2 | three Backy routes: init, complete, abort (+ 409 / 410); **required** real PUT + CopyObject on 17018; single/batch/project delete of direct keys defer to GC while timestamp keys still delete immediately |
 | L3 | not in wave 1 (no UI) |
 | G1 | tsc + biome |
 | gate:routes | three new webhook routes (not the external PUT) |
