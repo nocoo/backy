@@ -19,10 +19,10 @@ archive: Cloudflare Workers request/memory limits sit around 100–128 MiB,
 and two in-memory copies of 50 MiB already press the ceiling
 (`docs/07-vite-web-migration-plan.md`).
 
-R2 PutObject and **CopyObject** (used to promote staging → final without
-the Worker seeing bytes) both top out at **5,000,000,000** bytes. Direct
-upload is capped there so promotion always fits a single CopyObject.
-Multipart goes to 5 TiB. Restore already uses S3
+R2 PutObject allows up to **5 GiB − 5 MiB**. **CopyObject** (used to
+promote staging → final without the Worker seeing bytes) is stricter at
+**5,000,000,000** bytes. Direct upload is capped at the CopyObject limit
+so promotion always fits one copy. Multipart goes to 5 TiB. Restore already uses S3
 presigned **GET**. Direct-upload is the same idea in the write direction.
 
 Production D1 is **not** rebuilt by `POST /api/db/init` on deploy.
@@ -70,11 +70,11 @@ Agent
   │                                 multipart file → Worker buffer → R2.put
   │                                 → INSERT backups
   │
-  └─ any size (≤5 GiB − 5 MiB) ── POST /api/webhook/:projectId/uploads
+  └─ any size (≤5,000,000,000 B) ─ POST /api/webhook/:projectId/uploads
                                   ← { upload_id, put_url, headers, expires_in }
-                                  PUT put_url  (bytes → R2, not Worker)
-                                  POST /api/webhook/:projectId/uploads/:id/complete
-                                  → claim row → head R2 → INSERT backups
+                                  PUT put_url → staging key (not Worker)
+                                  POST .../complete
+                                  → claim → head staging → CopyObject → final → INSERT backups
 ```
 
 | Surface | Old path | New path |
@@ -251,17 +251,18 @@ Worker never sees this request. `gate:routes` does not count it.
 No body required. Server (`now` = unix seconds):
 
 1. Load `direct_uploads` by id + `project_id`; 404 if missing or project mismatch.
-2. If `status === completed` and `backup_id` set: return **201** with that backup (idempotent).
-3. If `status` in `aborted|expired`: **410**.
-4. If `now ≥ purge_after`: **410**. Completion is allowed **until `purge_after`**, not `expires_at`, so a PUT that started before URL expiry can still be committed.
-5. **Claim** (atomic, returns `lease_token`):  
+2. If `status === completed` and `backup_id` set **and** that backups row still exists: return **201** with that backup (idempotent).
+3. If `status === completed` and (`backup_id` IS NULL **or** the backups row was deleted): **410**. Do **not** recreate a deleted backup.
+4. If `status` in `aborted|expired`: **410**.
+5. If `now ≥ purge_after`: **410**. Completion is allowed **until `purge_after`**, not `expires_at`, so a PUT that started before URL expiry can still be committed.
+6. **Claim** (atomic, returns `lease_token`):  
    `UPDATE … SET status='completing', lease_token=?, lease_expires_at=now+900 WHERE id=? AND project_id=? AND purge_after>now AND (status='pending' OR (status='completing' AND lease_expires_at<=now))`.  
    0 rows → re-read: live `completing` with future lease → **409**; else 2/3/410. Abort is **only** `pending → aborted`; abort of `completing` → **409**.
-6. `head(staging_key)` via R2 **binding**. Missing → **404**, `status=aborted` only if `lease_token` still matches. Wrong size → **409**, `status=aborted`, clear lease; client **new init**.
-7. If a `backups` row already exists with this **final** `file_key` for this project: attach `backup_id`, `status=completed` (crash recovery). Never insert a second row.
-8. Else, immediately re-check `status='completing' AND lease_token=? AND lease_expires_at>now AND purge_after>now`; **renew** `lease_expires_at=now+900`. Then **`copy(staging_key, file_key)`** — S3 `CopyObject` / R2 binding copy hook. **Forbidden:** `get().bytes()` / stream through the Worker (that is the 50 MiB path). Then `createBackup` with `file_key=final`. Cross-project or corrupt unique conflict: **409**, `status=aborted`, clear lease, leave objects for GC. Do not attach.
-9. Final: `UPDATE … SET status='completed', backup_id=?, completed_at=now WHERE id=? AND lease_token=? AND status='completing' AND lease_expires_at>now`. 0 rows → **409** (do not delete a backup already inserted; next complete attaches).
-10. Return **201** and the **same body as today's webhook POST**:
+7. `head(staging_key)` via R2 **binding**. Missing → **404**, `status=aborted` only if `lease_token` still matches. Wrong size → **409**, `status=aborted`, clear lease; client **new init**.
+8. If a `backups` row already exists with this **final** `file_key` for this project: attach `backup_id`, `status=completed` (crash recovery). Never insert a second row.
+9. Else, immediately re-check `status='completing' AND lease_token=? AND lease_expires_at>now AND purge_after>now`; **renew** `lease_expires_at=now+900`. Then **`copy(staging_key, file_key)`**. **Forbidden:** Worker get→put. **After CopyObject, atomically revalidate/renew again** (`status='completing' AND lease_token=? AND lease_expires_at>now AND purge_after>now`) **before** `createBackup`. If 0 rows, do not insert; GC owns the objects. Then `createBackup` with `file_key=final`. Cross-project or corrupt unique conflict: **409**, `status=aborted`, clear lease, leave objects for GC. Do not attach.
+10. Final: `UPDATE … SET status='completed', backup_id=?, completed_at=now WHERE id=? AND lease_token=? AND status='completing' AND lease_expires_at>now`. 0 rows → **409** (do not delete a backup already inserted; next complete attaches).
+11. Return **201** and the **same body as today's webhook POST**:
 
 ```json
 { "id": "<backup_id>", "project_id": "...", "file_size": 123, "created_at": "..." }
@@ -346,7 +347,7 @@ Eligible: `purged_at IS NULL AND next_gc_at <= now`, limit 100, order by `next_g
 | Condition | Action |
 |---|---|
 | `completed` AND backup row exists | skip; `next_gc_at = now+7d`. May `r2.delete(staging_key)` only. |
-| `completed` AND no backup row AND `purge_after < now` | `r2.delete` staging **and** final; `purged_at=now`; `next_gc_at=now+3600` (re-reap until `purge_after+3600` / `reap_until` in case a late staging PUT recreates staging) |
+| `completed` AND no backup row AND `purge_after < now` | `r2.delete` staging **and** final; `next_gc_at=now+3600`; set `purged_at` **only when now ≥ reap_until** |
 | `pending`/`aborted`/`expired` AND `purge_after < now` | `r2.delete` **staging and final** (copy may have created final before crash); `status=expired` if pending; `next_gc_at=now+3600` until `now ≥ reap_until`, **then** `purged_at=now` |
 | `completing` AND `lease_expires_at < now` AND backup with final key exists | attach `backup_id`, `status=completed` |
 | `completing` AND `lease_expires_at < now` AND no backup | treat as pending (above) |
@@ -367,7 +368,7 @@ L2 is a **separate** `wrangler dev` process. It cannot inject a fake `presignUpl
 Wave 1 L2:
 
 1. Init without S3 keys → **503**.
-2. Enable wrangler `r2_buckets.local_dev.experimental_s3_credentials`, `R2_S3_ENDPOINT=http://127.0.0.1:7018/cdn-cgi/local/r2/s3`, `forcePathStyle: true`. **Required** L2: init → **real HTTP PUT** to `put_url` with signed headers (`If-None-Match: *`) → complete → **201**. This is the only test that covers SigV4 + conditional PUT. Plant fallback may supplement, not replace.
+2. Enable wrangler `r2_buckets.local_dev.experimental_s3_credentials`, `forcePathStyle: true`, and `R2_S3_ENDPOINT=http://127.0.0.1:${E2E_PORT}/cdn-cgi/local/r2/s3` where `E2E_PORT` is **17018** in `scripts/run-e2e.ts` (not 7018). Ordinary `bun dev` uses 7018. **Required** L2: init → **real HTTP PUT** → CopyObject complete → **201**. Assert restore bytes equal PUT body and staging ≠ final. Plant fallback may supplement, not replace.
 3. Complete with missing object → 404; expired → 410; abort → 200 then complete → 410.
 4. Access L1 tests as above.
 
@@ -380,7 +381,7 @@ Do not send 1 GiB through L2.
 ### Wave 1 — webhook direct upload (this doc)
 
 1. Wrangler D1 migration + `initializeSchema` for `direct_uploads` and unique `backups.file_key`.
-2. `R2Adapter.head` / `presignUpload` (checksum/signed-header tests) + worker `ctx` hook.
+2. `R2Adapter.head` / `presignUpload` / **`copy` (CopyObject)** + worker `ctx` hook; unit tests for signed headers and CopyObject.
 3. Handlers + three webhook routes + `fireLog`.
 4. `isPublicPath` nanoid matchers + encoded-slash tests.
 5. Independent GC in `scheduled()`.
@@ -410,7 +411,7 @@ Do not send 1 GiB through L2.
 - [ ] Complete without an R2 object does not insert `backups`.
 - [ ] Complete with matching `head.size` inserts one `backups` row (**201**, webhook body shape); restore uses that `file_key`.
 - [ ] Concurrent completes cannot insert two rows for one `file_key`.
-- [ ] R2 object for pending/aborted is not deleted until `purge_after`; replay PUT fails while the object exists.
+- [ ] R2 object for pending/aborted is not deleted until `purge_after`; replay PUT fails while the object exists. After the first GC delete, a late staging PUT is removed on a later sweep; restore bytes of a completed backup stay unchanged.
 - [ ] Auto-backup cron failure still runs GC; GC failure does not duplicate auto-backup POSTs.
 - [ ] Production migration is applied before deploy; local `initializeSchema` creates the same table.
 - [ ] Access tests pin nanoid paths and reject `%2F` / trailing slash / wrong method.
