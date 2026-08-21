@@ -93,8 +93,8 @@ Prompt generator and README document **both**. Existing agent snippets keep work
 ## Object key contract
 
 ```
-staging  backups/{projectId}/direct/{uploadId}/in{ext}   ← only this appears on put_url
-final    backups/{projectId}/direct/{uploadId}{ext}      ← backups.file_key; Worker copy on complete
+staging  direct-staging/{projectId}/{uploadId}/in{ext}   ← only this appears on put_url; R2 lifecycle prefix
+final    backups/{projectId}/direct/{uploadId}{ext}      ← backups.file_key; Worker CopyObject on complete
 ```
 
 - `{uploadId}` = nanoid (same alphabet as `generateId`), also `direct_uploads.id`
@@ -102,6 +102,7 @@ final    backups/{projectId}/direct/{uploadId}{ext}      ← backups.file_key; W
 - UTF-8 length of **each** key ≤ **1024**; reject init if over
 - `file_name` max 255 chars, basename only (reject `/`, `\\`, `..`, NUL)
 - Client never supplies either key. Restore/delete use **final** only.
+- Bucket lifecycle (production): expire prefix `direct-staging/` after 2 days as a backstop if a PUT finishes after D1 `reap_until`. D1 GC remains the eager cleaner.
 
 ## Data model
 
@@ -178,6 +179,8 @@ byte/row cap).
 | Sum of `declared_size` for those rows | 20 GiB | 429 |
 | Inits per project per 60s (all statuses, `created_at > now-60`) | 30 | 429 |
 | Global unpurged **non-completed** rows (`purged_at IS NULL` AND status in pending/completing/aborted/expired) | 200 | 429 |
+| Completed `declared_size` per project per 3600s | 20 GiB | 429 |
+| Completed `declared_size` globally per 3600s | 100 GiB | 429 |
 
 Enforce **in one statement** with the insert (check-then-insert races
 otherwise), e.g. `INSERT … SELECT … WHERE (SELECT COUNT(*) …) < 20 AND …`.
@@ -236,7 +239,7 @@ Mismatch → R2 403 SignatureDoesNotMatch. `If-None-Match: *` → R2 412 if the 
 
 S3 client used for `getSignedUrl` **must** set `requestChecksumCalculation: "WHEN_REQUIRED"` and pass `signableHeaders: new Set(["content-type", "content-length", "if-none-match"])` (installed AWS SDK does not sign `ContentType` merely because the command field is set). Pin with a unit test that the URL's `X-Amz-SignedHeaders` contains those three names and does **not** contain a checksum header that would require an empty body.
 
-Local/e2e signer endpoint is `R2_S3_ENDPOINT` (Worker binding `vars` + `pickEnv` + `BackyEnv`). Unset → production `https://{accountId}.r2.cloudflarestorage.com`. Local value is the Miniflare path-style base **`http://127.0.0.1:7018/cdn-cgi/local/r2/s3`** (bucket in the path). S3 client **must** set `forcePathStyle: true` whenever `R2_S3_ENDPOINT` is set — otherwise AWS SDK emits `backy.localhost`. **Never** derived from `Host` / `x-forwarded-host`.
+Local/e2e signer endpoint is `R2_S3_ENDPOINT` (Worker binding `vars` + `pickEnv` + `BackyEnv`). Unset → production `https://{accountId}.r2.cloudflarestorage.com`. Path-style base is `http://127.0.0.1:${PORT}/cdn-cgi/local/r2/s3` where **PORT=7018** for `bun dev` and **PORT=17018** (`E2E_PORT`) for L2. S3 client **must** set `forcePathStyle: true` whenever `R2_S3_ENDPOINT` is set. **Never** derived from `Host` / `x-forwarded-host`.
 
 Idempotency: each init creates a new pending row. No reuse of PUT URLs after `expires_at`.
 
@@ -367,8 +370,8 @@ L2 is a **separate** `wrangler dev` process. It cannot inject a fake `presignUpl
 
 Wave 1 L2:
 
-1. Init without S3 keys → **503**.
-2. Enable wrangler `r2_buckets.local_dev.experimental_s3_credentials`, `forcePathStyle: true`, and `R2_S3_ENDPOINT=http://127.0.0.1:${E2E_PORT}/cdn-cgi/local/r2/s3` where `E2E_PORT` is **17018** in `scripts/run-e2e.ts` (not 7018). Ordinary `bun dev` uses 7018. **Required** L2: init → **real HTTP PUT** → CopyObject complete → **201**. Assert restore bytes equal PUT body and staging ≠ final. Plant fallback may supplement, not replace.
+1. Init without S3 keys → **503** is an **L1** test (handler/unit). L2 does **not** flip bindings mid-process.
+2. L2 process always has signer credentials matching `experimental_s3_credentials`, `forcePathStyle: true`, `R2_S3_ENDPOINT=http://127.0.0.1:17018/cdn-cgi/local/r2/s3`. **Required:** init → **real HTTP PUT** → CopyObject complete → **201**. Assert restore bytes equal PUT body and staging ≠ final. Plant fallback may supplement, not replace.
 3. Complete with missing object → 404; expired → 410; abort → 200 then complete → 410.
 4. Access L1 tests as above.
 
