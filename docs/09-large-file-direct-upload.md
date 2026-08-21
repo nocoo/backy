@@ -52,10 +52,10 @@ via `initializeSchema`.
 | Transport | S3 presigned `PUT` to `https://{account}.r2.cloudflarestorage.com` | Same signer as restore; no `x-forwarded-host` in the URL |
 | Max size | `1 … 5 GiB − 5 MiB` (`5363466240`) | R2 single-PUT ceiling is 5 MiB short of 5 GiB. Pin tests at `5363466240` (accept) and `5363466241` (400). |
 | Min size | 1 byte | Old path stays the small-file default; no artificial >50 MiB gate |
-| Key prefix | `backups/{projectId}/direct/{uploadId}.bin` or typed ext | Isolated from timestamp keys; unknown types never copy a client suffix |
+| Key prefix | staging `…/direct/{uploadId}/in{ext}`; final `…/direct/{uploadId}{ext}` | Client never writes the restore key |
 | Auth | Same Bearer `webhook_token` as today's webhook | Agents already have it |
 | Access JWT | Explicit extra public paths + nanoid grammar (not a prefix glob) | Today's matcher allows only `/api/webhook/:id` with **one** extra segment |
-| PUT integrity | Sign `content-type`, `content-length`, and `if-none-match`; SDK `requestChecksumCalculation: "WHEN_REQUIRED"` | Stops oversized PUTs before storage; empty-body CRC32 query params break non-empty PUTs on current AWS SDK; `If-None-Match: *` makes the URL one-shot while the object exists |
+| PUT integrity | Sign `content-type`, `content-length`, `if-none-match`; client writes a **staging** key; complete copies to a **final** key the client never PUT | Late PUT after GC cannot mutate a completed backup; `If-None-Match: *` still makes staging one-shot while it exists |
 | Complete check | Conditional claim on `direct_uploads`, then binding `head` | Binding `head` works locally; claim prevents double `backups` rows |
 | Schema | Wrangler D1 migration `--remote` + `initializeSchema` for local | Production CD never calls `/api/db/init` |
 
@@ -91,14 +91,15 @@ Prompt generator and README document **both**. Existing agent snippets keep work
 ## Object key contract
 
 ```
-backups/{projectId}/direct/{uploadId}{ext}
+staging  backups/{projectId}/direct/{uploadId}/in{ext}   ← only this appears on put_url
+final    backups/{projectId}/direct/{uploadId}{ext}      ← backups.file_key; Worker copy on complete
 ```
 
 - `{uploadId}` = nanoid (same alphabet as `generateId`), also `direct_uploads.id`
-- `{ext}` from `getStorageExtension` **except** `unknown` → always `.bin` (do not copy a client-controlled suffix)
-- UTF-8 length of the full key ≤ **1024** (R2 limit); reject init if over
+- `{ext}` from `getStorageExtension` **except** `unknown` → always `.bin`
+- UTF-8 length of **each** key ≤ **1024**; reject init if over
 - `file_name` max 255 chars, basename only (reject `/`, `\\`, `..`, NUL)
-- Client never supplies `key`
+- Client never supplies either key. Restore/delete use **final** only.
 
 ## Data model
 
@@ -114,6 +115,7 @@ CREATE TABLE IF NOT EXISTS direct_uploads (
   id TEXT PRIMARY KEY,
   project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
   file_key TEXT NOT NULL UNIQUE,
+  staging_key TEXT NOT NULL UNIQUE,
   file_name TEXT NOT NULL,
   content_type TEXT NOT NULL,
   declared_size INTEGER NOT NULL,
@@ -123,7 +125,9 @@ CREATE TABLE IF NOT EXISTS direct_uploads (
   status TEXT NOT NULL,          -- pending | completing | completed | aborted | expired
   expires_at INTEGER NOT NULL,   -- unix seconds, PUT TTL
   purge_after INTEGER NOT NULL,  -- expires_at + 3600; earliest object delete
+  reap_until INTEGER NOT NULL,   -- purge_after + 3600; keep reaping staging until then
   lease_expires_at INTEGER,      -- set on claim; completing recovery
+  lease_token TEXT,              -- nanoid; required on every completing mutation
   next_gc_at INTEGER NOT NULL,   -- GC cursor; advanced after a successful sweep
   purged_at INTEGER,             -- set once the object delete succeeded
   backup_id TEXT REFERENCES backups(id) ON DELETE SET NULL,
@@ -132,8 +136,11 @@ CREATE TABLE IF NOT EXISTS direct_uploads (
 );
 
 CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_id ON direct_uploads(project_id);
-CREATE INDEX IF NOT EXISTS idx_direct_uploads_gc
-  ON direct_uploads(next_gc_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_gc ON direct_uploads(next_gc_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_created
+  ON direct_uploads(project_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_status_purged
+  ON direct_uploads(project_id, status, purged_at);
 ```
 
 All time columns are **unix seconds** (INTEGER). Handlers bind `Math.floor(Date.now()/1000)`. Never mix ISO strings with `datetime('now')` for these comparisons.
@@ -145,9 +152,10 @@ Statuses are **tombstones**. Abort/GC do not `DELETE` the row until `purged_at` 
 Additive migration, **after** a preflight:
 
 ```sql
--- Preflight: if any duplicate file_key exists, abort the migration and
--- remediate (keep the newest backups.id, rewrite older keys) before
--- creating the unique index. Do not assume timestamp keys are unique.
+-- Preflight: SELECT file_key, COUNT(*) FROM backups GROUP BY file_key HAVING COUNT(*)>1.
+-- If any duplicates: STOP. Operator copies/moves the older R2 object to a new
+-- key (or deletes that metadata after review) BEFORE rewriting D1. Never
+-- rewrite file_key without moving the object — restore would 404.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_backups_file_key ON backups(file_key);
 ```
 
@@ -167,6 +175,7 @@ byte/row cap).
 | Unpurged writable rows per project (`purged_at IS NULL` and status in pending/completing/aborted/expired) | 20 | 429 |
 | Sum of `declared_size` for those rows | 20 GiB | 429 |
 | Inits per project per 60s (all statuses, `created_at > now-60`) | 30 | 429 |
+| Global unpurged writable rows (`purged_at IS NULL`) | 200 | 429 |
 
 Enforce **in one statement** with the insert (check-then-insert races
 otherwise), e.g. `INSERT … SELECT … WHERE (SELECT COUNT(*) …) < 20 AND …`.
@@ -225,7 +234,7 @@ Mismatch → R2 403 SignatureDoesNotMatch. `If-None-Match: *` → R2 412 if the 
 
 S3 client used for `getSignedUrl` **must** set `requestChecksumCalculation: "WHEN_REQUIRED"` and pass `signableHeaders: new Set(["content-type", "content-length", "if-none-match"])` (installed AWS SDK does not sign `ContentType` merely because the command field is set). Pin with a unit test that the URL's `X-Amz-SignedHeaders` contains those three names and does **not** contain a checksum header that would require an empty body.
 
-Local/e2e signer endpoint is `R2_S3_ENDPOINT` (BackyEnv, optional). Unset → production `https://{accountId}.r2.cloudflarestorage.com`. Set only in wrangler `.dev.vars` / L2 `--var` to the Miniflare path-style S3 URL. **Never** derived from `Host` / `x-forwarded-host`.
+Local/e2e signer endpoint is `R2_S3_ENDPOINT` (Worker binding `vars` + `pickEnv` + `BackyEnv`). Unset → production `https://{accountId}.r2.cloudflarestorage.com`. Local value is the Miniflare path-style base **`http://127.0.0.1:7018/cdn-cgi/local/r2/s3`** (bucket in the path). S3 client **must** set `forcePathStyle: true` whenever `R2_S3_ENDPOINT` is set — otherwise AWS SDK emits `backy.localhost`. **Never** derived from `Host` / `x-forwarded-host`.
 
 Idempotency: each init creates a new pending row. No reuse of PUT URLs after `expires_at`.
 
@@ -243,13 +252,13 @@ No body required. Server (`now` = unix seconds):
 2. If `status === completed` and `backup_id` set: return **201** with that backup (idempotent).
 3. If `status` in `aborted|expired`: **410**.
 4. If `now ≥ purge_after`: **410**. Completion is allowed **until `purge_after`**, not `expires_at`, so a PUT that started before URL expiry can still be committed.
-5. **Claim:**  
-   `UPDATE direct_uploads SET status='completing', lease_expires_at=now+900 WHERE id=? AND project_id=? AND status='pending' AND purge_after>now`.  
-   0 rows → re-read: if another worker holds `completing` with `lease_expires_at > now` → **409**; else follow 2/3/410. Abort is **only** `pending → aborted` (same WHERE `status='pending'`); abort of `completing` → **409**.
-6. `head(file_key)` via R2 **binding**. Missing → **404**, set `aborted` only if we still own the lease (`status='completing' AND lease_expires_at>now`). Wrong size → **409 aborted**, client must **new init** (do not revert to pending; `If-None-Match: *` cannot replace the object).
-7. If a `backups` row already exists with this `file_key` for this project: attach `backup_id`, set `completed` (crash recovery after insert-before-mark). Never insert a second row.
-8. Else `createBackup` with `file_size = head.size`. On unique conflict: attach or **409**; do not leave `completing` stuck.
-9. Final: `UPDATE … SET status='completed', backup_id=?, completed_at=now WHERE id=? AND status='completing' AND lease_expires_at>now`. 0 rows → **409** (lease stolen; do not delete the backup if insert already happened — recovery on next complete attaches).
+5. **Claim** (atomic, returns `lease_token`):  
+   `UPDATE … SET status='completing', lease_token=?, lease_expires_at=now+900 WHERE id=? AND project_id=? AND purge_after>now AND (status='pending' OR (status='completing' AND lease_expires_at<=now))`.  
+   0 rows → re-read: live `completing` with future lease → **409**; else 2/3/410. Abort is **only** `pending → aborted`; abort of `completing` → **409**.
+6. `head(staging_key)` via R2 **binding**. Missing → **404**, `status=aborted` only if `lease_token` still matches. Wrong size → **409**, `status=aborted`, clear lease; client **new init**.
+7. If a `backups` row already exists with this **final** `file_key` for this project: attach `backup_id`, `status=completed` (crash recovery). Never insert a second row.
+8. Else, if `lease_token` still matches: copy staging → final (`r2.get` stream / R2 copy), then `createBackup` with `file_key=final`. Cross-project or corrupt unique conflict: **409**, `status=aborted`, clear lease, leave objects for GC. Do not attach.
+9. Final: `UPDATE … SET status='completed', backup_id=?, completed_at=now WHERE id=? AND lease_token=? AND status='completing' AND lease_expires_at>now`. 0 rows → **409** (do not delete a backup already inserted; next complete attaches).
 10. Return **201** and the **same body as today's webhook POST**:
 
 ```json
@@ -329,18 +338,20 @@ GC is a **sibling** job. Auto-backup keeps today's throw-to-retry behavior. **GC
 
 **Never delete an R2 key that still has a `backups.file_key` row.**
 
-Eligible for this hour: `purged_at IS NULL AND next_gc_at <= now`, limit 100, order by `next_gc_at`. After each object:
+Eligible: `purged_at IS NULL AND next_gc_at <= now`, limit 100, order by `next_gc_at`. After each object:
 
 | Condition | Action |
 |---|---|
-| `completed` AND `backup_id` IS NOT NULL (backup row exists) | skip delete; `next_gc_at = now + 7d` |
-| `completed` AND (`backup_id` IS NULL OR backup row missing) AND `purge_after < now` | `r2.delete`; set `purged_at=now`, `next_gc_at=now+7d` |
-| `pending`/`aborted`/`expired` AND `purge_after < now` | `r2.delete`; `status=expired` if pending; `purged_at=now`; `next_gc_at=now+7d` |
-| `completing` AND `lease_expires_at < now` AND no backup with this `file_key` | treat as pending (above) |
-| `completing` AND backup with this `file_key` exists | attach `backup_id`, `status=completed`; do not delete |
-| otherwise | `next_gc_at = min(purge_after, lease_expires_at, now+3600)` |
+| `completed` AND backup row exists | skip; `next_gc_at = now+7d`. May `r2.delete(staging_key)` only. |
+| `completed` AND no backup row AND `purge_after < now` | `r2.delete` staging **and** final; `purged_at=now`; `next_gc_at=now+3600` (re-reap until `purge_after+3600` / `reap_until` in case a late staging PUT recreates staging) |
+| `pending`/`aborted`/`expired` AND `purge_after < now` | `r2.delete(staging_key)`; `status=expired` if pending; `next_gc_at=now+3600` until `reap_until=purge_after+3600`, then `purged_at=now` |
+| `completing` AND `lease_expires_at < now` AND backup with final key exists | attach `backup_id`, `status=completed` |
+| `completing` AND `lease_expires_at < now` AND no backup | treat as pending (above) |
+| otherwise | `next_gc_at = min(purge_after, lease_expires_at ?? purge_after, now+3600)` |
 
-Successful sweeps **must leave the 100-row window** (`next_gc_at` in the future) so old tombstones cannot starve new work. Optional: `DELETE FROM direct_uploads WHERE purged_at < now-7d`.
+Do **not** set terminal `purged_at` after a single delete of a still-writable staging key. Keep reaping until `reap_until`. Then `DELETE FROM direct_uploads WHERE purged_at < now-7d` (mandatory, bounded).
+
+Successful sweeps **must** move `next_gc_at` into the future so old tombstones cannot starve new work. Process additional 100-row batches while under a 10s budget (global 200 unpurged cap keeps this finite).
 
 Per-object `delete` failures: isolate, leave `purged_at` null, `next_gc_at = now+3600`.
 
@@ -351,7 +362,7 @@ L2 is a **separate** `wrangler dev` process. It cannot inject a fake `presignUpl
 Wave 1 L2:
 
 1. Init without S3 keys → **503**.
-2. Enable wrangler `r2_buckets.local_dev.experimental_s3_credentials` and point the S3 signer at the local S3 gateway (`/cdn-cgi/local/r2/s3/<bucket>`). Test: init → **real HTTP PUT** to `put_url` with the signed headers → complete → **201**.
+2. Enable wrangler `r2_buckets.local_dev.experimental_s3_credentials`, `R2_S3_ENDPOINT=http://127.0.0.1:7018/cdn-cgi/local/r2/s3`, `forcePathStyle: true`. **Required** L2: init → **real HTTP PUT** to `put_url` with signed headers (`If-None-Match: *`) → complete → **201**. This is the only test that covers SigV4 + conditional PUT. Plant fallback may supplement, not replace.
 3. Complete with missing object → 404; expired → 410; abort → 200 then complete → 410.
 4. Access L1 tests as above.
 
@@ -381,7 +392,7 @@ Do not send 1 GiB through L2.
 | Layer | What |
 |---|---|
 | L1 | handlers, adapter presign headers, Access matcher, GC isolation, quotas |
-| L2 | three Backy routes: init, complete, abort (+ 503 / 409 / 410); optional real PUT against local S3 |
+| L2 | three Backy routes: init, complete, abort (+ 503 / 409 / 410); **required** real PUT against local S3; single/batch/project delete of direct keys defer to GC while timestamp keys still delete immediately |
 | L3 | not in wave 1 (no UI) |
 | G1 | tsc + biome |
 | gate:routes | three new webhook routes (not the external PUT) |
