@@ -55,6 +55,7 @@ function spawnDevServer(): Subprocess {
       "--var=R2_ACCESS_KEY_ID:backy-local",
       "--var=R2_SECRET_ACCESS_KEY:backy-local-secret",
       "--var=R2_S3_ENDPOINT:http://127.0.0.1:17018/cdn-cgi/local/r2/s3",
+      "--var=R2_S3_SIGN_ENDPOINT:http://backy.hexly.ai/cdn-cgi/local/r2/s3",
     ],
     {
       cwd: WORKER_DIR,

@@ -53,7 +53,7 @@ describe("L2: API direct upload", () => {
       file_key: string;
     };
     expect(body.put_url).toContain("127.0.0.1:17018");
-    expect(body.put_url).not.toContain("backy.hexly.ai");
+    expect(body.put_url).not.toContain("r2.cloudflarestorage.com");
     expect(body.file_key).toContain("/direct/");
     expect(body.headers["If-None-Match"]).toBe("*");
   });
@@ -77,6 +77,9 @@ describe("L2: API direct upload", () => {
       headers: body.headers,
       body: payload,
     });
+    if (!put.ok) {
+      throw new Error(`PUT ${put.status} ${await put.text()} url=${body.put_url}`);
+    }
     expect(put.ok).toBe(true);
 
     const complete = await fetch(url(`/api/webhook/${TEST_PROJECT.id}/uploads/${body.upload_id}/complete`), {

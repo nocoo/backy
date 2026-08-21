@@ -68,6 +68,8 @@ function pickEnv(env: AppEnv["Bindings"]): BackyEnv {
   if (env.R2_ACCOUNT_ID !== undefined) out.R2_ACCOUNT_ID = env.R2_ACCOUNT_ID;
   if (env.R2_BUCKET_NAME !== undefined) out.R2_BUCKET_NAME = env.R2_BUCKET_NAME;
   if (env.R2_S3_ENDPOINT !== undefined) out.R2_S3_ENDPOINT = env.R2_S3_ENDPOINT;
+  if (env.R2_S3_SIGN_ENDPOINT !== undefined)
+    out.R2_S3_SIGN_ENDPOINT = env.R2_S3_SIGN_ENDPOINT;
   if (env.E2E_SKIP_AUTH !== undefined) out.E2E_SKIP_AUTH = env.E2E_SKIP_AUTH;
   if (env.NEXT_PUBLIC_APP_VERSION !== undefined)
     out.NEXT_PUBLIC_APP_VERSION = env.NEXT_PUBLIC_APP_VERSION;

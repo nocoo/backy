@@ -74,6 +74,7 @@ export interface BackyEnv {
   R2_ACCOUNT_ID?: string;
   R2_BUCKET_NAME?: string;
   R2_S3_ENDPOINT?: string;
+  R2_S3_SIGN_ENDPOINT?: string;
 
   // Cron auth shared secret
   CRON_SECRET?: string;

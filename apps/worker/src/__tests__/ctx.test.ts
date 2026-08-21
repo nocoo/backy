@@ -80,6 +80,7 @@ describe("ctxMiddleware", () => {
       R2_ACCOUNT_ID: "r2-account",
       R2_BUCKET_NAME: "r2-bucket",
       R2_S3_ENDPOINT: "http://127.0.0.1:17018/cdn-cgi/local/r2/s3",
+      R2_S3_SIGN_ENDPOINT: "http://backy.hexly.ai/cdn-cgi/local/r2/s3",
       NEXT_PUBLIC_APP_VERSION: "1.2.3",
     });
     const res = await probe().request(
@@ -99,6 +100,7 @@ describe("ctxMiddleware", () => {
       "R2_ACCOUNT_ID",
       "R2_BUCKET_NAME",
       "R2_S3_ENDPOINT",
+      "R2_S3_SIGN_ENDPOINT",
       "R2_SECRET_ACCESS_KEY",
       "SSRF_ALLOWLIST",
     ]);

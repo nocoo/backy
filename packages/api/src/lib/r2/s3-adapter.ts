@@ -23,7 +23,8 @@ type R2EnvKeys =
   | "R2_SECRET_ACCESS_KEY"
   | "R2_ACCOUNT_ID"
   | "R2_BUCKET_NAME"
-  | "R2_S3_ENDPOINT";
+  | "R2_S3_ENDPOINT"
+  | "R2_S3_SIGN_ENDPOINT";
 
 const SIGNABLE_UPLOAD_HEADERS = new Set([
   "content-type",
@@ -44,12 +45,14 @@ function readConfig(env: Pick<BackyEnv, R2EnvKeys>) {
   }
   const endpoint =
     env.R2_S3_ENDPOINT ?? `https://${accountId}.r2.cloudflarestorage.com`;
+  const signEndpoint = env.R2_S3_SIGN_ENDPOINT ?? endpoint;
   return {
     accessKeyId,
     secretAccessKey,
     endpoint,
+    signEndpoint,
     bucket,
-    forcePathStyle: Boolean(env.R2_S3_ENDPOINT),
+    forcePathStyle: Boolean(env.R2_S3_ENDPOINT || env.R2_S3_SIGN_ENDPOINT),
   };
 }
 
@@ -63,25 +66,104 @@ function isNotFound(err: unknown): boolean {
   );
 }
 
+function rewriteSignedOrigin(
+  signed: string,
+  cfg: { signEndpoint: string; endpoint: string },
+): string {
+  if (cfg.signEndpoint === cfg.endpoint) return signed;
+  const from = new URL(signed);
+  const api = new URL(cfg.endpoint);
+  from.protocol = api.protocol;
+  from.host = api.host;
+  return from.toString();
+}
+
+function isWorkersCopySuccess(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { message?: string; $metadata?: { httpStatusCode?: number } };
+  return (
+    e.$metadata?.httpStatusCode === 200 &&
+    typeof e.message === "string" &&
+    e.message.includes("DOMParser")
+  );
+}
+
 interface SdkBody {
   transformToByteArray?: () => Promise<Uint8Array>;
+}
+
+function rewriteHandler(apiOrigin: string) {
+  return {
+    async handle(request: {
+      protocol: string;
+      hostname: string;
+      port?: number;
+      method: string;
+      headers: Record<string, string | string[] | undefined>;
+      body?: unknown;
+      path: string;
+      query?: Record<string, string | string[] | undefined>;
+    }) {
+      const api = new URL(apiOrigin);
+      const search = new URLSearchParams();
+      if (request.query) {
+        for (const [key, value] of Object.entries(request.query)) {
+          if (value === undefined) continue;
+          for (const item of Array.isArray(value) ? value : [value]) {
+            search.append(key, item);
+          }
+        }
+      }
+      const qs = search.toString();
+      const dest = `${api.origin}${request.path}${qs ? `?${qs}` : ""}`;
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(request.headers)) {
+        if (value === undefined) continue;
+        headers.set(key, Array.isArray(value) ? value.join(",") : value);
+      }
+      const res = await fetch(dest, {
+        method: request.method,
+        headers,
+        ...(request.body !== undefined && request.body !== null
+          ? { body: request.body as BodyInit }
+          : {}),
+      });
+      const responseHeaders: Record<string, string> = {};
+      res.headers.forEach((val, header) => {
+        responseHeaders[header] = val;
+      });
+      return {
+        response: {
+          statusCode: res.status,
+          reason: res.statusText,
+          headers: responseHeaders,
+          body: res.body,
+        },
+      };
+    },
+  };
+}
+
+function makeClient(cfg: ReturnType<typeof readConfig>): S3Client {
+  const rewrite = cfg.signEndpoint !== cfg.endpoint;
+  return new S3Client({
+    region: "auto",
+    endpoint: cfg.signEndpoint,
+    forcePathStyle: cfg.forcePathStyle,
+    credentials: {
+      accessKeyId: cfg.accessKeyId,
+      secretAccessKey: cfg.secretAccessKey,
+    },
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    ...(rewrite && { requestHandler: rewriteHandler(cfg.endpoint) }),
+  });
 }
 
 export function createS3R2Adapter(env: Pick<BackyEnv, R2EnvKeys>): R2Adapter {
   let _client: S3Client | null = null;
   function client(): S3Client {
     if (_client) return _client;
-    const cfg = readConfig(env);
-    _client = new S3Client({
-      region: "auto",
-      endpoint: cfg.endpoint,
-      forcePathStyle: cfg.forcePathStyle,
-      credentials: {
-        accessKeyId: cfg.accessKeyId,
-        secretAccessKey: cfg.secretAccessKey,
-      },
-      requestChecksumCalculation: "WHEN_REQUIRED",
-    });
+    _client = makeClient(readConfig(env));
     return _client;
   }
 
@@ -149,32 +231,41 @@ export function createS3R2Adapter(env: Pick<BackyEnv, R2EnvKeys>): R2Adapter {
     },
     async copy(sourceKey, destKey) {
       const { bucket } = readConfig(env);
-      await client().send(
-        new CopyObjectCommand({
-          Bucket: bucket,
-          CopySource: `${bucket}/${sourceKey}`,
-          Key: destKey,
-        }),
-      );
+      try {
+        await client().send(
+          new CopyObjectCommand({
+            Bucket: bucket,
+            CopySource: `${bucket}/${sourceKey}`,
+            Key: destKey,
+          }),
+        );
+      } catch (err) {
+        if (isWorkersCopySuccess(err)) return;
+        throw err;
+      }
     },
     async presignDownload(key, ttlSeconds) {
-      const { bucket } = readConfig(env);
-      const command = new GetObjectCommand({ Bucket: bucket, Key: key });
-      return getSignedUrl(client(), command, { expiresIn: ttlSeconds });
+      const cfg = readConfig(env);
+      const command = new GetObjectCommand({ Bucket: cfg.bucket, Key: key });
+      const signed = await getSignedUrl(client(), command, {
+        expiresIn: ttlSeconds,
+      });
+      return rewriteSignedOrigin(signed, cfg);
     },
     async presignUpload(key, ttlSeconds, opts) {
-      const { bucket } = readConfig(env);
+      const cfg = readConfig(env);
       const command = new PutObjectCommand({
-        Bucket: bucket,
+        Bucket: cfg.bucket,
         Key: key,
         ContentType: opts.contentType,
         ContentLength: opts.contentLength,
         IfNoneMatch: "*",
       });
-      return getSignedUrl(client(), command, {
+      const signed = await getSignedUrl(client(), command, {
         expiresIn: ttlSeconds,
         signableHeaders: SIGNABLE_UPLOAD_HEADERS,
       });
+      return rewriteSignedOrigin(signed, cfg);
     },
     async ping() {
       const { bucket } = readConfig(env);

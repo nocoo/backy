@@ -38,6 +38,20 @@ describe("createS3R2Adapter", () => {
     expect(parsed.searchParams.get("X-Amz-Expires")).toBe("3600");
   });
 
+  test("rewrites presign origin when sign endpoint differs from API endpoint", async () => {
+    const adapter = createS3R2Adapter({
+      ...env,
+      R2_S3_ENDPOINT: "http://127.0.0.1:17018/cdn-cgi/local/r2/s3",
+      R2_S3_SIGN_ENDPOINT: "http://backy.hexly.ai/cdn-cgi/local/r2/s3",
+    });
+    const url = await adapter.presignUpload("k.bin", 60, {
+      contentType: "application/octet-stream",
+      contentLength: 1,
+    });
+    expect(url).toContain("http://127.0.0.1:17018/cdn-cgi/local/r2/s3/bucket/k.bin");
+    expect(url).toContain("X-Amz-SignedHeaders=");
+  });
+
   test("uses path-style local endpoint when R2_S3_ENDPOINT is set", async () => {
     const adapter = createS3R2Adapter({
       ...env,
@@ -93,6 +107,20 @@ describe("createS3R2Adapter", () => {
       await expect(adapter.head("boom")).rejects.toThrow("network");
       await expect(adapter.head("str")).rejects.toBe("fail");
       expect(await adapter.head("http404")).toBeNull();
+    } finally {
+      send.mockRestore();
+    }
+  });
+
+  test("copy treats Workers DOMParser 200 as success", async () => {
+    const send = vi.spyOn(S3Client.prototype, "send").mockRejectedValue(
+      Object.assign(new ReferenceError("DOMParser is not defined"), {
+        $metadata: { httpStatusCode: 200 },
+      }),
+    );
+    try {
+      const adapter = createS3R2Adapter(env);
+      await expect(adapter.copy("src", "dst")).resolves.toBeUndefined();
     } finally {
       send.mockRestore();
     }
