@@ -10,6 +10,7 @@
 | 06 | [API Extraction Plan](06-api-extraction-plan.md) | Wave-by-wave plan to split @backy/api out of apps/web |
 | 07 | [Vite Web Migration](07-vite-web-migration-plan.md) | Vite + Worker migration plan |
 | 08 | [L2/L3 Coverage Gates](08-l2-l3-coverage-gates.md) | E2E coverage gates + CD version verification |
+| 09 | [Large File Direct Upload](09-large-file-direct-upload.md) | R2 presigned PUT ingest alongside the 50 MB multipart path |
 
 ## Archive
 
