@@ -179,8 +179,12 @@ byte/row cap).
 | Sum of `declared_size` for those rows | 20 GiB | 429 |
 | Inits per project per 60s (all statuses, `created_at > now-60`) | 30 | 429 |
 | Global unpurged **non-completed** rows (`purged_at IS NULL` AND status in pending/completing/aborted/expired) | 200 | 429 |
-| Completed `declared_size` per project per 3600s | 20 GiB | 429 |
-| Completed `declared_size` globally per 3600s | 100 GiB | 429 |
+| Rolling bytes per project (hourly) | 20 GiB | 429 |
+| Rolling bytes globally (hourly) | 100 GiB | 429 |
+| Rolling bytes per project (daily) | 100 GiB | 429 |
+| Rolling bytes globally (daily) | 500 GiB | 429 |
+
+Rolling bytes = sum of `declared_size` for rows with `completed_at` in the window **plus** all outstanding unpurged declared bytes (`pending`/`completing`/`aborted`/`expired` with `purged_at IS NULL`) **plus** this init's `file_size`. Enforce atomically with the insert.
 
 Enforce **in one statement** with the insert (check-then-insert races
 otherwise), e.g. `INSERT … SELECT … WHERE (SELECT COUNT(*) …) < 20 AND …`.
@@ -358,7 +362,11 @@ Eligible: `purged_at IS NULL AND next_gc_at <= now`, limit 100, order by `next_g
 
 Do **not** set `purged_at` until `now ≥ reap_until` (last scheduled reap). Then `DELETE FROM direct_uploads WHERE purged_at < now-7d` (**mandatory**, every GC run, bounded). The data-model “optional archive” sentence is void; this pass is required.
 
-`CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_purged_global ON direct_uploads(status, purged_at);` for the global quota.
+`CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_purged_global ON direct_uploads(status, purged_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_status_completed
+  ON direct_uploads(project_id, status, completed_at);
+CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_completed
+  ON direct_uploads(status, completed_at);` for the global quota.
 
 Successful sweeps **must** move `next_gc_at` into the future so old tombstones cannot starve new work. Process additional 100-row batches while under a 10s budget (global 200 unpurged cap keeps this finite).
 
@@ -383,7 +391,7 @@ Do not send 1 GiB through L2.
 
 ### Wave 1 — webhook direct upload (this doc)
 
-1. Wrangler D1 migration + `initializeSchema` for `direct_uploads` and unique `backups.file_key`.
+1. Wrangler D1 migration + `initializeSchema` for `direct_uploads` and unique `backups.file_key`. Production: `wrangler r2 bucket lifecycle add` (or equivalent IaC) so prefix `direct-staging/` expires after 2 days; verify the rule after deploy.
 2. `R2Adapter.head` / `presignUpload` / **`copy` (CopyObject)** + worker `ctx` hook; unit tests for signed headers and CopyObject.
 3. Handlers + three webhook routes + `fireLog`.
 4. `isPublicPath` nanoid matchers + encoded-slash tests.
@@ -417,6 +425,7 @@ Do not send 1 GiB through L2.
 - [ ] R2 object for pending/aborted is not deleted until `purge_after`; replay PUT fails while the object exists. After the first GC delete, a late staging PUT is removed on a later sweep; restore bytes of a completed backup stay unchanged.
 - [ ] Auto-backup cron failure still runs GC; GC failure does not duplicate auto-backup POSTs.
 - [ ] Production migration is applied before deploy; local `initializeSchema` creates the same table.
+- [ ] Production R2 lifecycle expires `direct-staging/` after 2 days (verified post-deploy).
 - [ ] Access tests pin nanoid paths and reject `%2F` / trailing slash / wrong method.
 - [ ] `5000000000` accepted, `5000000001` rejected on init.
 - [ ] Complete promotion uses CopyObject (not Worker get→put); restore bytes equal the PUT body; staging ≠ final.
