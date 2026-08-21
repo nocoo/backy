@@ -19,8 +19,10 @@ archive: Cloudflare Workers request/memory limits sit around 100–128 MiB,
 and two in-memory copies of 50 MiB already press the ceiling
 (`docs/07-vite-web-migration-plan.md`).
 
-R2 accepts a **single PutObject** up to **5 GiB − 5 MiB**
-(`5363466240` bytes). Multipart goes to 5 TiB. Restore already uses S3
+R2 PutObject and **CopyObject** (used to promote staging → final without
+the Worker seeing bytes) both top out at **5,000,000,000** bytes. Direct
+upload is capped there so promotion always fits a single CopyObject.
+Multipart goes to 5 TiB. Restore already uses S3
 presigned **GET**. Direct-upload is the same idea in the write direction.
 
 Production D1 is **not** rebuilt by `POST /api/db/init` on deploy.
@@ -31,7 +33,7 @@ via `initializeSchema`.
 
 ## Goals
 
-1. Agents can ingest files up to **5 GiB − 5 MiB** (`5363466240` bytes) without the bytes transiting the Worker.
+1. Agents can ingest files up to **5,000,000,000 bytes** without the bytes transiting the Worker.
 2. Existing 50 MiB multipart ingest, restore, preview, extract, and delete keep working.
 3. Object keys are **server-assigned** under a dedicated prefix; clients cannot pick or overwrite another project's objects.
 4. A backup D1 row exists only after a **claimed** pending row and R2 `head` confirm the object.
@@ -39,7 +41,7 @@ via `initializeSchema`.
 
 ## Non-goals
 
-- Multipart/resumable upload (tus / S3 MPU). 1 GiB fits in one PutObject. Add MPU later if we need >5 GiB − 5 MiB or flaky links.
+- Multipart/resumable upload (tus / S3 MPU). 1 GiB fits in one PutObject + CopyObject. Add MPU later if we need >5,000,000,000 bytes or flaky links.
 - Changing the 50 MiB cap on the old path.
 - In-request JSON extract/preview of direct-upload objects (extract route keeps the 50 MiB decompressed cap).
 - Dashboard UI for large upload in wave 1 (webhook/agent only). Wave 2 can reuse the same handlers behind Access.
@@ -50,7 +52,7 @@ via `initializeSchema`.
 |---|---|---|
 | Protocol | Two-phase **init → PUT R2 → complete** | D1 row only after the object exists; init can expire unused URLs |
 | Transport | S3 presigned `PUT` to `https://{account}.r2.cloudflarestorage.com` | Same signer as restore; no `x-forwarded-host` in the URL |
-| Max size | `1 … 5 GiB − 5 MiB` (`5363466240`) | R2 single-PUT ceiling is 5 MiB short of 5 GiB. Pin tests at `5363466240` (accept) and `5363466241` (400). |
+| Max size | `1 … 5_000_000_000` | Single CopyObject limit (stricter than PutObject 5 GiB − 5 MiB). Pin tests at `5000000000` (accept) and `5000000001` (400). |
 | Min size | 1 byte | Old path stays the small-file default; no artificial >50 MiB gate |
 | Key prefix | staging `…/direct/{uploadId}/in{ext}`; final `…/direct/{uploadId}{ext}` | Client never writes the restore key |
 | Auth | Same Bearer `webhook_token` as today's webhook | Agents already have it |
@@ -78,7 +80,7 @@ Agent
 | Surface | Old path | New path |
 |---|---|---|
 | Webhook POST multipart | yes, 50 MiB | no |
-| Direct PUT | no | yes, 5 GiB − 5 MiB |
+| Direct PUT | no | yes, 5,000,000,000 bytes |
 | R2 key | `backups/{projectId}/{ts}{ext}` | `backups/{projectId}/direct/{uploadId}{ext}` |
 | D1 `backups` row | same table | same table; **`file_key` UNIQUE** (new) |
 | Restore / download / delete | `file_key` | `file_key` |
@@ -145,7 +147,7 @@ CREATE INDEX IF NOT EXISTS idx_direct_uploads_project_status_purged
 
 All time columns are **unix seconds** (INTEGER). Handlers bind `Math.floor(Date.now()/1000)`. Never mix ISO strings with `datetime('now')` for these comparisons.
 
-Statuses are **tombstones**. Abort/GC do not `DELETE` the row until `purged_at` is set **and** a later archive pass removes rows with `purged_at < now - 7d` (optional). `project_id` is nullable with `ON DELETE SET NULL` so project deletion cannot destroy the GC tombstone while a PUT URL is still live.
+Statuses are **tombstones**. Abort/GC do not `DELETE` the row until `purged_at` is set **and** the seven-day archive pass removes rows with `purged_at < now - 7d`. `project_id` is nullable with `ON DELETE SET NULL` so project deletion cannot destroy the GC tombstone while a PUT URL is still live.
 
 ### `backups.file_key`
 
@@ -175,7 +177,7 @@ byte/row cap).
 | Unpurged writable rows per project (`purged_at IS NULL` and status in pending/completing/aborted/expired) | 20 | 429 |
 | Sum of `declared_size` for those rows | 20 GiB | 429 |
 | Inits per project per 60s (all statuses, `created_at > now-60`) | 30 | 429 |
-| Global unpurged writable rows (`purged_at IS NULL`) | 200 | 429 |
+| Global unpurged **non-completed** rows (`purged_at IS NULL` AND status in pending/completing/aborted/expired) | 200 | 429 |
 
 Enforce **in one statement** with the insert (check-then-insert races
 otherwise), e.g. `INSERT … SELECT … WHERE (SELECT COUNT(*) …) < 20 AND …`.
@@ -205,7 +207,7 @@ Request JSON:
 |---|---|
 | `file_name` | required, see key contract |
 | `content_type` | optional, default `application/octet-stream`, then `normalizeContentType` |
-| `file_size` | required integer, `1 … 5363466240` |
+| `file_size` | required integer, `1 … 5000000000` |
 | `environment` | optional, same enum as ingest (`dev/prod/staging/test`) |
 | `tag` | optional string |
 
@@ -230,7 +232,7 @@ Responses:
 
 Mismatch → R2 403 SignatureDoesNotMatch. `If-None-Match: *` → R2 412 if the object already exists (replay / post-complete overwrite).
 
-`expires_in`: **3600** seconds. `expires_at = now + 3600`. `purge_after = expires_at + 3600`. `next_gc_at = purge_after`. `lease_expires_at = NULL`.
+`expires_in`: **3600** seconds. `expires_at = now + 3600`. `purge_after = expires_at + 3600`. `reap_until = purge_after + 3600`. `next_gc_at = purge_after`. `lease_expires_at = NULL`. `lease_token = NULL`. `purged_at = NULL`.
 
 S3 client used for `getSignedUrl` **must** set `requestChecksumCalculation: "WHEN_REQUIRED"` and pass `signableHeaders: new Set(["content-type", "content-length", "if-none-match"])` (installed AWS SDK does not sign `ContentType` merely because the command field is set). Pin with a unit test that the URL's `X-Amz-SignedHeaders` contains those three names and does **not** contain a checksum header that would require an empty body.
 
@@ -257,7 +259,7 @@ No body required. Server (`now` = unix seconds):
    0 rows → re-read: live `completing` with future lease → **409**; else 2/3/410. Abort is **only** `pending → aborted`; abort of `completing` → **409**.
 6. `head(staging_key)` via R2 **binding**. Missing → **404**, `status=aborted` only if `lease_token` still matches. Wrong size → **409**, `status=aborted`, clear lease; client **new init**.
 7. If a `backups` row already exists with this **final** `file_key` for this project: attach `backup_id`, `status=completed` (crash recovery). Never insert a second row.
-8. Else, if `lease_token` still matches: copy staging → final (`r2.get` stream / R2 copy), then `createBackup` with `file_key=final`. Cross-project or corrupt unique conflict: **409**, `status=aborted`, clear lease, leave objects for GC. Do not attach.
+8. Else, immediately re-check `status='completing' AND lease_token=? AND lease_expires_at>now AND purge_after>now`; **renew** `lease_expires_at=now+900`. Then **`copy(staging_key, file_key)`** — S3 `CopyObject` / R2 binding copy hook. **Forbidden:** `get().bytes()` / stream through the Worker (that is the 50 MiB path). Then `createBackup` with `file_key=final`. Cross-project or corrupt unique conflict: **409**, `status=aborted`, clear lease, leave objects for GC. Do not attach.
 9. Final: `UPDATE … SET status='completed', backup_id=?, completed_at=now WHERE id=? AND lease_token=? AND status='completing' AND lease_expires_at>now`. 0 rows → **409** (do not delete a backup already inserted; next complete attaches).
 10. Return **201** and the **same body as today's webhook POST**:
 
@@ -305,10 +307,11 @@ presignUpload(
   ttlSeconds,
   opts: { contentType: string; contentLength: number },
 ): Promise<string>
+copy(sourceKey: string, destKey: string): Promise<void>
 ```
 
-- Binding adapter: `head` → `bucket.head` (null if missing); `presignUpload` via the S3 hook (same as `presignDownload`).
-- S3 adapter: `HeadObjectCommand` (404/NotFound → `null`); `PutObjectCommand` with `ContentType`, `ContentLength`, `IfNoneMatch: "*"`, then `getSignedUrl` with `signableHeaders`. Client config `requestChecksumCalculation: "WHEN_REQUIRED"`. Update **every** mock `R2Adapter` in tests.
+- Binding adapter: `head` → `bucket.head` (null if missing); `presignUpload` / `copy` via the S3 hook (`CopyObjectCommand`). No get→put byte pipe.
+- S3 adapter: `HeadObjectCommand` (404/NotFound → `null`); `CopyObjectCommand`; `PutObjectCommand` with `ContentType`, `ContentLength`, `IfNoneMatch: "*"`, then `getSignedUrl` with `signableHeaders`. Client config `requestChecksumCalculation: "WHEN_REQUIRED"`. Update **every** mock `R2Adapter` in tests.
 - `ctxMiddleware` wires the hook when R2 keys exist. S3 client `endpoint` = `env.R2_S3_ENDPOINT` if set. Add `R2_S3_ENDPOINT?: string` to `BackyEnv`.
 
 Init uses `presignUpload`. Complete uses `head`. GC uses `delete` only after `purge_after`.
@@ -344,12 +347,14 @@ Eligible: `purged_at IS NULL AND next_gc_at <= now`, limit 100, order by `next_g
 |---|---|
 | `completed` AND backup row exists | skip; `next_gc_at = now+7d`. May `r2.delete(staging_key)` only. |
 | `completed` AND no backup row AND `purge_after < now` | `r2.delete` staging **and** final; `purged_at=now`; `next_gc_at=now+3600` (re-reap until `purge_after+3600` / `reap_until` in case a late staging PUT recreates staging) |
-| `pending`/`aborted`/`expired` AND `purge_after < now` | `r2.delete(staging_key)`; `status=expired` if pending; `next_gc_at=now+3600` until `reap_until=purge_after+3600`, then `purged_at=now` |
+| `pending`/`aborted`/`expired` AND `purge_after < now` | `r2.delete` **staging and final** (copy may have created final before crash); `status=expired` if pending; `next_gc_at=now+3600` until `now ≥ reap_until`, **then** `purged_at=now` |
 | `completing` AND `lease_expires_at < now` AND backup with final key exists | attach `backup_id`, `status=completed` |
 | `completing` AND `lease_expires_at < now` AND no backup | treat as pending (above) |
 | otherwise | `next_gc_at = min(purge_after, lease_expires_at ?? purge_after, now+3600)` |
 
-Do **not** set terminal `purged_at` after a single delete of a still-writable staging key. Keep reaping until `reap_until`. Then `DELETE FROM direct_uploads WHERE purged_at < now-7d` (mandatory, bounded).
+Do **not** set `purged_at` until `now ≥ reap_until` (last scheduled reap). Then `DELETE FROM direct_uploads WHERE purged_at < now-7d` (**mandatory**, every GC run, bounded). The data-model “optional archive” sentence is void; this pass is required.
+
+`CREATE INDEX IF NOT EXISTS idx_direct_uploads_status_purged_global ON direct_uploads(status, purged_at);` for the global quota.
 
 Successful sweeps **must** move `next_gc_at` into the future so old tombstones cannot starve new work. Process additional 100-row batches while under a 10s budget (global 200 unpurged cap keeps this finite).
 
@@ -385,7 +390,7 @@ Do not send 1 GiB through L2.
 ### Wave 2 — optional
 
 - Dashboard large upload behind Access (`POST /api/backups/uploads`, not public).
-- S3 multipart if we need >5 GiB − 5 MiB or resume.
+- S3 multipart if we need >5,000,000,000 bytes or resume.
 
 ## Test / quality mapping
 
@@ -409,7 +414,8 @@ Do not send 1 GiB through L2.
 - [ ] Auto-backup cron failure still runs GC; GC failure does not duplicate auto-backup POSTs.
 - [ ] Production migration is applied before deploy; local `initializeSchema` creates the same table.
 - [ ] Access tests pin nanoid paths and reject `%2F` / trailing slash / wrong method.
-- [ ] `5363466240` accepted, `5363466241` rejected on init.
+- [ ] `5000000000` accepted, `5000000001` rejected on init.
+- [ ] Complete promotion uses CopyObject (not Worker get→put); restore bytes equal the PUT body; staging ≠ final.
 - [ ] Prompt documents both ingest paths; old-path 413 still says 50 MB.
 
 ## Out of scope reminders
