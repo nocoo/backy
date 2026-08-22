@@ -136,6 +136,7 @@ export function ProjectDetailPage() {
   const [backups, setBackups] = useState<BackupListResponse | null>(null);
   const [backupsLoading, setBackupsLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [deletingBackup, setDeletingBackup] = useState<string | null>(null);
 
   const fetchProject = useCallback(async () => {
     if (!id) return;
@@ -354,6 +355,20 @@ export function ProjectDetailPage() {
       toast.error(errorMessage(err, "Download failed"));
     } finally {
       setDownloading(null);
+    }
+  }
+
+  async function handleBackupDelete(backupId: string) {
+    try {
+      setDeletingBackup(backupId);
+      await apiFetch(`/api/backups/${backupId}`, { method: "DELETE" });
+      toast.success("Backup deleted");
+      await fetchBackups();
+    } catch (err) {
+      toast.error(errorMessage(err, "Delete failed"));
+      throw err;
+    } finally {
+      setDeletingBackup(null);
     }
   }
 
@@ -787,7 +802,9 @@ export function ProjectDetailPage() {
         backups={backups}
         backupsLoading={backupsLoading}
         downloading={downloading}
+        deleting={deletingBackup}
         onDownload={handleBackupDownload}
+        onDelete={handleBackupDelete}
         onRefresh={fetchBackups}
         formatDate={formatDate}
         formatBytes={formatBytes}

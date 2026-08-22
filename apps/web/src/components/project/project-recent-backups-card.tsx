@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router";
-import { Archive, Download, Eye, Loader2 } from "lucide-react";
+import { Archive, Download, Eye, Loader2, Trash2 } from "lucide-react";
 import { ManualUploadDialog } from "@/components/manual-upload-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ProjectRecentBackupItem {
   id: string;
@@ -29,7 +38,9 @@ interface ProjectRecentBackupsCardProps {
   } | null;
   backupsLoading: boolean;
   downloading: string | null;
+  deleting: string | null;
   onDownload: (backupId: string) => void | Promise<void>;
+  onDelete: (backupId: string) => void | Promise<void>;
   onRefresh: () => void | Promise<void>;
   formatDate: (date: string) => string;
   formatBytes: (bytes: number) => string;
@@ -47,11 +58,26 @@ export function ProjectRecentBackupsCard({
   backups,
   backupsLoading,
   downloading,
+  deleting,
   onDownload,
+  onDelete,
   onRefresh,
   formatDate,
   formatBytes,
 }: ProjectRecentBackupsCardProps) {
+  const [deleteTarget, setDeleteTarget] =
+    useState<ProjectRecentBackupItem | null>(null);
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    try {
+      await onDelete(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch {
+      // Parent surfaces the error toast.
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -68,7 +94,9 @@ export function ProjectRecentBackupsCard({
               onSuccess={() => void onRefresh()}
             />
             <Button variant="outline" size="sm" asChild>
-              <Link to={`/backups?projectId=${projectId}`}>View All</Link>
+              <Link to={`/backups?projectId=${encodeURIComponent(projectId)}`}>
+                View All
+              </Link>
             </Button>
           </CardAction>
         )}
@@ -150,6 +178,19 @@ export function ProjectRecentBackupsCard({
                       <Download className="h-3.5 w-3.5" />
                     )}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={`Delete backup ${backup.id.slice(0, 8)}`}
+                    onClick={() => setDeleteTarget(backup)}
+                    disabled={deleting === backup.id}
+                  >
+                    {deleting === backup.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    )}
+                  </Button>
                 </div>
               </div>
             ))}
@@ -163,6 +204,40 @@ export function ProjectRecentBackupsCard({
           </div>
         )}
       </CardContent>
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Backup?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete this backup file from storage. This
+              action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={!!deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirmDelete()}
+              disabled={!!deleting}
+            >
+              {deleting && (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
