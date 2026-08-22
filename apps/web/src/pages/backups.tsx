@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import {
   Archive,
   Download,
@@ -105,13 +105,14 @@ function errorMessage(err: unknown, fallback: string): string {
 const PAGE_SIZE = 20;
 
 export function BackupsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const projectFilter = searchParams.get("projectId")?.trim() || "all";
   const [envFilter, setEnvFilter] = useState<string>("all");
 
   const [sortBy, setSortBy] = useState<SortBy>("created_at");
@@ -247,6 +248,18 @@ export function BackupsPage() {
     } finally {
       setDeleting(false);
     }
+  }
+
+  function setProjectFilter(value: string) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (!value || value === "all") next.delete("projectId");
+        else next.set("projectId", value);
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function handleFilterChange(type: "project" | "env", value: string) {
