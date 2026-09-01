@@ -211,7 +211,7 @@ curl https://your-domain.example.com/api/restore/{backupId} \
 | 组件 | 选型 |
 |------|------|
 | ⚡ Runtime | [Bun](https://bun.sh) (本地) + [Cloudflare Workers](https://developers.cloudflare.com/workers/) (生产) |
-| 🖥️ 前端 | [Vite](https://vitejs.dev) + React 19 + [react-router](https://reactrouter.com) v7 |
+| 🖥️ 前端 | [Vite](https://vitejs.dev) 8 + React 19 + [react-router](https://reactrouter.com) v8 |
 | 🛣️ 后端 | [Hono](https://hono.dev) on Workers |
 | 📝 Language | TypeScript (strict mode) |
 | 🗄️ Metadata DB | [Cloudflare D1](https://developers.cloudflare.com/d1/) (binding) |
@@ -236,13 +236,14 @@ curl https://your-domain.example.com/api/restore/{backupId} \
 
 ## 🧪 质量体系
 
-L1 单元测试 + G1 静态分析由 pre-commit 执行，G2 安全扫描由 pre-push 执行：
+L1 + G1 + gitleaks 在 pre-commit；osv-scanner 在 pre-push；L2/L3 在 CI：
 
 | 层级 | 工具 | 触发时机 | 要求 |
 |------|------|----------|------|
-| L1 单元测试 | vitest | pre-commit | 90%+ 覆盖率 |
-| G1 静态分析 | tsc + Biome | pre-commit | 0 错误 / 0 警告 |
-| G2 安全扫描 | osv-scanner + gitleaks | pre-push | 0 漏洞 / 0 泄露 |
+| L1 单元测试 | vitest | pre-commit + CI | 根 95% / branches 90% |
+| G1 静态分析 | tsc + Biome | pre-commit + CI | 0 错误 / 0 警告 |
+| G2 secrets | gitleaks | pre-commit | 0 泄露 |
+| G2 deps | osv-scanner | pre-push + CI | 0 漏洞 |
 
 L2 (`bun run test:e2e:api`) 和 L3 (`bun run test:e2e:bdd`) 使用 `wrangler dev --local --persist-to`
 全本地模拟（SQLite-backed D1/R2），零远程 CF 凭证依赖，通过 `_test_marker` 表验证安全性。
