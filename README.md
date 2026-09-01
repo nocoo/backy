@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Vite-7-purple" alt="Vite">
+  <img src="https://img.shields.io/badge/Vite-8-purple" alt="Vite">
   <img src="https://img.shields.io/badge/Cloudflare%20Workers-orange" alt="Cloudflare Workers">
-  <img src="https://img.shields.io/badge/TypeScript-5-blue" alt="TypeScript">
+  <img src="https://img.shields.io/badge/TypeScript-7-blue" alt="TypeScript">
   <img src="https://img.shields.io/badge/D1%20%2B%20R2-orange" alt="Cloudflare">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
 </p>
@@ -57,10 +57,10 @@ bun install
 ### 3️⃣ 启动开发服务器
 
 ```bash
-bun dev   # 同时拉起 wrangler dev (7018) + vite (7019)
+bun dev   # 同时拉起 wrangler dev (7018) + vite (7017)
 ```
 
-打开浏览器访问 👉 [http://localhost:7019](http://localhost:7019)（vite 代理 `/api/*` → 7018 worker）
+打开浏览器访问 👉 [http://localhost:7017](http://localhost:7017)（vite 代理 `/api/*` → 7018 worker）
 
 ## 📁 项目结构
 
@@ -96,7 +96,7 @@ backy/
 > `lint` 等都 fan-out 到 `apps/web`、`apps/worker`、`packages/api`、`apps/cli`；
 > `gate:security` / `release` 直接调用根 `scripts/`。
 
-`apps/web/src/` 与 `apps/worker/src/` 内部布局参见 `CLAUDE.md`。
+Agent handbook: [`CLAUDE.md`](CLAUDE.md). Accidents: [`Retrospective.md`](Retrospective.md).
 
 ## 🔌 Webhook 协议
 
@@ -224,14 +224,14 @@ curl https://your-domain.example.com/api/restore/{backupId} \
 
 | 命令 | 说明 |
 |------|------|
-| `bun dev` | 同时启动 wrangler (7018) + vite (7019) |
+| `bun dev` | 同时启动 wrangler (7018) + vite (7017) |
 | `bun run build` | 生产构建 (vite → `apps/worker/static/`) |
 | `bun run worker:deploy` | `wrangler deploy` 上线 worker |
 | `vitest run` | 运行所有 workspace 单元测试 |
-| `bun run test:coverage` | 单元测试 + 90% 覆盖率门禁 |
+| `bun run test:coverage` | 单元测试 + 覆盖率门禁（根 95%/branches 90%） |
 | `bun run typecheck` | TypeScript 类型检查 |
 | `bun run lint` | Biome 检查 |
-| `bun run gate:security` | 安全扫描 (osv-scanner + gitleaks) |
+| `bun run gate:secrets` / `gate:deps` | gitleaks (pre-commit) / osv-scanner (pre-push) |
 | `bun run release` | 版本号 + CHANGELOG + tag |
 
 ## 🧪 质量体系
