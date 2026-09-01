@@ -76,11 +76,23 @@ Routing: narrative stays here. A project-specific rule that will recur may becom
 - **Why:** Size check ran after full inflate.
 - **Follow-up:** streaming gunzip with byte cap.
 
-## Sensitive fields / hosts / SSRF
+## Sensitive fields at API boundary
 
-- **What:** `SELECT *` leaked fields; `x-forwarded-host` built credential URLs; CIDR list missed RFC ranges.
-- **Why:** API boundary and host validation were incomplete.
-- **Follow-up:** allowlist sanitize; validate hosts; full RFC blocklist in `hosts`/`ip`.
+- **What:** `SELECT *` leaked columns on API responses.
+- **Why:** no allowlist at the boundary.
+- **Follow-up:** `sanitizeProject()` allowlist.
+
+## x-forwarded-host
+
+- **What:** Credential URLs used untrusted `x-forwarded-host`.
+- **Why:** host header was not allowlisted.
+- **Follow-up:** validate against `ALLOWED_HOSTS` in `hosts.ts`.
+
+## SSRF CIDR list
+
+- **What:** Blocklist missed CGN, TEST-NET, IPv6 docs ranges.
+- **Why:** only six common private ranges.
+- **Follow-up:** full RFC-reserved coverage in `ip.ts`.
 
 ## Monorepo .env location
 
@@ -88,8 +100,20 @@ Routing: narrative stays here. A project-specific rule that will recur may becom
 - **Why:** Bun loads `.env*` from cwd.
 - **Follow-up:** env files live next to the consuming workspace.
 
-## lint-staged dormant rules / ESLint plugin clash / vite emptyOutDir
+## lint-staged dormant rules
 
-- **What:** Bulk rename surfaced old lint; Next+tseslint double-registered plugins; vite wiped `static/.gitignore`.
-- **Why:** lint-staged only sees touched paths; plugin keys collide; `emptyOutDir` deletes dotfiles.
-- **Follow-up:** keep structural commits focused; strip plugins when spreading configs; re-emit gitignore after vite build.
+- **What:** Bulk rename flagged 17 old react-hooks errors.
+- **Why:** lint-staged only lints touched paths.
+- **Follow-up:** keep structural commits focused; don’t mix lint upgrades.
+
+## ESLint plugin clash
+
+- **What:** `tseslint.configs.strict` collided with `eslint-config-next`.
+- **Why:** both register `@typescript-eslint`.
+- **Follow-up:** historical; lint is Biome now.
+
+## vite emptyOutDir deletes gitignore
+
+- **What:** `vite build` wiped `apps/worker/static/.gitignore`.
+- **Why:** `emptyOutDir: true` deletes dotfiles.
+- **Follow-up:** re-emit gitignore after vite.
