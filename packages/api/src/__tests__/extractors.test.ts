@@ -14,6 +14,25 @@ import { createZipBuffer } from "./helpers";
 
 const gzipAsync = promisify(gzip);
 
+// tar-stream 3.2.x exposes streamx-based declarations that omit the
+// Node-compatible write/end and async-iteration methods used by these fixtures.
+interface TarPackSink {
+  write(chunk: Uint8Array): void;
+  end(): void;
+}
+
+interface TarPack extends AsyncIterable<Uint8Array> {
+  entry(
+    header: { name: string; size?: number; type?: "directory" },
+    content?: string | Uint8Array,
+  ): TarPackSink;
+  finalize(): void;
+}
+
+function createTarPack(): TarPack {
+  return tar.pack() as unknown as TarPack;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers: create test fixtures in memory
 // ---------------------------------------------------------------------------
@@ -28,7 +47,7 @@ async function createGzBuffer(content: string): Promise<Uint8Array> {
 async function createTgzBuffer(
   files: Record<string, string>,
 ): Promise<Uint8Array> {
-  const pack = tar.pack();
+  const pack = createTarPack();
   for (const [name, content] of Object.entries(files)) {
     pack.entry({ name, size: Buffer.byteLength(content) }, content);
   }
@@ -366,7 +385,7 @@ describe("decompression bomb defense", () => {
     // streaming gunzip aborts with the bomb-defense error before any
     // tar entry is parsed. Catches a refactor that drops streaming
     // and decompresses fully into memory (which would OOM or pass).
-    const pack = tar.pack();
+    const pack = createTarPack();
     const giantSize = MAX_DECOMPRESSED_SIZE + 1;
     const entryStream = pack.entry({
       name: "giant.json",
@@ -452,7 +471,7 @@ describe("decompression bomb defense", () => {
     // the directory name does not end with `.json` and the function
     // would still pick the right file — but we additionally assert
     // that the directory itself was not surfaced as a json-candidate.
-    const pack = tar.pack();
+    const pack = createTarPack();
     pack.entry({ name: "subdir/", type: "directory" });
     pack.entry(
       { name: "subdir/data.json", size: Buffer.byteLength('{"ok":true}') },
