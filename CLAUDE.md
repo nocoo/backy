@@ -12,7 +12,7 @@ This file is the **contract**. Hooks, CI, and config are **enforcement**. If the
 | Agent handbook | this file |
 | Human docs | README.md, `docs/` |
 | Version | root `package.json` `"version"` |
-| Enforcement | `.husky/*`, `scripts/gate-*.ts`, `scripts/run-e2e.ts`, vitest configs |
+| Enforcement | `.husky/*`, `.github/workflows/ci.yml`, `release.yml`, `scripts/gate-*.ts`, vitest configs |
 | Machine rules | global `AGENTS.md`, `rules/git-commit.md` |
 | Accidents | [Retrospective.md](Retrospective.md) |
 | Env files | next to the consuming workspace, not repo root |
