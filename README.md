@@ -96,8 +96,7 @@ backy/
 > `lint` 等都 fan-out 到 `apps/web`、`apps/worker`、`packages/api`、`apps/cli`；
 > `gate:security` / `release` 直接调用根 `scripts/`。
 
-`apps/web/src/` 与 `apps/worker/src/` 内部布局参见 `CLAUDE.md` 的
-*Project Structure* 章节。
+`apps/web/src/` 与 `apps/worker/src/` 内部布局参见 `CLAUDE.md`。
 
 ## 🔌 Webhook 协议
 
