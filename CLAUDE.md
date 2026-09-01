@@ -1,195 +1,109 @@
 # Backy
 
-AI backup management service. Receive, store, preview, and restore backups sent by SaaS AI agents via webhooks.
+Backup ingest for SaaS AI agents: webhook receive, D1 metadata, R2 blobs, Vite dashboard. Profile: ts-worker-web.
+Direction: [docs/01-design.md](docs/01-design.md). Frameworks must not rewrite this file.
 
-## Tech Stack
+## Sources of Truth
+
+This file is the **contract**. Hooks, CI, and config are **enforcement**. If they disagree, that is a failure — raise enforcement; never lower this file.
+
+| Fact | Where |
+|---|---|
+| Agent handbook | this file |
+| Human docs | README.md, `docs/` |
+| Version | root `package.json` `"version"` (`1.11.0`) |
+| Enforcement | `.husky/*`, `scripts/gate-*.ts`, `scripts/run-e2e.ts`, vitest configs |
+| Machine rules | global `AGENTS.md`, `rules/git-commit.md` |
+| Accidents | [Retrospective.md](Retrospective.md) |
+| Env files | next to the consuming workspace, not repo root |
+
+## Project Invariants
+
+- L2/L3 must use `wrangler dev --local --persist-to` plus `_test_marker`. Never run E2E against prod D1/R2 even though `wrangler.toml` sets `remote = true` for interactive `bun dev`.
+- Cloudflare Access JWT for the dashboard; webhook/CLI use their own tokens. Do not skip auth except `E2E_SKIP_AUTH` on the isolated runner.
+- Sanitize at the API boundary (allowlist). Validate `x-forwarded-host`. Stream-decompress with a size cap.
+- Do not `mock.module` low-level D1/R2 modules. lint-staged is check-only. Re-emit `apps/worker/static/.gitignore` after vite `emptyOutDir`.
+
+## Stack / Layout
 
 | Component | Choice |
 |---|---|
-| Runtime | Bun (local) + Cloudflare Workers (production) |
-| Frontend | Vite 7 + React 19 + react-router v7 (SPA) |
-| Backend | Hono on Cloudflare Workers |
-| Language | TypeScript (strict mode) |
-| UI | Tailwind CSS v4 + shadcn/ui (basalt design system) |
-| Charts | Recharts |
-| Validation | Zod v4 |
-| Auth | Cloudflare Access (JWT, nocoo team) |
-| Metadata DB | Cloudflare D1 (Workers binding) |
-| File Storage | Cloudflare R2 (Workers binding) |
-| Deployment | `wrangler deploy` (Cloudflare Workers) |
-| Domain | your-domain.example.com |
-
-## Project Structure
-
-This is a **Bun monorepo** (`workspaces: ["apps/*", "packages/*"]`).
+| Language | TypeScript 7 strict |
+| Package manager | Bun workspaces |
+| Runtime | Hono on Cloudflare Workers; Vite 7 SPA |
+| Lint | Biome |
+| Tests | Vitest L1 (≥95% stmts/lines in workspace configs) + L2 `test:e2e:api` + L3 Playwright |
+| Data | D1 `backy-db` + R2 `backy` |
 
 ```
-apps/
-  web/                     # @backy/web — Vite + React 19 SPA (production frontend)
-  worker/                  # @backy/worker — Hono on Cloudflare Workers (API + cron + assets host)
-  cli/                     # @backy/cli — placeholder, AI-facing CLI (next wave)
-packages/
-  api/                     # @backy/api — shared business logic (handlers, lib, runtime context)
-scripts/
-  gate-security.ts         # G2 security gate (osv-scanner + gitleaks)
-  release.ts               # Version bump + CHANGELOG + GitHub release
-  run-e2e.ts               # L2 E2E runner (wrangler dev --local lifecycle)
-e2e/
-  api/                     # L2 API E2E tests (vitest run against local wrangler)
-osv-scanner.toml           # G2 osv-scanner config
-.gitleaks.toml             # G2 gitleaks config
+apps/web/       Vite SPA :7019
+apps/worker/    Hono + assets :7018
+packages/api/   handlers, lib
+e2e/            L2 API + L3 BDD
+scripts/        gates, release, e2e runner
 ```
 
-The root `package.json` fans out to `apps/web`, `apps/worker`,
-`packages/api`, and `apps/cli` for `lint` / `typecheck` / `test` /
-`test:coverage`. `dev` runs `wrangler dev` (port 7018) and `vite dev`
-(port 7019) in parallel; vite proxies `/api/*` to the worker. `build`
-runs `vite build` which writes the SPA bundle into `apps/worker/static/`
-(gitignored) so `wrangler deploy` ships frontend + API in one Worker.
-
-The new web workspace:
-
-```
-apps/web/
-  src/
-    pages/                 # dashboard / projects(+new+detail) / backups(+detail) / logs / cron-logs
-    components/
-      charts/              # recharts wrappers (activity, cron, project)
-      layout/              # app-shell, sidebar, theme toggle, breadcrumbs
-      ui/                  # shadcn/ui primitives (cn helper, badges, dialogs, …)
-    hooks/                 # useIsMobile etc.
-    lib/                   # api fetcher (swrFetcher), formatters, utils
-    __tests__/             # vitest + happy-dom (api/auth/backups/charts/dashboard/layout/logs/projects/scaffold/ui)
-    App.tsx                # react-router routes
-    AppLayout.tsx          # shell wrapper
-    main.tsx               # vite entry
-  vite.config.ts           # outDir: ../worker/static, proxy /api → :7018
-  scripts/check-coverage.ts
-```
-
-The new worker workspace:
-
-```
-apps/worker/
-  src/
-    routes/                # backups / categories / cron / db / ip-info / live / logs / me / projects / restore / stats / webhook
-    middleware/            # accessAuth (CF Access JWT), ctx (D1/R2 bindings → RuntimeContext)
-    lib/                   # is-localhost, handler-response adapter
-    __tests__/             # vitest (access-auth, ctx, handler-response, is-localhost, routes)
-    index.ts               # Hono app + scheduled() cron handler
-  static/                  # vite build output drops here (gitignored, served via [assets] binding)
-  wrangler.toml            # name, compatibility_date, D1/R2 bindings, cron triggers
-  scripts/check-coverage.ts
-```
-
-Shared business logic:
-
-```
-packages/api/
-  src/
-    handlers/              # backups, projects, logs, stats, webhook, restore, etc.
-    lib/                   # runtime context (D1/R2/env), id generation, sanitize, hosts, ip
-    __tests__/             # vitest
-```
-
-## Quality System (3 Test Layers + 2 Gates)
-
-| Layer | Tool | Script | Trigger | Requirement |
-|---|---|---|---|---|
-| L1 Unit | vitest | `bun run test:coverage` | pre-commit | 90%+ coverage on `src/lib/**` |
-| L2 Integration/API | vitest + wrangler dev | `bun run test:e2e:api` | pre-push | 8 tests (local SQLite) |
-| L3 System/E2E | Playwright | `bun run test:e2e:bdd` | on-demand | 5 specs |
-| G1 Static Analysis | tsc + Biome | `bun run typecheck && bun run lint:staged` | pre-commit | 0 errors, 0 warnings |
-| G2 Security | osv-scanner + gitleaks | `bun run gate:security` | pre-push | 0 vulnerabilities, 0 leaked secrets, hard fail if tool missing |
-
-### Hooks Mapping
-
-| Hook | Budget | Runs |
-|---|---|---|
-| pre-commit | <30s | G1 → L1 (sequential) |
-| pre-push | <60s | L2 + G2 (parallel) |
-| on-demand | — | L3 |
-
-### Port Convention
-
-| Purpose | Port |
-|---|---|
-| Vite dev server | 7019 |
-| Wrangler dev (worker) | 7018 |
-| L2 API E2E (wrangler --local) | 17018 |
-
-### Core Principles
-
-1. **Catch early** — no accumulating tech debt
-2. **Self-resolve** — no relying on manual review for basic errors
-3. **Quality gate** — bad code cannot enter main branch
-
-## Common Commands
-
-All commands run from the repo root.
+## Commands
 
 ```bash
-bun dev                    # wrangler dev (7018) + vite (7019) in parallel
-bun run build              # vite build → apps/worker/static/
-bun run worker:deploy      # wrangler deploy
-vitest run                 # all workspaces (web + worker + api + cli)
-bun run test:coverage      # web + worker + api with 90% gate
-bun run test:e2e:api       # L2 API E2E (local SQLite, port 17018)
-bun run typecheck          # tsc --noEmit across all workspaces
-bun run lint               # Biome check across repo
-bun run lint:staged        # Biome check on staged files (root lint-staged)
-bun run gate:security      # osv-scanner + gitleaks (root configs)
-bun run release            # bump version + CHANGELOG + GitHub release
+bun dev
+bun run typecheck
+bun run lint
+bun run build
+bun run test:coverage
+bun run test:e2e:api
+bun run test:e2e:bdd
+bun run release
 ```
 
-## Test Resource Isolation
+## Verification
 
-L2 E2E tests use **local SQLite** via `wrangler dev --local --persist-to` — no remote D1/R2 deployment needed.
+Status: `enforced` | `planned` | `manual` | `N/A`. `enforced` Evidence = hook/CI/config/script. `planned` has no Evidence.
 
-| Resource | Production | Test (local) |
+Org gaps: index-snapshot pre-commit; stdin-range pre-push; wire L2 into pre-push again.
+
+| Change | Proof | Status | Evidence |
+|---|---|---|---|
+| Logic | L1 vitest ≥95% (configs; CLAUDE used to say 90%) | enforced | pre-commit → `test:coverage` (working tree) |
+| API L2 | real HTTP vs local wrangler :17018 | planned | — (script `test:e2e:api` exists; **not** in `.husky/pre-push`) |
+| UI L3 | Playwright | planned | — (`test:e2e:bdd` on-demand; `gate:pages` checks coverage of existing specs) |
+| Types / lint | tsc + Biome staged | enforced | pre-commit → `typecheck`, `lint:staged` (no `--fix`) |
+| G2 secrets | gitleaks | enforced | pre-commit → `gate:secrets` |
+| G2 deps | osv-scanner | enforced | pre-push → `gate:deps` only |
+| Route/page maps | every route/page has a test visit | enforced | pre-commit → `gate:routes`, `gate:pages` |
+| Bundler | `vite build` → worker static | manual | `bun run build` / `worker:deploy` |
+| Docs | numbered doc if behavior changes | manual | human review |
+| Release | `bun run release` | manual | `scripts/release.ts` (commits/pushes/tags) |
+
+| Hook | Org bar | Status | Evidence |
+|---|---|---|---|
+| pre-commit | index snapshot for G1+L1 | planned | — |
+| pre-push | stdin ref range + L2 | planned | — (today: `gate:deps` only) |
+
+`--no-verify` forbidden on commits and branch pushes. Tag-only may skip.
+
+## Resources / Isolation
+
+| Purpose | Port / resource | Isolation |
 |---|---|---|
-| D1 database | `backy-db` (remote) | `.wrangler/e2e-api/` (local SQLite) |
-| R2 bucket | `backy` (remote) | `.wrangler/e2e-api/` (local) |
+| Dev | 7018 worker, 7019 vite | `wrangler.toml` `remote = true` may hit prod D1/R2 |
+| L2 | 17018 | `--local --persist-to=.wrangler/e2e-api/` + `_test_marker` |
+| L3 | BDD persist `.wrangler/e2e-bdd/` | same marker rule |
 
-**Mechanism:** `scripts/run-e2e.ts` cleans the persist dir, spawns `wrangler dev --local --persist-to=.wrangler/e2e-api --port 17018 --var=ENVIRONMENT:test --var=E2E_SKIP_AUTH:true`, waits for `/api/live`, initializes schema via `POST /api/db/init`, verifies `_test_marker` (safety check), runs tests, then kills the server. L3 BDD uses `.wrangler/e2e-bdd/` for isolation.
+## Operations / Release
 
-**Safety:** The `_test_marker` table with value `e2e-test-db` is inserted during schema init. The E2E runner refuses to proceed if this marker is missing or wrong — prevents accidentally running tests against production D1.
-
-**Seed:** `POST /api/db/seed-test-project` ensures the `backy-test` project exists with correct baseline state. Gated by `E2E_SKIP_AUTH`.
-
-## Release
-
-Version is managed in `package.json` (single source of truth). Versioning follows SemVer: X (major/breaking), Y (minor/feature), Z (patch/fix). Default bump is Z+1.
-
-> **Full spec**: `search-memory "开发规范：版本号的维护"`
-
-```bash
-bun run release              # Z+1 patch (default)
-bun run release -- minor     # Y+1 minor
-bun run release -- major     # X+1 major
-bun run release -- --dry-run # preview without side effects
-```
-
-The script auto-detects project name and CHANGELOG format, then: bumps version → syncs lockfile → generates CHANGELOG → commits → pushes → tags → creates GitHub release.
+- Entry: `bun run release` then `bun run worker:deploy`. Auth: wrangler + Access. Isolation: [docs/05-test-resource-isolation.md](docs/05-test-resource-isolation.md).
+- Before ship: run L2/L3 if API/UI changed; do not deploy unmigrated D1.
 
 ## Retrospective
-- **TypeScript 7 + Biome replaces typescript-eslint**: TS 7.0 drops the classic `lib/typescript.js` Compiler API surface some tools relied on. Backy does not use Next.js path resolution via that API (Vite already registers `@` explicitly), so `@typescript/native-preview` was not required. `typescript-eslint` is incompatible with the TS 7 major for our stack — remove it entirely and gate lint with `@biomejs/biome` (root `biome.json`, `lint` / `lint:staged`). Keep formatter off during migration to avoid a repo-wide reformat.
 
-- **AWS SDK v3 Body is not ReadableStream**: When using `@aws-sdk/client-s3` `GetObjectCommand`, the `response.Body` is a `SdkStreamMixin` (not a Web `ReadableStream`). Must use `body.transformToByteArray()` or `body.transformToString()` instead of `body.getReader()`. This caused 500 errors in preview and extract routes — caught by E2E.
-- **Bun's `typeof fetch` requires `preconnect`**: When mocking `globalThis.fetch` in Bun tests, the type includes a `preconnect` property. Use a helper function that adds `fn.preconnect = () => {}` to satisfy the type.
-- **E2E self-bootstrap pattern**: The `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`) is auto-seeded in the local D1 via `POST /api/db/seed-test-project`. Tests upload real data to local R2, verify round-trip, then clean up. Uses `E2E_SKIP_AUTH=true` (passed via `--var`) to bypass OAuth. All bindings are local SQLite — see "Test Resource Isolation" section.
-- **D1 timeout (error 7429) needs retry**: Cloudflare D1 HTTP API can return transient `7429` timeout errors (`D1 DB storage operation exceeded timeout which caused object to be reset.`) even for simple INSERT queries. Without retry logic, this causes 500s in the webhook POST endpoint. Fixed by adding exponential backoff retry (3 attempts, 500/1000/2000ms) to `executeD1Query` in `d1-client.ts`.
-- **Schema migration ordering: indexes on migration columns**: When `initializeSchema` creates indexes in `SCHEMA_SQL` that reference columns added by later `ALTER TABLE` migrations, existing databases fail with `SQLITE_ERROR: no such column`. Fix: indexes depending on migration columns must execute *after* the migration, not in the main `SCHEMA_SQL` block.
-- **Next.js `.next/dev/lock` prevents parallel instances**: Two Next.js dev servers sharing the same project directory will conflict on `.next/dev/lock` even on different ports. The E2E runner must clean stale lock files before starting its own server on a dedicated port (17017). Never rely on detecting/reusing an existing dev server — always start a fresh one with known env vars.
-- **Bun `mock.module` is global and irreversible**: `mock.module("@/lib/foo")` replaces the module for ALL test files in the run, not just the calling file. If `a.test.ts` mocks `@/lib/db/d1-client` and `b.test.ts` tests the real `d1-client` via `fetch` mocking, `b.test.ts` will break. Fix: route-level tests that need to mock a module whose real implementation is tested elsewhere must use `fetch` mocking or real pure functions instead. Never `mock.module` a low-level module (like `d1-client`, `cron-logs`, `ip`) if any other test file depends on its real implementation.
-- **Quality system: osv-scanner must hard fail on vulns**: Initial implementation treated osv-scanner exitCode 1 (vulnerabilities found) as warn-only (`ok: true, warn: true`), allowing pushes with known vulnerabilities. This violated the "0 vulnerabilities" gate contract. Fix: all non-zero exit codes are hard failures. Indirect deps that can't be fixed go in `osv-scanner.toml` with 90-day expiry. Memory ref: `c64f9f90` (backy: 质量体系 L1+L2+L3+G1+G2 实施记录).
-- **Quality system: lint-staged must not --fix**: lint-staged is a gate, not a formatter. Using `--fix` during commit creates a mismatch between tested code and committed code. Always use check-only mode (`eslint --max-warnings 0` without `--fix`).
-- **Quality system: push tag with --no-verify**: `git push origin vX.Y.Z --no-verify` is correct for tag pushes. Code was already verified by the main branch push (L2 146/146 + G2 clean). Running pre-push hook again for a tag is redundant and can fail due to dev server resource contention.
-- **Security: decompression bomb defense requires streaming limits**: `gunzipAsync(buffer)` fully decompresses into memory before any size check. A 50MB high-compression-ratio archive can decompress to GB+. Fix: use `createGunzip()` streaming with incremental byte counting and early `destroy()` when exceeding `MAX_DECOMPRESSED_SIZE` (50MB). ZIP entries should check `_data.uncompressedSize` metadata before decompressing. Tar entries need per-entry `header.size` checks during streaming.
-- **Security: sensitive fields must be stripped at API boundary**: `SELECT *` in DB queries is fine for internal use, but API routes must sanitize before responding. Use explicit field allowlisting (not field deletion) in `sanitizeProject()` to prevent future schema additions from being accidentally exposed.
-- **Security: x-forwarded-host must be validated against ALLOWED_HOSTS**: Any route that uses `x-forwarded-host` to build URLs containing credentials (tokens, secrets) MUST validate against the host allowlist first. Extracted to shared `src/lib/hosts.ts` to prevent duplication.
-- **Security: SSRF CIDR blocklist must cover all RFC-reserved ranges**: Initial blocklist only covered 6 common private ranges. Missing: `100.64.0.0/10` (CGN), `198.18.0.0/15` (benchmarking), TEST-NETs, `240.0.0.0/4` (reserved), broadcast. IPv6 needs `100::/64` (discard) and `2001:db8::/32` (documentation).
-- **Monorepo: `.env*` must move with the app, not stay at the repo root**: Bun reads `.env*` from the cwd at process start. After moving the Next.js app under `apps/web/`, leaving `.env` at the repo root caused 80 unit tests to fail because route modules read `process.env.X` at import time and got empty strings. Fix: `.env`, `.env.example`, `.env.test` live next to the workspace that consumes them.
-- **Monorepo: pre-commit lint-staged surfaces dormant rule violations on bulk renames**: Moving 100+ tracked files into `apps/web/` flagged 17 `react-hooks/{set-state-in-effect,static-components}` errors that existed in main but had never been touched by an incidental edit. lint-staged only lints *changed* paths, so violations introduced by a config upgrade (next-config 16) can sit dormant until something restages them. Disabled both rules with a `TODO` comment; track the cleanup separately so the structural commit stays focused.
-- **Monorepo: ESLint `tseslint.configs.strict` collides with `eslint-config-next/typescript`**: Both register the `@typescript-eslint` plugin. After `next-config@16.1.7` started shipping its own registration, declaring `typescript-eslint` directly throws `Cannot redefine plugin "@typescript-eslint"`. Fix: spread strict configs but strip their `plugins` key (`const { plugins, ...rest } = config; void plugins;`). Pin `typescript-eslint@8.56.0` to match the version next-config bundles.
-- **Monorepo: `vite build` with `emptyOutDir: true` deletes dotfiles**: `apps/web/vite.config.ts` writes to `apps/worker/static/` and clears it each build. The previously committed `static/.gitignore` (rules to ignore the build output itself) gets nuked, so subsequent builds dirty the repo. Fix: `apps/web` `build` script re-emits the gitignore via `printf > ../worker/static/.gitignore` after vite finishes.
+| Kind | Where |
+|---|---|
+| Accident narrative | [Retrospective.md](Retrospective.md) |
+| Recurring project rule | one line here |
+| Cross-project | nmem / global rules |
+| Checkable rule | hook or test |
+
+- E2E stays on `--local --persist-to` + `_test_marker`, even when `bun dev` uses `remote = true`.
+- lint-staged is check-only; G2 hard-fails; no `mock.module` on D1/R2.
+- Sanitize/allowlist at API boundary; stream-decompress with a cap.
