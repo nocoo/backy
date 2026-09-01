@@ -242,7 +242,7 @@ L1 + G1 + gitleaks 在 pre-commit；osv-scanner 在 pre-push；L2/L3 在 CI：
 |------|------|----------|------|
 | L1 单元测试 | vitest | pre-commit + CI | 根 95% / branches 90% |
 | G1 静态分析 | tsc + Biome | pre-commit + CI | 0 错误 / 0 警告 |
-| G2 secrets | gitleaks | pre-commit | 0 泄露 |
+| G2 secrets | gitleaks | pre-commit + CI | 0 泄露 |
 | G2 deps | osv-scanner | pre-push + CI | 0 漏洞 |
 
 L2 (`bun run test:e2e:api`) 和 L3 (`bun run test:e2e:bdd`) 使用 `wrangler dev --local --persist-to`
