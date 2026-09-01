@@ -19,6 +19,7 @@ import type { FileType } from "./file-type";
 import JSZip from "jszip";
 import { createGunzip } from "node:zlib";
 import tar from "tar-stream";
+import type { Header as TarHeader } from "tar-stream";
 
 /** Max extracted JSON size: 10 MB */
 const MAX_JSON_SIZE = 10 * 1024 * 1024;
@@ -45,6 +46,32 @@ export interface ExtractFailure {
 }
 
 export type ExtractOutcome = ExtractSuccess | ExtractFailure;
+
+// tar-stream 3.2.x ships streamx-based declarations. streamx does not publish
+// TypeScript declarations for its Node-compatible event and write APIs, so
+// model only the runtime surface used by the extractor here.
+interface TarEntryStream {
+  resume(): void;
+  destroy(): void;
+  on(event: "data", listener: (chunk: Buffer) => void): void;
+  on(event: "end", listener: () => void): void;
+  on(event: "error", listener: (error: Error) => void): void;
+}
+
+interface TarExtractor {
+  on(
+    event: "entry",
+    listener: (header: TarHeader, stream: TarEntryStream, next: () => void) => void,
+  ): void;
+  on(event: "finish", listener: () => void): void;
+  on(event: "error", listener: (error: Error) => void): void;
+  end(buffer: Uint8Array): void;
+  destroy(): void;
+}
+
+function createTarExtractor(): TarExtractor {
+  return tar.extract() as unknown as TarExtractor;
+}
 
 // ---------------------------------------------------------------------------
 // Internal: size-limited gunzip
@@ -337,7 +364,7 @@ function parseTarEntries(
   onEntry: (name: string, content: Buffer) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const extract = tar.extract();
+    const extract = createTarExtractor();
     let rejected = false;
 
     extract.on("entry", (header, stream, next) => {
