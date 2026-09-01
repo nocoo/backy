@@ -1,7 +1,7 @@
 # Backy
 
 Backup ingest for SaaS AI agents: webhook receive, D1 metadata, R2 blobs, Vite dashboard. Profile: ts-worker-web.
-Direction: [docs/01-design.md](docs/01-design.md). Frameworks must not rewrite this file.
+Direction: [README.md](README.md) (current). [docs/01-design.md](docs/01-design.md) is pre-Vite/Railway and stale. Frameworks must not rewrite this file.
 
 ## Sources of Truth
 
@@ -11,7 +11,7 @@ This file is the **contract**. Hooks, CI, and config are **enforcement**. If the
 |---|---|
 | Agent handbook | this file |
 | Human docs | README.md, `docs/` |
-| Version | root `package.json` `"version"` (`1.11.0`) |
+| Version | root `package.json` `"version"` |
 | Enforcement | `.husky/*`, `scripts/gate-*.ts`, `scripts/run-e2e.ts`, vitest configs |
 | Machine rules | global `AGENTS.md`, `rules/git-commit.md` |
 | Accidents | [Retrospective.md](Retrospective.md) |
@@ -30,13 +30,13 @@ This file is the **contract**. Hooks, CI, and config are **enforcement**. If the
 |---|---|
 | Language | TypeScript 7 strict |
 | Package manager | Bun workspaces |
-| Runtime | Hono on Cloudflare Workers; Vite 7 SPA |
+| Runtime | Hono on Cloudflare Workers; Vite 8 SPA |
 | Lint | Biome |
 | Tests | Vitest L1 (≥95% stmts/lines in workspace configs) + L2 `test:e2e:api` + L3 Playwright |
 | Data | D1 `backy-db` + R2 `backy` |
 
 ```
-apps/web/       Vite SPA :7019
+apps/web/       Vite SPA :7017
 apps/worker/    Hono + assets :7018
 packages/api/   handlers, lib
 e2e/            L2 API + L3 BDD
@@ -64,14 +64,14 @@ Org gaps: index-snapshot pre-commit; stdin-range pre-push; wire L2 into pre-push
 
 | Change | Proof | Status | Evidence |
 |---|---|---|---|
-| Logic | L1 vitest ≥95% (configs; CLAUDE used to say 90%) | enforced | pre-commit → `test:coverage` (working tree) |
-| API L2 | real HTTP vs local wrangler :17018 | planned | — (script `test:e2e:api` exists; **not** in `.husky/pre-push`) |
-| UI L3 | Playwright | planned | — (`test:e2e:bdd` on-demand; `gate:pages` checks coverage of existing specs) |
+| Logic | L1 vitest; root 95/90 branches, web+api 95 all | enforced | pre-commit → `test:coverage` (working tree) |
+| API L2 | real HTTP vs local wrangler :17018 | enforced | CI `l2-command`; pre-push **planned** (not in husky) |
+| UI L3 | Playwright | enforced | CI `l3-command`; pre-push **planned** |
 | Types / lint | tsc + Biome staged | enforced | pre-commit → `typecheck`, `lint:staged` (no `--fix`) |
 | G2 secrets | gitleaks | enforced | pre-commit → `gate:secrets` |
 | G2 deps | osv-scanner | enforced | pre-push → `gate:deps` only |
-| Route/page maps | every route/page has a test visit | enforced | pre-commit → `gate:routes`, `gate:pages` |
-| Bundler | `vite build` → worker static | manual | `bun run build` / `worker:deploy` |
+| Route/page maps | static `url()` scan (assumes GET) + page visits | enforced | pre-commit → `gate:routes`, `gate:pages` (not full method coverage) |
+| Bundler | `vite build` → worker static | enforced | CI L3 / CD build; pre-push **planned** |
 | Docs | numbered doc if behavior changes | manual | human review |
 | Release | `bun run release` | manual | `scripts/release.ts` (commits/pushes/tags) |
 
@@ -86,14 +86,14 @@ Org gaps: index-snapshot pre-commit; stdin-range pre-push; wire L2 into pre-push
 
 | Purpose | Port / resource | Isolation |
 |---|---|---|
-| Dev | 7018 worker, 7019 vite | `wrangler.toml` `remote = true` may hit prod D1/R2 |
+| Dev | 7018 worker, 7017 vite | `wrangler.toml` `remote = true` may hit prod D1/R2 |
 | L2 | 17018 | `--local --persist-to=.wrangler/e2e-api/` + `_test_marker` |
 | L3 | BDD persist `.wrangler/e2e-bdd/` | same marker rule |
 
 ## Operations / Release
 
-- Entry: `bun run release` then `bun run worker:deploy`. Auth: wrangler + Access. Isolation: [docs/05-test-resource-isolation.md](docs/05-test-resource-isolation.md).
-- Before ship: run L2/L3 if API/UI changed; do not deploy unmigrated D1.
+- Version: `bun run release` (bumps, changelog, tag). Do not `worker:deploy` in the same breath — build SPA first; CD/CI own live-check.
+- Auth for the app is Cloudflare Access JWT, not the deploy credential. Isolation: local `--persist-to` (docs/05 is superseded).
 
 ## Retrospective
 
