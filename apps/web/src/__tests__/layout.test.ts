@@ -4,7 +4,7 @@ import { APP_VERSION } from "../lib/version";
 
 // Surface "X is a function component" assertions removed: TS already
 // enforces export shape; the imports of AppShell / Sidebar / Breadcrumbs
-// / ThemeToggle / LoadingScreen / SidebarProvider / useSidebar /
+// / ThemeToggle / SidebarProvider / useSidebar /
 // useIsMobile dragged in radix-ui + lucide for zero behavioral coverage.
 // Layout rendering belongs in L3 (BDD/Playwright).
 
