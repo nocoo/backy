@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="Backy Logo" width="80" height="80">
+  <img src="assets/brand/icon-rounded.png" alt="Backy" width="128" height="128" />
 </p>
 
 <h1 align="center">Backy</h1>

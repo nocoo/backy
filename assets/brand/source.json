@@ -1,0 +1,54 @@
+{
+	"study": "backy/2026-09-07-01",
+	"finishing": "01",
+	"method": "generated",
+	"generationCalls": 1,
+	"nativeDimensions": [
+		2048,
+		2048
+	],
+	"sourceRevisionBefore": "ed181b69421ac3165368d49f6b0a4bcb5c0c74df",
+	"previous": {
+		"kind": "original",
+		"original": "/logos/originals/backy.png",
+		"sourcePath": "logo.png",
+		"sourceUrl": "https://github.com/nocoo/backy/blob/8bf91fc7dcad5abe51323bdcc1e39f0906faa55a/logo.png",
+		"modified": false,
+		"width": 2048,
+		"height": 2048,
+		"bytes": 3736353,
+		"sha256": "297d5e88c91484612d1fc34aed41b01b872f1bd24fd92a8fcdd49d0eb7801ef0",
+		"thumbnail": "/logos/display/backy-160.webp",
+		"display": "/logos/display/backy-1024.webp"
+	},
+	"masters": {
+		"logo.png": {
+			"sha256": "a89f2303bd3f791f240b514665325c8be7bce60f6a2338bc3efcad2248a6c7ef",
+			"width": 2048,
+			"height": 2048
+		},
+		"assets/brand/icon.png": {
+			"sha256": "08c74ba1a809f284d9a6364b626c07e7598f584383fcbac3ed952dd43d226d0f",
+			"width": 2048,
+			"height": 2048
+		},
+		"assets/brand/icon-rounded.png": {
+			"sha256": "e9f5e7da85ac99d1709354c071f05ca8e8eb51de49eea1e3e866eeacd2f2cd24",
+			"width": 2048,
+			"height": 2048
+		}
+	},
+	"roundedClearancePx": 275.5,
+	"acceptance": {
+		"decisionSource": "owner-delegated batch acceptance",
+		"ownerReviewedExactBytes": false,
+		"scope": "Named ten-project batch"
+	},
+	"review": "https://hexly.ai/logos/backy",
+	"archive": "https://github.com/nocoo/hexly.ai/tree/main/artwork/logo-family/backy/2026-09-07-01",
+	"model": "gpt-image-2",
+	"generation": {
+		"path": "raw/generated.png",
+		"sha256": "79f10e2d2a844de82f02db4cf373f9c6db64be0b8b2ddc7743b2f7d5e252cb14"
+	}
+}
