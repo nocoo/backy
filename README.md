@@ -1,253 +1,134 @@
 <p align="center">
   <img src="assets/brand/icon-rounded.png" alt="Backy" width="128" height="128" />
 </p>
-
 <h1 align="center">Backy</h1>
-
+<p align="center">集中接收应用备份，按项目查看内容、追踪记录，并取回原始文件。</p>
 <p align="center">
-  <strong>AI 备份管理服务</strong><br>
-  接收 · 存储 · 预览 · 恢复
+  <a href="https://backy.hexly.ai">站点</a> ·
+  <a href="docs/README.en.md">English</a>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Vite-8-purple" alt="Vite">
-  <img src="https://img.shields.io/badge/Cloudflare%20Workers-orange" alt="Cloudflare Workers">
-  <img src="https://img.shields.io/badge/TypeScript-7-blue" alt="TypeScript">
-  <img src="https://img.shields.io/badge/D1%20%2B%20R2-orange" alt="Cloudflare">
-  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
-</p>
+## 这是什么
 
----
+Backy 为应用、脚本和 AI 客户端提供统一的备份接收服务。每个项目有独立的 webhook token，发送方上传文件后，维护者可以在网页中查看记录、预览 JSON、检查失败日志，并生成下载地址。
 
-## ✨ 功能特点
+项目运行在 Cloudflare Workers 上：Hono 提供 API 和定时任务，D1 保存元数据，R2 保存文件，Worker 同时提供 Vite / React 管理界面。Backy 负责保存和取回备份；业务数据如何导出、如何重新导入，仍由接入的应用负责。
 
-- 📦 **Webhook 接收** — AI Agent 通过 webhook 发送备份文件（ZIP / JSON）
-- 🔑 **API Key 验证** — HEAD 请求轻量验证 API key 正确性
-- 📊 **备份状态查询** — GET 请求查询备份总数和最近记录
-- 🗂️ **项目管理** — 按项目组织备份，独立 webhook token
-- 🔍 **JSON 预览** — 在线树形查看 JSON 备份内容
-- 📥 **一键恢复** — 生成临时签名 URL 供 Agent 下载（Bearer token 或 query param）
-- 🏷️ **标签 & 环境** — 按 dev/prod/staging/test 环境和标签分类
-- 🛡️ **IP 白名单** — 可选的 CIDR 范围限制
-- 🤖 **Prompt 生成** — 一键生成 AI Agent 集成提示词（含真实凭据）
-- 📈 **仪表盘图表** — 按项目统计备份数量/存储用量 + 每日活动趋势
-- 🔔 **Toast 通知** — 操作反馈通过 sonner toast 展示
+## 功能
 
-## 🚀 快速开始
+- **接收备份**：网页手动上传或项目 webhook 上传，保存 JSON、ZIP、gzip、tar.gz 等文件及环境、标签、来源 IP。普通上传上限为 50 MiB；更大的文件可使用 R2 直传，上限为 5,000,000,000 字节。
+- **项目管理**：项目与分类、独立 token、可选 IP / CIDR 允许名单，以及可复制的集成说明。
+- **内容查看**：浏览备份、查看存储统计和活动图表、预览 JSON，并从支持的压缩包中提取 JSON。预览和解压有大小限制，原始文件仍可下载。
+- **取回文件**：生成临时签名下载地址或恢复命令，供应用或 AI 客户端下载原文件；不会自动修改调用方数据库。
+- **自动触发与记录**：按项目配置备份回调和定时计划，查看 webhook / 定时任务日志；清理未完成直传留下的临时对象。
 
-### 1️⃣ 安装依赖
+## 使用
+
+打开[管理站点](https://backy.hexly.ai)，通过 Cloudflare Access 登录，创建项目并取得项目 ID 与 token。自行托管时，需要为集成路径配置合适的 Access 规则；浏览器会话与项目 token 是两套认证。
+
+以下例子使用你自己的实例与项目，先检查 token，再上传文件：
 
 ```bash
-# 需要先安装 Bun: https://bun.sh
-bun install
+BACKY_URL=https://backy.example.com
+BACKY_PROJECT_ID=YOUR_PROJECT_ID
+BACKY_TOKEN=YOUR_PROJECT_TOKEN
+
+curl --fail-with-body --head "$BACKY_URL/api/webhook/$BACKY_PROJECT_ID" \
+  -H "Authorization: Bearer $BACKY_TOKEN"
+curl --fail-with-body "$BACKY_URL/api/webhook/$BACKY_PROJECT_ID" \
+  -H "Authorization: Bearer $BACKY_TOKEN" \
+  -F "file=@backup.json" -F "environment=dev" -F "tag=manual-backup"
 ```
 
-### 2️⃣ 配置环境
+上传成功返回备份 ID。相同地址的 GET 请求返回项目备份总数和最近记录，可用 `?environment=dev` 过滤最近记录。环境值支持 `dev`、`prod`、`staging`、`test`；环境过滤不会改变响应中的项目总数。
 
-`apps/worker` 通过 wrangler 读取 secrets/vars；本地开发可在 `apps/worker/.dev.vars` 写：
+取回备份时，将 `BACKUP_ID` 替换为上传响应中的 ID：
 
 ```bash
-# Cloudflare D1 (元数据数据库) — 通过 wrangler D1 binding 注入
-# Cloudflare R2 (文件存储)     — 通过 wrangler R2 binding 注入
-# Cloudflare Access (身份)     — 由 CF Access JWT 注入 cf-access-jwt-assertion header
+curl --fail-with-body "$BACKY_URL/api/restore/BACKUP_ID" \
+  -H "Authorization: Bearer $BACKY_TOKEN"
 ```
 
-详见 `apps/worker/wrangler.toml` 的 `[d1_databases]` / `[[r2_buckets]]` 段。
+响应中的 `url` 是有效期 15 分钟的下载地址。下载后再调用应用自己的导入流程。大文件须使用“申请上传 → PUT 到 R2 → 完成上传”协议，见[大文件直传](docs/09-large-file-direct-upload.md)。`apps/cli` 当前仍是占位包，接入请使用 HTTP API。
 
-### 3️⃣ 启动开发服务器
+## 开发
+
+安装 Bun 和 Node.js 22.12+，然后运行：
 
 ```bash
-bun dev   # 同时拉起 wrangler dev (7018) + vite (7017)
+git clone https://github.com/nocoo/backy.git
+cd backy
+bun install --frozen-lockfile
+bun run build
 ```
 
-打开浏览器访问 👉 [http://localhost:7017](http://localhost:7017)（vite 代理 `/api/*` → 7018 worker）
+网站构建输出到 `apps/worker/static/`，由 Worker 提供。`bun run build` 不创建数据库或部署服务。
 
-## 📁 项目结构
-
-Backy 采用 **Bun monorepo** 结构（`workspaces: ["apps/*", "packages/*"]`）：
-
-```
-backy/
-├── 📂 apps/
-│   ├── 📂 web/                    # @backy/web — Vite + React SPA (生产前端)
-│   │   ├── 📂 src/                # 路由、组件、库、单元测试
-│   │   └── package.json
-│   ├── 📂 worker/                 # @backy/worker — Hono on Cloudflare Workers (API + cron + assets)
-│   │   ├── 📂 src/                # routes、middleware、lib
-│   │   ├── 📂 static/             # vite 构建产物落盘点 (gitignored)
-│   │   ├── wrangler.toml
-│   │   └── package.json
-│   └── 📂 cli/                    # @backy/cli — 占位包，下一波将实现 AI-facing CLI
-├── 📂 packages/
-│   └── 📂 api/                    # @backy/api — 共享业务逻辑 (handlers/lib)
-├── 📂 scripts/                    # 仓库级运行器 (gate-security.ts, release.ts)
-├── 📂 docs/                       # 项目文档 (07-vite-web-migration-plan.md 跟踪迁移)
-├── 📂 .husky/                     # Git hooks (pre-commit, pre-push)
-├── osv-scanner.toml               # G2 osv-scanner 配置
-├── .gitleaks.toml                 # G2 gitleaks 配置
-├── package.json                   # 根包，scripts 转发到 apps/web + apps/worker + packages/api
-├── bun.lock
-├── CLAUDE.md
-├── CHANGELOG.md
-└── LICENSE
-```
-
-> 根 `package.json` 的 `dev` / `build` / `typecheck` / `test` / `test:coverage` /
-> `lint` 等都 fan-out 到 `apps/web`、`apps/worker`、`packages/api`、`apps/cli`；
-> `gate:security` / `release` 直接调用根 `scripts/`。
-
-Agent handbook: [`CLAUDE.md`](CLAUDE.md). Accidents: [`Retrospective.md`](Retrospective.md).
-
-## 🔌 Webhook 协议
-
-所有 webhook 端点均使用 Bearer token 认证：`Authorization: Bearer {webhook_token}`
-
-### 验证 API Key (HEAD)
+交互开发使用下方命令，但需要先准备自己的开发资源与登录入口：
 
 ```bash
-curl -I https://your-domain.example.com/api/webhook/{projectId} \
-  -H "Authorization: Bearer {webhook_token}"
+bun run dev
 ```
 
-| 状态码 | 含义 |
-|--------|------|
-| `200` | API key 有效，可以发送备份 |
-| `401` | 缺少或格式错误的 Authorization header |
-| `403` | 无效的 API key 或项目不匹配 |
+Vite 使用 `http://localhost:7017`，将 `/api/*` 转发到 7018 的 Worker。仓库 `apps/worker/wrangler.toml` 的 D1 / R2 均设置了 `remote = true`，默认命令会访问其中的远程资源。先替换成自己的开发数据库、存储桶与 Access 配置；本地 secrets 放在 `apps/worker/.dev.vars`，仓库没有对应模板。完整配置与初始化边界见[开发指南](docs/10-development.md)。
 
-成功响应包含 `X-Project-Name` header。
+| 配置 | 用途 |
+| --- | --- |
+| `DB`、`R2` bindings | D1 数据库与 R2 文件存储 |
+| `CF_ACCESS_TEAM_DOMAIN`、`CF_ACCESS_AUD` | 管理 API 的 Access JWT 校验；开发入口也需匹配认证方式 |
+| `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` | 下载签名、大文件上传签名与对象复制 |
+| `CRON_SECRET` | 自动备份触发及其 HTTP 入口 |
 
-### 查询备份状态 (GET)
+普通开发不要使用测试认证开关。需要完全本地的数据库、R2 与测试身份时，使用下方仓库已有的测试 runner。
+
+| 命令 / 路径 | 用途 |
+| --- | --- |
+| `bun run web:dev`、`bun run worker:dev` | 分别启动前端与 Worker |
+| `bun run typecheck`、`bun run lint` | 工作区类型与代码检查 |
+| `apps/web/` | 管理界面与路由 |
+| `apps/worker/` | Hono 路由、Access 校验、定时任务与静态资源 |
+| `packages/api/` | 备份、存储、项目、直传与日志逻辑 |
+
+`main` 的 CI 成功后，Release 工作流构建网页、应用增量 D1 迁移并部署 Worker。`bun run worker:deploy` 只执行 Worker 部署，手动发布前仍需准备静态文件和数据库，见[部署说明](docs/10-development.md)。
+
+## 测试
 
 ```bash
-curl https://your-domain.example.com/api/webhook/{projectId} \
-  -H "Authorization: Bearer {webhook_token}"
-
-# 按环境过滤
-curl https://your-domain.example.com/api/webhook/{projectId}?environment=prod \
-  -H "Authorization: Bearer {webhook_token}"
+bun run test
+bun run test:e2e:api
 ```
 
-返回 JSON：
-
-```json
-{
-  "project_name": "My Project",
-  "environment": null,
-  "total_backups": 42,
-  "recent_backups": [
-    {
-      "id": "abc123",
-      "tag": "daily-backup",
-      "environment": "prod",
-      "file_size": 1048576,
-      "is_single_json": 1,
-      "created_at": "2026-02-23T10:00:00Z"
-    }
-  ]
-}
-```
-
-| 字段 | 说明 |
-|------|------|
-| `total_backups` | 该项目的备份总数 |
-| `recent_backups` | 最近 5 条备份记录 |
-| `environment` | 过滤条件（null 表示未过滤） |
-
-### 发送备份 (POST)
+单元测试覆盖各工作区。API runner 使用本地 Worker、D1 和 R2，初始化 schema 并核对 `_test_marker`，运行前需保持 17018 端口空闲。直传测试使用本地 S3 接口。
 
 ```bash
-curl -X POST https://your-domain.example.com/api/webhook/{projectId} \
-  -H "Authorization: Bearer {webhook_token}" \
-  -F "file=@backup.zip" \
-  -F "environment=prod" \
-  -F "tag=daily-backup"
+bunx playwright install chromium
+bun run test:e2e:bdd
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `file` | File | 备份文件 (.zip 或 .json)，最大 50MB |
-| `environment` | String? | `dev` / `prod` / `staging` / `test` |
-| `tag` | String? | 描述性标签 |
+浏览器 runner 先构建网页，同样使用 17018 端口；不要同时运行两个 runner。API 与浏览器测试分别重建 `apps/worker/.wrangler/e2e-api` 和 `apps/worker/.wrangler/e2e-bdd`，由 runner 注入测试身份。这些命令不需要远程 Cloudflare 凭据；真实 Access 登录不在模拟会话的验证范围内。
 
-超过 50MB 时不要走这条 multipart 路径（会返回 **413**）。改用直传：
+## 技术栈
 
-```bash
-# 1. 申请 PUT URL（file_size 最大 5000000000）
-curl -X POST https://your-domain.example.com/api/webhook/{projectId}/uploads \
-  -H "Authorization: Bearer {webhook_token}" \
-  -H "Content-Type: application/json" \
-  -d '{"file_name":"dump.tar.gz","file_size":1073741824}'
+| 技术 | 用途 |
+| --- | --- |
+| TypeScript、Bun workspaces | 共享类型、业务包与脚本 |
+| Vite、React、React Router | 管理界面与前端路由 |
+| Tailwind CSS、Radix UI、Recharts | 样式、交互组件与图表 |
+| Hono、Cloudflare Workers | HTTP API、定时任务与静态资源 |
+| Cloudflare D1 | 项目、备份、直传状态与日志 |
+| Cloudflare R2、AWS S3 SDK | 文件存储、签名 URL 与对象复制 |
+| Cloudflare Access、jose | 管理身份和 JWT 校验 |
+| JSZip、tar-stream、zlib | 压缩包中的 JSON 提取 |
+| Vitest、Bun test、Playwright | 单元、HTTP 和浏览器测试 |
 
-# 2. 用返回的 put_url 和 headers 直传 R2（不经过 Worker）
-# 3. POST .../uploads/{upload_id}/complete
-```
+## 文档
 
-### 恢复备份 (Restore)
+- [文档索引](docs/README.md)
+- [开发、配置与部署](docs/10-development.md)
+- [大文件直传协议](docs/09-large-file-direct-upload.md)
+- [共享 API 包设计](docs/06-api-extraction-plan.md)
+- [Vite / Worker 架构迁移](docs/07-vite-web-migration-plan.md)
 
-```bash
-# 方式 1: query param
-curl https://your-domain.example.com/api/restore/{backupId}?token={webhook_token}
+## 许可证
 
-# 方式 2: Bearer token
-curl https://your-domain.example.com/api/restore/{backupId} \
-  -H "Authorization: Bearer {webhook_token}"
-```
-
-返回临时签名下载 URL（15 分钟有效）：
-
-```json
-{
-  "url": "https://r2.example.com/signed-url...",
-  "backup_id": "abc123",
-  "project_id": "xyz789",
-  "file_size": 1048576,
-  "expires_in": 900
-}
-```
-
-## 🛠️ 技术栈
-
-| 组件 | 选型 |
-|------|------|
-| ⚡ Runtime | [Bun](https://bun.sh) (本地) + [Cloudflare Workers](https://developers.cloudflare.com/workers/) (生产) |
-| 🖥️ 前端 | [Vite](https://vitejs.dev) 8 + React 19 + [react-router](https://reactrouter.com) v8 |
-| 🛣️ 后端 | [Hono](https://hono.dev) on Workers |
-| 📝 Language | TypeScript (strict mode) |
-| 🗄️ Metadata DB | [Cloudflare D1](https://developers.cloudflare.com/d1/) (binding) |
-| 📁 File Storage | [Cloudflare R2](https://developers.cloudflare.com/r2/) (binding) |
-| 🎨 UI | [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
-| 🔐 Auth | [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) (JWT) |
-| 🚀 Deployment | `wrangler deploy` |
-
-## 📋 常用命令
-
-| 命令 | 说明 |
-|------|------|
-| `bun dev` | 同时启动 wrangler (7018) + vite (7017) |
-| `bun run build` | 生产构建 (vite → `apps/worker/static/`) |
-| `bun run worker:deploy` | `wrangler deploy` 上线 worker |
-| `vitest run` | 运行所有 workspace 单元测试 |
-| `bun run test:coverage` | 单元测试 + 覆盖率门禁（根 95%/branches 90%） |
-| `bun run typecheck` | TypeScript 类型检查 |
-| `bun run lint` | Biome 检查 |
-| `bun run gate:secrets` / `gate:deps` | gitleaks (pre-commit) / osv-scanner (pre-push) |
-| `bun run release` | 版本号 + CHANGELOG + tag |
-
-## 🧪 质量体系
-
-L1 + G1 + gitleaks 在 pre-commit；osv-scanner 在 pre-push；L2/L3 在 CI：
-
-| 层级 | 工具 | 触发时机 | 要求 |
-|------|------|----------|------|
-| L1 单元测试 | vitest | pre-commit + CI | 根 95% / branches 90% |
-| G1 静态分析 | tsc + Biome | pre-commit + CI | 0 错误 / 0 警告 |
-| G2 secrets | gitleaks | pre-commit + CI | 0 泄露 |
-| G2 deps | osv-scanner | pre-push + CI | 0 漏洞 |
-
-L2 (`bun run test:e2e:api`) 和 L3 (`bun run test:e2e:bdd`) 使用 `wrangler dev --local --persist-to`
-全本地模拟（SQLite-backed D1/R2），零远程 CF 凭证依赖，通过 `_test_marker` 表验证安全性。
-
-## 📄 License
-
-[MIT](LICENSE) © 2026
+[MIT](LICENSE)。
