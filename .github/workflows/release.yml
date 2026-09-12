@@ -35,7 +35,7 @@ jobs:
       wrangler-working-directory: "apps/worker"
       d1-migrations: true
       d1-command: "d1 migrations apply backy-db --remote"
-      deploy-command: deploy --env=""
+      deploy-command: deploy
       environment: production
       concurrency-group: deploy-backy-production
       timeout-minutes: 15
