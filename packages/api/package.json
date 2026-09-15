@@ -48,7 +48,7 @@
     "jszip": "3.10.2",
     "nanoid": "^6.0.1",
     "tar-stream": "^3.2.1",
-    "zod": "^4.5.4"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
