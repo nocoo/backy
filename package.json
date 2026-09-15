@@ -39,11 +39,11 @@
     "lint:fix": "biome check --write --error-on-warnings --no-errors-on-unmatched --max-diagnostics=500 ."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
-    "@playwright/test": "^1.62.1",
+    "@biomejs/biome": "2.5.13",
+    "@playwright/test": "1.63.0",
     "@vitest/coverage-v8": "5.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.4.1",
+    "lint-staged": "17.5.1",
     "vitest": "5.0.0"
   },
   "overrides": {
@@ -53,7 +53,7 @@
     "picomatch": "^4.0.4",
     "fast-xml-builder": "^1.1.7",
     "esbuild": "^0.28.1",
-    "vite": "^8.2.2",
+    "vite": "8.3.0",
     "ws": "^8.21.0",
     "sharp": "^0.35.4",
     "undici": "7.29.0"

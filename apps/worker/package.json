@@ -15,15 +15,15 @@
   },
   "dependencies": {
     "@backy/api": "workspace:*",
-    "hono": "4.13.5",
-    "jose": "6.2.10"
+    "hono": "4.13.7",
+    "jose": "6.2.12"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260906.1",
-    "@types/bun": "^1.4.0",
+    "@cloudflare/workers-types": "5.20260914.1",
+    "@types/bun": "1.4.2",
     "@vitest/coverage-v8": "5.0.0",
     "typescript": "7.0.2",
     "vitest": "5.0.0",
-    "wrangler": "4.129.0"
+    "wrangler": "4.131.2"
   }
 }
