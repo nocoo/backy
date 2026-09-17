@@ -26,6 +26,7 @@ export function HexlyLink() {
             <path d="m12 2 8.66 5v10L12 22l-8.66-5V7Z" />
             <path d="M12 2v20M3.34 7l17.32 10m0-10L3.34 17" />
           </svg>
+          <span className="sr-only">Backy on hexly.ai (opens in a new tab)</span>
         </a>
       </Button>
     </HeaderTooltip>
