@@ -2,7 +2,7 @@
 
 Backup ingestion for applications and agents: webhook/API receive, D1 metadata, R2 blobs and a Vite dashboard.
 Profile: ts-worker-web.
-Direction: [README.md](README.md) and [development guide](docs/10-development.md); `docs/01-design.md` predates the current Vite/Worker architecture. Frameworks must not rewrite this file.
+Human overview: [README.md](README.md). Direction: [development guide](docs/10-development.md); `docs/01-design.md` predates the current Vite/Worker architecture. Frameworks must not rewrite this file. Maintain this root `AGENTS.md` as the only project handbook; do not create a `CLAUDE.md` alias, copy or import.
 
 ## Sources of Truth
 
@@ -57,14 +57,13 @@ Both HTTP and BDD runners use port 17018; run them sequentially. BDD builds the 
 
 ## Verification
 
-6DQ = L1/L2/L3 + G1/G2 + D1. Status: `enforced`, `planned`, `manual`, `N/A`.
+6DQ = L1/L2/L3 + G2 + D1; the former G1 dimension was merged into L1 on 2026-09-21. Status: `enforced`, `planned`, `manual`, `N/A`.
 
 | Dimension | Required proof | Status | Current enforcement / gap |
 |---|---|---|---|
-| L1 logic | Statements, branches, functions and lines each ≥95%; no `.skip` / `.only` | planned | Root coverage has 95/90/95/95 and excludes auth/database/business modules; one S3 wiring test still attempts network I/O |
+| L1 logic (incl. former G1 static) | Statements, branches, functions and lines each ≥95%; no `.skip` / `.only`; strict types, check-only lint, zero errors/warnings | planned | Static lane runs today (pre-commit typecheck and lint-staged; CI full lint/types; route/page structural checks). Root coverage has 95/90/95/95 and excludes auth/database/business modules; one S3 wiring test still attempts network I/O; no index-snapshot/timing/rejection proof |
 | L2 API | Real HTTP for 100% of endpoint/method combinations | planned | CI runs local `test:e2e:api`; static route gate assumes GET and does not prove complete method/assertion coverage |
 | L3 UI | Critical browser journeys on isolated state | enforced | CI runs `test:e2e:bdd`; its injected identity does not exercise live Access login |
-| G1 static | Strict types, check-only lint, zero errors/warnings | enforced | Pre-commit typecheck and lint-staged; CI checks full lint/types; route/page maps add structural checks |
 | G2 security | Dependency and secret scans; missing tools fail | enforced | Commit `gate:secrets`, push `gate:deps`, CI both scanners; local secret range uses upstream/fallback rather than stdin refs |
 | D1 isolation | Local per-run storage, guard before writes/cleanup, verified marker | planned | Runners pass `--local`, set `ENVIRONMENT=test` and check `_test_marker`; fixed persist dirs, inherited credentials/remote config and pre-marker deletion need hardening |
 | Build | SPA output ready for Worker assets | enforced | BDD runner and release workflow build the web workspace |
@@ -72,7 +71,7 @@ Both HTTP and BDD runners use port 17018; run them sequentially. BDD builds the 
 
 | Hook | Current behavior | Required follow-up |
 |---|---|---|
-| pre-commit | Working-tree typecheck, staged lint, secrets, routes/pages, coverage | G1+L1 on index snapshot, <30s |
+| pre-commit | Working-tree typecheck, staged lint, secrets, routes/pages, coverage | Unified L1 (types, check-only lint, coverage) on index snapshot, <30s |
 | pre-push | `gate:deps` only | L2+G2 (and needed build) on stdin push refs, <3min |
 
 Install restores Husky. Hooks are check-only; never use `--no-verify` on commits or branch pushes.
