@@ -117,3 +117,10 @@ Routing: narrative stays here. A project-specific rule that will recur may becom
 - **What:** `vite build` wiped `apps/worker/static/.gitignore`.
 - **Why:** `emptyOutDir: true` deletes dotfiles.
 - **Follow-up:** re-emit gitignore after vite.
+
+## 2026-10-02 — Isolate the S3 wiring fixture
+
+- **What:** Dependency preparation found a Worker wiring test making an S3 request with fixture credentials and accepting either success or failure. The first transport-spy change failed because the Worker did not declare the SDK used by the API workspace.
+- **Why:** Bun isolates workspace dependencies; an API dependency is not automatically available to a Worker test.
+- **Fix:** Declare the existing API SDK version as a Worker development dependency, intercept its transport, and assert a successful response plus the exact copy request. The focused fixture passed 7/7 without external S3 I/O.
+- **Follow-up:** Keep network wiring fixtures deterministic and declare cross-workspace test imports explicitly.
