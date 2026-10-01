@@ -1,4 +1,5 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+import { CopyObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Hono } from "hono";
 import { ctxMiddleware } from "../middleware/ctx";
 import type { AppEnv } from "../lib/types";
@@ -192,28 +193,42 @@ describe("ctxMiddleware", () => {
   });
 
   test("copy is wired when S3 creds present", async () => {
-    const app = new Hono<AppEnv>();
-    app.use("*", ctxMiddleware());
-    app.post("/copy", async (c) => {
-      try {
-        await c.get("ctx").r2.copy("src", "dst");
-        return c.json({ ok: true });
-      } catch (e) {
-        return c.json({ error: (e as Error).message }, 500);
-      }
-    });
-    const res = await app.request(
-      "/copy",
-      { method: "POST" },
-      {
-        DB: fakeD1() as unknown as D1Database,
-        R2: fakeR2() as unknown as R2Bucket,
-        R2_ACCESS_KEY_ID: "id",
-        R2_SECRET_ACCESS_KEY: "secret",
-        R2_ACCOUNT_ID: "acct",
-        R2_BUCKET_NAME: "bucket",
-      } as unknown as AppEnv["Bindings"],
-    );
-    expect([200, 500]).toContain(res.status);
+    const send = vi.spyOn(S3Client.prototype, "send").mockResolvedValue({} as never);
+    try {
+      const app = new Hono<AppEnv>();
+      app.use("*", ctxMiddleware());
+      app.post("/copy", async (c) => {
+        try {
+          await c.get("ctx").r2.copy("src", "dst");
+          return c.json({ ok: true });
+        } catch (e) {
+          return c.json({ error: (e as Error).message }, 500);
+        }
+      });
+      const res = await app.request(
+        "/copy",
+        { method: "POST" },
+        {
+          DB: fakeD1() as unknown as D1Database,
+          R2: fakeR2() as unknown as R2Bucket,
+          R2_ACCESS_KEY_ID: "id",
+          R2_SECRET_ACCESS_KEY: "secret",
+          R2_ACCOUNT_ID: "acct",
+          R2_BUCKET_NAME: "bucket",
+        } as unknown as AppEnv["Bindings"],
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true });
+      expect(send).toHaveBeenCalledTimes(1);
+      const command = send.mock.calls[0]?.[0];
+      expect(command).toBeInstanceOf(CopyObjectCommand);
+      expect((command as CopyObjectCommand).input).toEqual({
+        Bucket: "bucket",
+        CopySource: "bucket/src",
+        Key: "dst",
+      });
+    } finally {
+      send.mockRestore();
+    }
   });
 });
