@@ -2,6 +2,9 @@
   "name": "backy",
   "version": "1.11.0",
   "private": true,
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -56,7 +59,7 @@
     "vite": "8.3.0",
     "ws": "^8.21.0",
     "sharp": "^0.35.4",
-    "undici": "7.29.1"
+    "undici": "8.11.2"
   },
   "trustedDependencies": [
     "@biomejs/biome"
