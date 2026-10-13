@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-10-13
+
+### Changed
+- Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1150.0
+- Bump @cloudflare/workers-types to 5.20261012.1
+- Bump @playwright/test to 1.64.0
+- Bump @types/node to 26.6.5
+- Bump @types/tar-stream to 3.1.5
+- Bump @vitejs/plugin-react to 6.1.2
+- Bump hono to 4.13.13
+- Bump lucide-react to 1.55.0
+- Bump nanoid to 6.0.2
+- Bump radix-ui to 1.8.1
+- Bump sharp override to ^0.35.5 (GHSA-wq5f-xc86-pv6w)
+- Bump tar-stream to 3.2.2
+- Bump vite to 8.3.4
+- Bump wrangler to 4.149.0
+- Bump zod to 4.6.7
+- Bump @types/bun to 1.4.3
+- Bump vitest and @vitest/coverage-v8 to 5.0.4
+
 ## [1.11.0] - 2026-08-22
 
 ### Added
