@@ -54,9 +54,9 @@
     "@types/bun": "1.4.3",
     "@types/node": "26.6.5",
     "@types/tar-stream": "^3.1.5",
-    "@vitest/coverage-v8": "5.0.3",
+    "@vitest/coverage-v8": "5.0.4",
     "typescript": "7.0.2",
-    "vitest": "5.0.3"
+    "vitest": "5.0.4"
   },
   "scripts": {
     "lint": "biome check --error-on-warnings --no-errors-on-unmatched src",
