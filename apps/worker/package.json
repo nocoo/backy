@@ -21,7 +21,7 @@
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1150.0",
     "@cloudflare/workers-types": "5.20261012.1",
-    "@types/bun": "1.4.2",
+    "@types/bun": "1.4.3",
     "@vitest/coverage-v8": "5.0.3",
     "typescript": "7.0.2",
     "vitest": "5.0.3",
