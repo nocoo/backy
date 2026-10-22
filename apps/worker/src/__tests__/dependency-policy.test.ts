@@ -18,7 +18,7 @@ describe("undici dependency policy (#691)", () => {
   });
 
   test("declares the Node minimum required by undici 8", () => {
-    expect(manifest.engines?.node).toBe(">=22.19.0");
+    expect(manifest.engines?.node).toBe(">=22.23.4");
   });
 
   test("locks every undici resolution to the override", () => {
