@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.3] - 2026-10-25
+
+### Changed
+- Bump happy-dom to 21.0.4 (security)
+- Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1156.0
+- Bump jose to 6.2.13
+- Bump lucide-react to 1.61.0
+- Bump wrangler to 4.152.0
+- Bump @biomejs/biome to 2.6.3
+- Bump @cloudflare/workers-types to 5.20261024.1
+- Bump vite to 8.3.5
+- Bump @types/bun to 1.4.4
+- Bump undici override to 8.12.2 (security)
+
 ## [1.11.2] - 2026-10-20
 
 ### Changed

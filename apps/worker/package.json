@@ -16,15 +16,15 @@
   "dependencies": {
     "@backy/api": "workspace:*",
     "hono": "4.13.13",
-    "jose": "6.2.12"
+    "jose": "6.2.13"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "3.1153.0",
-    "@cloudflare/workers-types": "5.20261019.1",
-    "@types/bun": "1.4.3",
+    "@aws-sdk/client-s3": "3.1156.0",
+    "@cloudflare/workers-types": "5.20261024.1",
+    "@types/bun": "1.4.4",
     "@vitest/coverage-v8": "5.0.5",
     "typescript": "7.0.2",
     "vitest": "5.0.5",
-    "wrangler": "4.151.2"
+    "wrangler": "4.152.0"
   }
 }

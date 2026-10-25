@@ -14,7 +14,7 @@ const lockfile = readFileSync(new URL("bun.lock", root), "utf8");
 
 describe("undici dependency policy (#691)", () => {
   test("pins the verified stable undici release", () => {
-    expect(manifest.overrides.undici).toBe("8.11.2");
+    expect(manifest.overrides.undici).toBe("8.12.2");
   });
 
   test("declares the Node minimum required by undici 8", () => {

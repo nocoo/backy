@@ -48,11 +48,11 @@ const { ApiError } = await import("../lib/api");
 describe("useMe", () => {
   test("returns the expected initial shape (no data on first render)", () => {
     let snapshot: ReturnType<typeof useMe> | null = null;
-    function Probe() {
+    const probe = () => {
       snapshot = useMe();
       return null;
-    }
-    renderToStaticMarkup(React.createElement(Probe));
+    };
+    renderToStaticMarkup(React.createElement(probe));
     expect(snapshot).not.toBeNull();
     // Tightened: consolidate 4 single-property checks into one
     // toMatchObject pinning the full default useMe() shape (when SWR
