@@ -16,7 +16,7 @@
   "dependencies": {
     "@backy/api": "workspace:*",
     "hono": "4.13.13",
-    "jose": "6.2.12"
+    "jose": "6.2.13"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1156.0",
