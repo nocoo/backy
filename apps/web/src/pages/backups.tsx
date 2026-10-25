@@ -286,7 +286,7 @@ export function BackupsPage() {
     selected.size === data.items.length;
   const someSelected = selected.size > 0 && !allSelected;
 
-  function SortIcon({ column }: { column: SortBy }) {
+  const sortIcon = (column: SortBy) => {
     if (sortBy !== column)
       return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
     return sortOrder === "desc" ? (
@@ -294,7 +294,7 @@ export function BackupsPage() {
     ) : (
       <ArrowUp className="h-3 w-3 text-primary" />
     );
-  }
+  };
 
   function getSortAriaLabel(column: SortBy, label: string): string {
     if (sortBy !== column) return `${label}, not sorted`;
@@ -475,7 +475,7 @@ export function BackupsPage() {
                 onClick={() => handleSort("project_name")}
                 aria-label={getSortAriaLabel("project_name", "Project")}
               >
-                Project <SortIcon column="project_name" />
+                Project {sortIcon("project_name")}
               </button>
             </div>
             <div className="w-[140px] shrink-0">
@@ -485,7 +485,7 @@ export function BackupsPage() {
                 onClick={() => handleSort("created_at")}
                 aria-label={getSortAriaLabel("created_at", "Date")}
               >
-                Date <SortIcon column="created_at" />
+                Date {sortIcon("created_at")}
               </button>
             </div>
             <div className="w-[80px] shrink-0">
@@ -495,7 +495,7 @@ export function BackupsPage() {
                 onClick={() => handleSort("file_size")}
                 aria-label={getSortAriaLabel("file_size", "Size")}
               >
-                Size <SortIcon column="file_size" />
+                Size {sortIcon("file_size")}
               </button>
             </div>
             <div className="w-[110px] shrink-0" />
