@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.4] - 2026-11-03
+
+### Changed
+- Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1161.0
+- Bump wrangler to 4.156.2
+- Bump react-router to 8.5.1
+- Bump @types/node to 26.6.6
+- Bump @biomejs/biome to 2.6.4
+- Bump jose to 6.2.15
+
 ## [1.11.3] - 2026-10-25
 
 ### Changed
