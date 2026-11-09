@@ -1,12 +1,73 @@
-# G1: Static analysis (typecheck + lint on staged files)
-# G2 (secrets): gitleaks on commits ahead of upstream
-# G1 (coverage gates): ensure E2E tests cover all routes + pages
-# L1: Unit tests + coverage gate
-# Sequential: G1 first to catch static issues before running tests
+# === Quality Gate: pre-commit ===
+# L1 (6DQ): checks the Git index snapshot, not the working tree.
+set -e
+command -v git >/dev/null 2>&1 || {
+	echo "pre-commit: git is required" >&2
+	exit 1
+}
+command -v bun >/dev/null 2>&1 || {
+	echo "pre-commit: bun is required" >&2
+	exit 1
+}
 
-bun run typecheck \
-  && bun run lint:staged \
-  && bun run gate:secrets \
-  && bun run gate:routes \
-  && bun run gate:pages \
-  && bun run test:coverage
+snapshot=
+cleanup() {
+	status=$?
+	trap - EXIT INT TERM HUP
+	if [ -n "$snapshot" ]; then
+		rm -rf "$snapshot" || :
+		snapshot=
+	fi
+	exit "$status"
+}
+trap cleanup EXIT
+trap "exit 130" INT
+trap "exit 143" TERM
+trap "exit 129" HUP
+
+repo=$(git rev-parse --show-toplevel)
+cd "$repo"
+
+# G2 secrets: staged index only; must run before we strip Git hook env.
+bun run gate:secrets
+
+snapshot=$(mktemp -d "${TMPDIR:-/tmp}/backy-index-XXXXXX")
+git checkout-index --all --prefix="$snapshot/"
+
+if [ ! -d "$repo/node_modules" ]; then
+	echo "pre-commit: node_modules is required" >&2
+	exit 1
+fi
+if [ ! -f "$snapshot/package.json" ] || [ ! -f "$snapshot/bun.lock" ]; then
+	echo "pre-commit: staged package.json and bun.lock are required" >&2
+	exit 1
+fi
+if ! cmp -s "$snapshot/package.json" "$repo/package.json" || ! cmp -s "$snapshot/bun.lock" "$repo/bun.lock"; then
+	echo "pre-commit: staged package.json/bun.lock must match the installed worktree copies" >&2
+	exit 1
+fi
+
+mkdir "$snapshot/node_modules"
+for entry in "$repo/node_modules"/*; do
+	[ -e "$entry" ] || continue
+	ln -s "$entry" "$snapshot/node_modules/${entry##*/}"
+done
+ln -s "$repo/node_modules/.bin" "$snapshot/node_modules/.bin"
+mkdir -p "$snapshot/node_modules/.vite" "$snapshot/node_modules/.vitest" "$snapshot/.cache"
+for workspace in apps/* packages/*; do
+	[ -d "$repo/$workspace/node_modules" ] || continue
+	mkdir -p "$snapshot/$(dirname "$workspace")"
+	ln -s "$repo/$workspace/node_modules" "$snapshot/$workspace/node_modules"
+done
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+unset GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
+export XDG_CACHE_HOME="$snapshot/.cache"
+export XDG_STATE_HOME="$snapshot/.cache"
+PATH="$snapshot/node_modules/.bin:$PATH"
+cd "$snapshot"
+
+bun run typecheck
+bun run lint
+bun run gate:routes
+bun run gate:pages
+bun run test:coverage
