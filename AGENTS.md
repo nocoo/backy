@@ -61,7 +61,7 @@ Both HTTP and BDD runners use port 17018; run them sequentially. BDD builds the 
 
 | Dimension | Required proof | Status | Current enforcement / gap |
 |---|---|---|---|
-| L1 logic (incl. former G1 static) | Statements, branches, functions and lines each ≥95%; no `.skip` / `.only`; strict types, check-only lint, zero errors/warnings | planned | Static lane runs today (pre-commit typecheck and lint-staged; CI full lint/types; route/page structural checks). Root coverage has 95/90/95/95 and excludes auth/database/business modules; one S3 wiring test still attempts network I/O; no index-snapshot/timing/rejection proof |
+| L1 logic (incl. former G1 static) | Statements, branches, functions and lines each ≥95%; no `.skip` / `.only`; strict types, check-only lint, zero errors/warnings | enforced | Pre-commit exports the Git index via `checkout-index` into a temp dir, symlinks `node_modules`, then runs `gate:secrets` (staged), `typecheck`, full-repo `lint`, route/page gates and `test:coverage`; any failure blocks commit. Root coverage floors 95/90/95/95 with existing exclusions unchanged; one S3 wiring test still attempts network I/O |
 | L2 API | Real HTTP for 100% of endpoint/method combinations | planned | CI runs local `test:e2e:api`; static route gate assumes GET and does not prove complete method/assertion coverage |
 | L3 UI | Critical browser journeys on isolated state | enforced | CI runs `test:e2e:bdd`; its injected identity does not exercise live Access login |
 | G2 security | Dependency and secret scans; missing tools fail | enforced | Commit `gate:secrets`, push `gate:deps`, CI both scanners; local secret range uses upstream/fallback rather than stdin refs |
@@ -71,7 +71,7 @@ Both HTTP and BDD runners use port 17018; run them sequentially. BDD builds the 
 
 | Hook | Current behavior | Required follow-up |
 |---|---|---|
-| pre-commit | Working-tree typecheck, staged lint, secrets, routes/pages, coverage | Unified L1 (types, check-only lint, coverage) on index snapshot, <30s |
+| pre-commit | Index snapshot: secrets (staged), typecheck, lint, route/page gates, coverage | Measured warm path <30s; negative fixture rejects staged-only breakage |
 | pre-push | `gate:deps` only | L2+G2 (and needed build) on stdin push refs, <3min |
 
 Install restores Husky. Hooks are check-only; never use `--no-verify` on commits or branch pushes.
