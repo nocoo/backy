@@ -8,13 +8,13 @@ Human overview: [README.md](README.md). Direction: [development guide](docs/10-d
 
 This file is the contract; hooks, CI and configuration enforce it. Raise weaker enforcement instead of lowering this contract.
 
-| Fact | Where |
-|---|---|
-| Human docs | [README.md](README.md), [docs index](docs/README.md) |
-| Version | Root `package.json`; display with a `v` prefix |
-| Enforcement | `.husky/`, CI/release workflows, Vitest configs, `scripts/gate-*.ts` |
-| Local secrets | Ignored files next to the consuming workspace; Worker uses `.dev.vars` without a tracked template |
-| Machine rules / accidents | Global `AGENTS.md` and `rules/`; [Retrospective.md](Retrospective.md) |
+| Fact                      | Where                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| Human docs                | [README.md](README.md), [docs index](docs/README.md)                                              |
+| Version                   | Root `package.json`; display with a `v` prefix                                                    |
+| Enforcement               | `.husky/`, CI/release workflows, Vitest configs, `scripts/gate-*.ts`                              |
+| Local secrets             | Ignored files next to the consuming workspace; Worker uses `.dev.vars` without a tracked template |
+| Machine rules / accidents | Global `AGENTS.md` and `rules/`; [Retrospective.md](Retrospective.md)                             |
 
 ## Project Invariants
 
@@ -27,15 +27,15 @@ This file is the contract; hooks, CI and configuration enforce it. Raise weaker 
 
 ## Stack / Layout
 
-| Component | Choice |
-|---|---|
-| Runtime / install | TypeScript 7, Bun workspaces, Node ≥22.12; CI Bun 1.3.11 |
-| App | Hono Worker with Vite/React SPA and scheduled backup work |
-| Data | D1 `backy-db`, R2 `backy`, local S3-compatible direct-upload test interface |
-| Static / tests | TypeScript, Biome, Vitest, local HTTP and Playwright |
-| `apps/web/`, `apps/worker/` | SPA on 7017; Worker/API/assets on 7018 |
-| `packages/api/`, `apps/cli/` | Shared backup/storage logic; CLI is currently a placeholder |
-| `e2e/`, `scripts/` | HTTP/BDD suites, local runners, gates and release |
+| Component                    | Choice                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| Runtime / install            | TypeScript 7, Bun workspaces, Node ≥22.12; CI Bun 1.3.11                    |
+| App                          | Hono Worker with Vite/React SPA and scheduled backup work                   |
+| Data                         | D1 `backy-db`, R2 `backy`, local S3-compatible direct-upload test interface |
+| Static / tests               | TypeScript, Biome, Vitest, local HTTP and Playwright                        |
+| `apps/web/`, `apps/worker/`  | SPA on 7017; Worker/API/assets on 7018                                      |
+| `packages/api/`, `apps/cli/` | Shared backup/storage logic; CLI is currently a placeholder                 |
+| `e2e/`, `scripts/`           | HTTP/BDD suites, local runners, gates and release                           |
 
 ## Commands
 
@@ -57,32 +57,37 @@ Both HTTP and BDD runners use port 17018; run them sequentially. BDD builds the 
 
 ## Verification
 
-6DQ = L1/L2/L3 + G2 + D1; the former G1 dimension was merged into L1 on 2026-09-21. Status: `enforced`, `planned`, `manual`, `N/A`.
+Quality follows System1 v1.3.0 Native Mode (`nocoo/base-ci v2026.15`) in `.github/workflows/quality-slots.yml` and `.github/workflows/ci.yml`. Status: `enforced`, `planned`, `manual`, `N/A`.
 
-| Dimension | Required proof | Status | Current enforcement / gap |
-|---|---|---|---|
-| L1 logic (incl. former G1 static) | Statements, branches, functions and lines each ≥95%; no `.skip` / `.only`; strict types, check-only lint, zero errors/warnings | enforced | Pre-commit exports the Git index via `checkout-index` into a temp dir, symlinks `node_modules`, then runs `gate:secrets` (staged), `typecheck`, full-repo `lint`, route/page gates and `test:coverage`; any failure blocks commit. Root coverage floors 95/90/95/95 with existing exclusions unchanged; one S3 wiring test still attempts network I/O |
-| L2 API | Real HTTP for 100% of endpoint/method combinations | planned | CI runs local `test:e2e:api`; static route gate assumes GET and does not prove complete method/assertion coverage |
-| L3 UI | Critical browser journeys on isolated state | enforced | CI runs `test:e2e:bdd`; its injected identity does not exercise live Access login |
-| G2 security | Dependency and secret scans; missing tools fail | enforced | Commit `gate:secrets`, push `gate:deps`, CI both scanners; local secret range uses upstream/fallback rather than stdin refs |
-| D1 isolation | Local per-run storage, guard before writes/cleanup, verified marker | planned | Runners pass `--local`, set `ENVIRONMENT=test` and check `_test_marker`; fixed persist dirs, inherited credentials/remote config and pre-marker deletion need hardening |
-| Build | SPA output ready for Worker assets | enforced | BDD runner and release workflow build the web workspace |
-| Docs / release | API/architecture and version/changelog review | manual | Numbered docs and `scripts/release.ts` |
+| Slot              | Status   | Evidence                                                        |
+| ----------------- | -------- | --------------------------------------------------------------- |
+| `S1` Types        | enforced | `bun run typecheck` (pre-commit + CI)                           |
+| `S2` Lint         | enforced | `bun run lint` (pre-commit + CI)                                |
+| `S3` Workflow     | enforced | SHA-pinned workflow action check in CI                          |
+| `G1` Secrets      | enforced | `gitleaks` (`.gitleaks.toml`) in pre-commit + CI                |
+| `G2` Dependencies | enforced | `osv-scanner` (`osv-scanner.toml`, `bun.lock`) in pre-push + CI |
+| `B1` Build        | enforced | `bun run build` in CI                                           |
+| `L1` Unit         | enforced | `bun run test:coverage` (95/90/95/95 floors) in pre-commit + CI |
+| `L2` Runtime      | N/A      | `wrangler dev` integration covered by `L3`/`L4` runners         |
+| `L3` Integration  | enforced | `bun run test:e2e:api` in CI                                    |
+| `L4` E2E          | enforced | `bun run test:e2e:bdd` (Playwright Chromium) in CI              |
+| `P1` Package      | N/A      | Private monorepo, not published to npm                          |
+| `Z1` Gate         | enforced | `quality / Z1: Gate` required status check on `main`            |
 
-| Hook | Current behavior | Required follow-up |
-|---|---|---|
+| Hook       | Current behavior                                                              | Required follow-up                                                     |
+| ---------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | pre-commit | Index snapshot: secrets (staged), typecheck, lint, route/page gates, coverage | Measured warm path <30s; negative fixture rejects staged-only breakage |
-| pre-push | `gate:deps` only | L2+G2 (and needed build) on stdin push refs, <3min |
+| pre-push   | `gate:deps` only                                                              | L2+G2 (and needed build) on stdin push refs, <3min                     |
 
 Install restores Husky. Hooks are check-only; never use `--no-verify` on commits or branch pushes.
 
 ## Resources / Isolation
 
-| Lane | Port / state | Boundary |
-|---|---|---|
-| Daily dev | Vite 7017, Worker 7018 | Current bindings can reach remote D1/R2; ordinary development must use intended dev resources |
-| L2 | 17018, `apps/worker/.wrangler/e2e-api` | Local runtime and SQLite/R2 simulation |
-| L3 | 17018, `apps/worker/.wrangler/e2e-bdd` | Local browser lane; cannot run alongside L2 |
+| Lane      | Port / state                           | Boundary                                                                                      |
+| --------- | -------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Daily dev | Vite 7017, Worker 7018                 | Current bindings can reach remote D1/R2; ordinary development must use intended dev resources |
+| L2        | 17018, `apps/worker/.wrangler/e2e-api` | Local runtime and SQLite/R2 simulation                                                        |
+| L3        | 17018, `apps/worker/.wrangler/e2e-bdd` | Local browser lane; cannot run alongside L2                                                   |
 
 Required Worker harness: reject remote bindings/production credential fallback; allocate a fresh per-run directory; assert local test mode before fixtures; initialize and verify `_test_marker` before reset/cleanup. The current fixed-directory harness is partial implementation. The older remote-resource plan in `docs/05-test-resource-isolation.md` is superseded by this contract.
 
