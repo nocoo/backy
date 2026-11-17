@@ -1,195 +1,97 @@
-import { HeaderTooltip, HexlyLink } from "./header-links";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
-import { Menu, X } from "lucide-react";
-import { Github } from "@/components/icons/github";
+import {
+  AppHeader,
+  AppHeaderMenuButton,
+  ProjectLinks,
+} from "@nocoo/basalt/components/app-header";
+import {
+  AppMain,
+  AppShell as BasaltAppShell,
+  AppSkipLink,
+} from "@nocoo/basalt/components/app-shell";
+import {
+  ContentIsland,
+  SidebarDrawer,
+  SidebarProvider,
+} from "@nocoo/basalt/components/sidebar";
+import { ThemeToggle } from "@nocoo/basalt/components/theme-toggle";
 import { Sidebar } from "./sidebar";
-import { SidebarProvider, useSidebar } from "./sidebar-context";
-import { ThemeToggle } from "./theme-toggle";
-import { Breadcrumbs } from "./breadcrumbs";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface AppShellProps {
-  children: ReactNode;
-  breadcrumbs?: { label: string; href?: string }[];
+function pageChrome(pathname: string): {
+  title: string;
+  breadcrumbs: Array<{ href?: string; label: string }>;
+} {
+  if (pathname === "/") return { title: "Dashboard", breadcrumbs: [] };
+  if (pathname === "/projects/new") {
+    return { title: "New Project", breadcrumbs: [{ href: "/projects", label: "Projects" }] };
+  }
+  if (pathname.startsWith("/projects/")) {
+    return { title: "Project", breadcrumbs: [{ href: "/projects", label: "Projects" }] };
+  }
+  if (pathname === "/projects") return { title: "Projects", breadcrumbs: [] };
+  if (pathname.startsWith("/backups/")) {
+    return { title: "Backup", breadcrumbs: [{ href: "/backups", label: "Backups" }] };
+  }
+  if (pathname === "/backups") return { title: "Backups", breadcrumbs: [] };
+  if (pathname === "/logs") return { title: "Webhook Logs", breadcrumbs: [] };
+  if (pathname === "/cron-logs") return { title: "Cron Logs", breadcrumbs: [] };
+  return { title: "Not found", breadcrumbs: [] };
 }
 
-function AppShellInner({ children, breadcrumbs = [] }: AppShellProps) {
+export function AppShell({ children }: { children: ReactNode }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { mobileOpen, setMobileOpen } = useSidebar();
   const { pathname } = useLocation();
-  const drawerRef = useRef<HTMLDivElement | null>(null);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: close drawer when route changes
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname, setMobileOpen]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const chrome = pageChrome(pathname);
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
-
-  useEffect(() => {
-    if (!isMobile || !mobileOpen) return;
-
-    const drawer = drawerRef.current;
-    const previousActiveElement =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    if (!drawer) return;
-
-    const getFocusableElements = (): HTMLElement[] =>
-      Array.from(
-        drawer.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      );
-
-    const focusableElements = getFocusableElements();
-    (focusableElements[0] ?? drawer).focus();
-
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setMobileOpen(false);
-        return;
-      }
-      if (event.key !== "Tab") return;
-
-      const elements = getFocusableElements();
-      if (elements.length === 0) {
-        event.preventDefault();
-        drawer.focus();
-        return;
-      }
-
-      const first = elements[0];
-      const last = elements[elements.length - 1];
-      const activeElement = document.activeElement;
-
-      if (event.shiftKey && activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      previousActiveElement?.focus();
-    };
-  }, [isMobile, mobileOpen, setMobileOpen]);
+    if (pathname) setMobileOpen(false);
+  }, [pathname]);
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      {!isMobile && <Sidebar />}
-
-      {isMobile && mobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            ref={drawerRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation menu"
-            tabIndex={-1}
-            className="fixed inset-y-0 left-0 z-50 w-[260px] outline-none"
-          >
-            <div className="absolute top-3 right-3 z-10">
-              <HeaderTooltip label="Close navigation">
-                <button
-                  type="button"
-                  onClick={() => setMobileOpen(false)}
-                  aria-label="Close navigation"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background hover:text-foreground"
-                >
-                  <X
-                    className="h-4 w-4"
-                    aria-hidden="true"
-                    strokeWidth={1.5}
-                  />
-                </button>
-              </HeaderTooltip>
-            </div>
-            <Sidebar />
-          </div>
-        </>
-      )}
-
-      <main className="flex flex-1 flex-col min-h-screen min-w-0">
-        <header className="flex h-14 shrink-0 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-3">
-            {isMobile && (
-              <HeaderTooltip label="Open navigation">
-                <button
-                  type="button"
+    <SidebarProvider collapsed={collapsed} onCollapsedChange={setCollapsed}>
+      <BasaltAppShell layout="responsive">
+        <AppSkipLink>Skip to content</AppSkipLink>
+        {!isMobile ? <Sidebar collapsed={collapsed} /> : null}
+        <AppMain>
+          <AppHeader
+            title={chrome.title}
+            breadcrumbs={chrome.breadcrumbs}
+            leading={
+              isMobile ? (
+                <AppHeaderMenuButton
+                  ref={triggerRef}
                   onClick={() => setMobileOpen(true)}
-                  aria-label="Open navigation"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                >
-                  <Menu
-                    className="h-5 w-5"
-                    aria-hidden="true"
-                    strokeWidth={1.5}
-                  />
-                </button>
-              </HeaderTooltip>
-            )}
-            <Breadcrumbs
-              items={[{ label: "Home", href: "/" }, ...breadcrumbs]}
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            <HeaderTooltip label="GitHub repository">
-              <a
-                href="https://github.com/nocoo/backy"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="GitHub repository"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <Github
-                  className="h-[18px] w-[18px]"
-                  aria-hidden="true"
-                  strokeWidth={1.5}
+                  aria-controls="backy-navigation"
                 />
-              </a>
-            </HeaderTooltip>
-            <HexlyLink />
-            <ThemeToggle />
+              ) : undefined
+            }
+            actions={
+              <>
+                <ProjectLinks github="nocoo/backy" hexly="backy" name="Backy" />
+                <ThemeToggle />
+              </>
+            }
+          />
+          <div className="flex min-h-0 flex-1 flex-col md:px-basalt-layout-sm md:pb-basalt-layout-sm">
+            <ContentIsland>{children}</ContentIsland>
           </div>
-        </header>
-
-        <div className="flex-1 px-2 pb-2 md:px-3 md:pb-3">
-          <div className="h-full rounded-[16px] md:rounded-[20px] bg-card p-3 md:p-5 overflow-y-auto">
-            {children}
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-export function AppShell({ children, breadcrumbs = [] }: AppShellProps) {
-  return (
-    <SidebarProvider>
-      <AppShellInner breadcrumbs={breadcrumbs}>{children}</AppShellInner>
+        </AppMain>
+        {isMobile ? (
+          <SidebarDrawer
+            id="backy-navigation"
+            open={mobileOpen}
+            onOpenChange={setMobileOpen}
+            returnFocusRef={triggerRef}
+          >
+            <Sidebar collapsed={false} onDismiss={() => setMobileOpen(false)} resizable={false} />
+          </SidebarDrawer>
+        ) : null}
+      </BasaltAppShell>
     </SidebarProvider>
   );
 }

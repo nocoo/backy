@@ -25,7 +25,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+      <div className="flex min-h-screen items-center justify-center text-basalt-muted-foreground">
         Loading…
       </div>
     );
@@ -33,7 +33,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (error instanceof ApiError && error.status === 401) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+      <div className="flex min-h-screen items-center justify-center text-basalt-muted-foreground">
         Redirecting to login…
       </div>
     );
@@ -41,7 +41,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-destructive">
+      <div className="flex min-h-screen items-center justify-center text-basalt-destructive">
         Failed to load session: {error.message}
       </div>
     );
@@ -49,7 +49,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!email) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+      <div className="flex min-h-screen items-center justify-center text-basalt-muted-foreground">
         Redirecting to login…
       </div>
     );

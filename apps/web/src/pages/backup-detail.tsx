@@ -18,12 +18,12 @@ import {
   Check,
   MapPin,
   Wifi,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "@nocoo/basalt/icons";
+import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@nocoo/basalt/components/button";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +32,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@nocoo/basalt/components/dialog";
 import { JsonTreeViewer } from "@/components/json-tree-viewer";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 
 interface BackupDetail {
   id: string;
@@ -263,8 +264,8 @@ export function BackupDetailPage() {
 
   if (error && !backup) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-sm text-destructive">{error}</p>
+      <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
+        <p className="text-sm text-basalt-destructive">{error}</p>
         <Button
           variant="outline"
           size="sm"
@@ -289,80 +290,40 @@ export function BackupDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/backups")}
-          >
-            <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-            Back
-          </Button>
-          <div className="flex items-center gap-2">
-            {isJson ? (
-              <FileJson className="h-5 w-5 text-primary" />
-            ) : (
-              <FileArchive className="h-5 w-5 text-muted-foreground" />
-            )}
-            <h1 className="text-lg font-semibold text-foreground">
-              {backup.tag || "Untitled Backup"}
-            </h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleDownload()}
-          >
-            <Download className="h-3.5 w-3.5 mr-1.5" />
-            Download
-          </Button>
-          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <DialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                Delete
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Delete this backup?</DialogTitle>
-                <DialogDescription>
-                  This action cannot be undone. The backup file will be
-                  permanently deleted from storage.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteOpen(false)}
-                  disabled={deleting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => void handleDelete()}
-                  disabled={deleting}
-                >
-                  {deleting && (
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  )}
-                  Delete
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+      <PageHeader
+        title={backup.tag || "Untitled Backup"}
+        description={FILE_TYPE_LABELS[fileType] ?? fileType.toUpperCase()}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => navigate("/backups")}>
+              <ArrowLeft className="mr-basalt-space-md h-3.5 w-3.5" />Back
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void handleDownload()}>
+              <Download className="mr-basalt-space-md h-3.5 w-3.5" />Download
+            </Button>
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm"><Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />Delete</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Delete this backup?</DialogTitle><DialogDescription>This action cannot be undone. The backup file will be permanently deleted from storage.</DialogDescription></DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
+                  <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting}>
+                    {deleting ? <Loader2 className="mr-basalt-space-md h-4 w-4 animate-spin" /> : null}Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 flex flex-col gap-6">
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className="text-base font-semibold text-basalt-foreground">
                 JSON Preview
               </h2>
               {canExtract && (
@@ -383,37 +344,37 @@ export function BackupDetailPage() {
             </div>
 
             {previewLoading ? (
-              <div className="flex items-center justify-center py-8 rounded-lg border bg-secondary">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-center py-8 rounded-lg border bg-basalt-secondary">
+                <Loader2 className="h-5 w-5 animate-spin text-basalt-muted-foreground" />
+                <span className="ml-2 text-sm text-basalt-muted-foreground">
                   Loading preview...
                 </span>
               </div>
             ) : previewError !== null ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-                <p className="text-sm text-destructive">{previewError}</p>
+              <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-4">
+                <p className="text-sm text-basalt-destructive">{previewError}</p>
               </div>
             ) : previewData ? (
               <JsonTreeViewer data={previewData} />
             ) : canExtract && !extracting ? (
-              <div className="rounded-lg border bg-secondary p-6 text-center">
-                <FileArchive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-lg border bg-basalt-secondary p-6 text-center">
+                <FileArchive className="h-8 w-8 text-basalt-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-basalt-muted-foreground">
                   This is a {FILE_TYPE_LABELS[fileType] ?? "archive"} file.
                   Click &ldquo;{EXTRACT_LABELS[fileType] ?? "Extract JSON"}
                   &rdquo; to preview the JSON content.
                 </p>
               </div>
             ) : isUnknown && !hasPreview ? (
-              <div className="rounded-lg border bg-secondary p-6 text-center">
-                <HardDrive className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-lg border bg-basalt-secondary p-6 text-center">
+                <HardDrive className="h-8 w-8 text-basalt-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-basalt-muted-foreground">
                   Preview is not available for this file format.
                 </p>
               </div>
             ) : !hasPreview ? (
-              <div className="rounded-lg border bg-secondary p-6 text-center">
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-lg border bg-basalt-secondary p-6 text-center">
+                <p className="text-sm text-basalt-muted-foreground">
                   No JSON preview available for this backup.
                 </p>
               </div>
@@ -422,7 +383,7 @@ export function BackupDetailPage() {
 
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className="text-base font-semibold text-basalt-foreground">
                 Restore URL
               </h2>
               <Button
@@ -441,9 +402,9 @@ export function BackupDetailPage() {
             </div>
 
             {restoreCommand ? (
-              <div className="rounded-[var(--radius-widget)] bg-secondary p-4 flex flex-col gap-3">
+              <div className="rounded-basalt-widget bg-basalt-secondary p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-mono text-foreground break-all whitespace-pre-wrap">
+                  <code className="flex-1 rounded-md border border-basalt-border bg-basalt-muted/50 px-3 py-2 text-xs font-mono text-basalt-foreground break-all whitespace-pre-wrap">
                     {restoreCommand}
                   </code>
                   <Button
@@ -460,7 +421,7 @@ export function BackupDetailPage() {
                     )}
                   </Button>
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-basalt-muted-foreground">
                   <p>
                     This command uses the project&apos;s webhook token via the
                     Authorization header. The presigned download link returned
@@ -469,9 +430,9 @@ export function BackupDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border bg-secondary p-6 text-center">
-                <Link2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-lg border bg-basalt-secondary p-6 text-center">
+                <Link2 className="h-8 w-8 text-basalt-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-basalt-muted-foreground">
                   Generate a restore URL for your AI agent to download this
                   backup.
                 </p>
@@ -481,7 +442,7 @@ export function BackupDetailPage() {
         </div>
 
         <div className="lg:col-span-4 flex flex-col gap-4">
-          <h2 className="text-base font-semibold text-foreground">Details</h2>
+          <h2 className="text-base font-semibold text-basalt-foreground">Details</h2>
           <MetadataItem
             icon={<FolderOpen className="h-4 w-4" />}
             label="Project"
@@ -499,27 +460,27 @@ export function BackupDetailPage() {
             value={formatDate(backup.created_at)}
           />
 
-          <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+          <div className="rounded-basalt-widget bg-basalt-secondary p-3 flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 text-basalt-muted-foreground">
               <Globe className="h-4 w-4" />
               <span className="text-xs">Sender</span>
             </div>
-            <div className="text-sm font-medium text-foreground font-mono">
+            <div className="text-sm font-medium text-basalt-foreground font-mono">
               {backup.sender_ip}
             </div>
             {ipInfoLoading ? (
-              <div className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-basalt-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span className="text-xs">Loading IP info...</span>
               </div>
             ) : ipInfo?.location ? (
-              <div className="flex flex-col gap-1.5 pt-1 border-t border-border">
+              <div className="flex flex-col gap-1.5 pt-1 border-t border-basalt-border">
                 {(ipInfo.location.city ||
                   ipInfo.location.province ||
                   ipInfo.location.country) && (
                   <div className="flex items-center gap-1.5">
-                    <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3 text-basalt-muted-foreground shrink-0" />
+                    <span className="text-xs text-basalt-muted-foreground">
                       {[
                         ipInfo.location.city,
                         ipInfo.location.province,
@@ -532,8 +493,8 @@ export function BackupDetailPage() {
                 )}
                 {ipInfo.location.isp && ipInfo.location.isp !== "0" && (
                   <div className="flex items-center gap-1.5">
-                    <Wifi className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="text-xs text-muted-foreground">
+                    <Wifi className="h-3 w-3 text-basalt-muted-foreground shrink-0" />
+                    <span className="text-xs text-basalt-muted-foreground">
                       {ipInfo.location.isp}
                     </span>
                   </div>
@@ -560,12 +521,12 @@ export function BackupDetailPage() {
             />
           )}
 
-          <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+          <div className="rounded-basalt-widget bg-basalt-secondary p-3 flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 text-basalt-muted-foreground">
               <span className="text-xs">File Info</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground text-xs">Type:</span>
+              <span className="text-basalt-muted-foreground text-xs">Type:</span>
               <Badge
                 variant={isJson ? "default" : "secondary"}
                 className="text-xs"
@@ -574,15 +535,15 @@ export function BackupDetailPage() {
               </Badge>
             </div>
             <div className="text-xs">
-              <span className="text-muted-foreground">Key:</span>
-              <code className="ml-1 font-mono text-muted-foreground break-all">
+              <span className="text-basalt-muted-foreground">Key:</span>
+              <code className="ml-1 font-mono text-basalt-muted-foreground break-all">
                 {backup.file_key}
               </code>
             </div>
             {backup.json_key && (
               <div className="text-xs">
-                <span className="text-muted-foreground">Preview:</span>
-                <code className="ml-1 font-mono text-muted-foreground break-all">
+                <span className="text-basalt-muted-foreground">Preview:</span>
+                <code className="ml-1 font-mono text-basalt-muted-foreground break-all">
                   {backup.json_key}
                 </code>
                 {backup.json_extracted ? (
@@ -596,7 +557,7 @@ export function BackupDetailPage() {
         </div>
       </div>
 
-      <section className="text-xs text-muted-foreground/60 flex items-center gap-4">
+      <section className="text-xs text-basalt-muted-foreground/60 flex items-center gap-4">
         <span className="font-mono">{backup.id}</span>
         <span>Updated {formatDate(backup.updated_at)}</span>
       </section>
@@ -616,12 +577,12 @@ function MetadataItem({
   href?: string | undefined;
 }) {
   const content = (
-    <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 text-muted-foreground">
+    <div className="rounded-basalt-widget bg-basalt-secondary p-3 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 text-basalt-muted-foreground">
         {icon}
         <span className="text-xs">{label}</span>
       </div>
-      <div className="text-sm font-medium text-foreground truncate">
+      <div className="text-sm font-medium text-basalt-foreground truncate">
         {value}
       </div>
     </div>
@@ -631,7 +592,7 @@ function MetadataItem({
     return (
       <a
         href={href}
-        className="hover:ring-1 hover:ring-primary/30 rounded-lg transition-shadow"
+        className="hover:ring-1 hover:ring-basalt-primary/30 rounded-lg transition-shadow"
       >
         {content}
       </a>
@@ -665,7 +626,7 @@ function BackupDetailSkeleton() {
               <Skeleton className="h-5 w-28" />
               <Skeleton className="h-8 w-40 rounded-md" />
             </div>
-            <div className="rounded-lg border bg-secondary p-6">
+            <div className="rounded-lg border bg-basalt-secondary p-6">
               <Skeleton className="h-48 w-full rounded-md" />
             </div>
           </section>
@@ -675,7 +636,7 @@ function BackupDetailSkeleton() {
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-8 w-40 rounded-md" />
             </div>
-            <div className="rounded-lg border bg-secondary p-6 flex items-center justify-center">
+            <div className="rounded-lg border bg-basalt-secondary p-6 flex items-center justify-center">
               <div className="text-center">
                 <Skeleton className="h-8 w-8 mx-auto mb-2" />
                 <Skeleton className="h-4 w-56" />
@@ -689,7 +650,7 @@ function BackupDetailSkeleton() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2"
+              className="rounded-basalt-widget bg-basalt-secondary p-3 flex flex-col gap-2"
             >
               <div className="flex items-center gap-1.5">
                 <Skeleton className="h-4 w-4" />
@@ -698,7 +659,7 @@ function BackupDetailSkeleton() {
               <Skeleton className="h-4 w-32" />
             </div>
           ))}
-          <div className="rounded-[var(--radius-widget)] bg-secondary p-3 flex flex-col gap-2">
+          <div className="rounded-basalt-widget bg-basalt-secondary p-3 flex flex-col gap-2">
             <Skeleton className="h-3 w-16" />
             <div className="flex items-center gap-2">
               <Skeleton className="h-3 w-10" />

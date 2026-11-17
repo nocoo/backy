@@ -13,22 +13,23 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "@nocoo/basalt/icons";
+import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@nocoo/basalt/components/button";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Input } from "@nocoo/basalt/components/input";
+import { Checkbox } from "@nocoo/basalt/components/checkbox";
+import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
 import { ManualUploadDialog } from "@/components/manual-upload-dialog";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@nocoo/basalt/components/dialog";
 
 interface BackupWithProject {
   id: string;
@@ -288,11 +289,11 @@ export function BackupsPage() {
 
   const sortIcon = (column: SortBy) => {
     if (sortBy !== column)
-      return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
+      return <ArrowUpDown className="h-3 w-3 text-basalt-muted-foreground/50" />;
     return sortOrder === "desc" ? (
-      <ArrowDown className="h-3 w-3 text-primary" />
+      <ArrowDown className="h-3 w-3 text-basalt-primary" />
     ) : (
-      <ArrowUp className="h-3 w-3 text-primary" />
+      <ArrowUp className="h-3 w-3 text-basalt-primary" />
     );
   };
 
@@ -305,45 +306,23 @@ export function BackupsPage() {
 
   return (
     <div className="relative flex flex-col gap-4 md:gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Backups</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {data
-              ? `${data.total} backup${data.total !== 1 ? "s" : ""} total`
-              : "Loading..."}
-          </p>
-        </div>
-
-        {selected.size > 0 ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {selected.size} selected
-            </span>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setBatchDeleteOpen(true)}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Delete Selected
+      <PageHeader
+        title="Backups"
+        description={data ? `${data.total} backup${data.total !== 1 ? "s" : ""} total` : "Loading..."}
+        actions={selected.size > 0 ? (
+          <>
+            <span className="text-basalt-sm text-basalt-muted-foreground">{selected.size} selected</span>
+            <Button variant="destructive" size="sm" onClick={() => setBatchDeleteOpen(true)}>
+              <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />Delete Selected
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelected(new Set())}
-            >
-              Clear
-            </Button>
-          </div>
-        ) : (
-          <ManualUploadDialog onSuccess={() => void fetchBackups()} />
-        )}
-      </div>
+            <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+          </>
+        ) : <ManualUploadDialog onSuccess={() => void fetchBackups()} />}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-basalt-muted-foreground" />
           <Input
             placeholder="Search by project, tag, or ID..."
             value={search}
@@ -355,7 +334,7 @@ export function BackupsPage() {
               type="button"
               onClick={() => setSearch("")}
               aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-basalt-muted-foreground hover:text-basalt-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -405,7 +384,7 @@ export function BackupsPage() {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-9 text-xs text-muted-foreground"
+            className="h-9 text-xs text-basalt-muted-foreground"
           >
             <X className="h-3 w-3 mr-1" />
             Clear filters
@@ -416,8 +395,8 @@ export function BackupsPage() {
       {loading && !data ? (
         <BackupsListSkeleton />
       ) : error && !data ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
+          <p className="text-sm text-basalt-destructive">{error}</p>
           <Button
             variant="outline"
             size="sm"
@@ -428,12 +407,12 @@ export function BackupsPage() {
           </Button>
         </div>
       ) : data && data.items.length === 0 ? (
-        <div className="rounded-lg border border-border bg-background/50 p-12 text-center">
-          <Archive className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground">
+        <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-12 text-center">
+          <Archive className="h-10 w-10 text-basalt-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm font-medium text-basalt-foreground">
             {hasFilters ? "No backups match your filters" : "No backups yet"}
           </p>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-basalt-muted-foreground mt-1">
             {hasFilters
               ? "Try adjusting your search or filters."
               : "Configure your AI agent to send backups via webhook."}
@@ -451,7 +430,7 @@ export function BackupsPage() {
         </div>
       ) : data ? (
         <>
-          <div className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
+          <div className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-basalt-muted-foreground border-b border-basalt-border">
             <div className="w-5 shrink-0">
               <Checkbox
                 checked={
@@ -471,7 +450,7 @@ export function BackupsPage() {
             <div className="min-w-0 flex-1">
               <button
                 type="button"
-                className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                className="flex items-center gap-1 hover:text-basalt-foreground transition-colors cursor-pointer"
                 onClick={() => handleSort("project_name")}
                 aria-label={getSortAriaLabel("project_name", "Project")}
               >
@@ -481,7 +460,7 @@ export function BackupsPage() {
             <div className="w-[140px] shrink-0">
               <button
                 type="button"
-                className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                className="flex items-center gap-1 hover:text-basalt-foreground transition-colors cursor-pointer"
                 onClick={() => handleSort("created_at")}
                 aria-label={getSortAriaLabel("created_at", "Date")}
               >
@@ -491,7 +470,7 @@ export function BackupsPage() {
             <div className="w-[80px] shrink-0">
               <button
                 type="button"
-                className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                className="flex items-center gap-1 hover:text-basalt-foreground transition-colors cursor-pointer"
                 onClick={() => handleSort("file_size")}
                 aria-label={getSortAriaLabel("file_size", "Size")}
               >
@@ -507,8 +486,8 @@ export function BackupsPage() {
                 key={backup.id}
                 className={`flex flex-col gap-3 rounded-lg border px-4 py-3 transition-colors md:flex-row md:items-center ${
                   selected.has(backup.id)
-                    ? "border-primary/40 bg-primary/5"
-                    : "border-border bg-background/50"
+                    ? "border-basalt-primary/40 bg-basalt-primary/5"
+                    : "border-basalt-border bg-basalt-background/50"
                 }`}
               >
                 <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
@@ -521,7 +500,7 @@ export function BackupsPage() {
                     />
                   </div>
 
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-basalt-primary/10 text-basalt-primary">
                     <Archive className="h-4 w-4" />
                   </div>
 
@@ -529,7 +508,7 @@ export function BackupsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         to={`/projects/${backup.project_id}`}
-                        className="text-sm font-medium text-foreground hover:underline"
+                        className="text-sm font-medium text-basalt-foreground hover:underline"
                       >
                         {backup.project_name}
                       </Link>
@@ -552,29 +531,29 @@ export function BackupsPage() {
                         </Badge>
                       )}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:hidden">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-basalt-muted-foreground md:hidden">
                       <span>{formatDate(backup.created_at)}</span>
                       <span>{formatBytes(backup.file_size)}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground/60 font-mono">
+                    <span className="text-xs text-basalt-muted-foreground/60 font-mono">
                       {backup.id.slice(0, 8)}
                     </span>
                   </div>
                 </div>
 
                 <div className="hidden w-[140px] shrink-0 md:block">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-basalt-muted-foreground">
                     {formatDate(backup.created_at)}
                   </span>
                 </div>
 
                 <div className="hidden w-[80px] shrink-0 md:block">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-basalt-muted-foreground">
                     {formatBytes(backup.file_size)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-end gap-1 border-t border-border/60 pt-3 md:w-[110px] md:shrink-0 md:justify-end md:border-t-0 md:pt-0">
+                <div className="flex items-center justify-end gap-1 border-t border-basalt-border/60 pt-3 md:w-[110px] md:shrink-0 md:justify-end md:border-t-0 md:pt-0">
                   <Button variant="outline" size="sm" asChild>
                     <Link
                       to={`/backups/${backup.id}`}
@@ -602,7 +581,7 @@ export function BackupsPage() {
                     aria-label={`Delete backup ${backup.id.slice(0, 8)}`}
                     onClick={() => setDeleteTarget(backup)}
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    <Trash2 className="h-3.5 w-3.5 text-basalt-destructive" />
                   </Button>
                 </div>
               </div>
@@ -611,7 +590,7 @@ export function BackupsPage() {
 
           {data.totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-basalt-muted-foreground">
                 Page {data.page} of {data.totalPages}
                 {" · "}
                 {data.total} backup{data.total !== 1 ? "s" : ""}
@@ -629,7 +608,7 @@ export function BackupsPage() {
                   p === "..." ? (
                     <span
                       key={`ellipsis-${i}`}
-                      className="px-2 text-xs text-muted-foreground"
+                      className="px-2 text-xs text-basalt-muted-foreground"
                     >
                       ...
                     </span>
@@ -663,8 +642,8 @@ export function BackupsPage() {
       ) : null}
 
       {loading && data && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <div className="absolute inset-0 flex items-center justify-center bg-basalt-background/50 rounded-lg">
+          <Loader2 className="h-5 w-5 animate-spin text-basalt-muted-foreground" />
         </div>
       )}
 
@@ -769,7 +748,7 @@ export function generatePageNumbers(
 function BackupsListSkeleton() {
   return (
     <>
-      <div className="hidden md:flex items-center gap-3 px-4 py-2 border-b border-border">
+      <div className="hidden md:flex items-center gap-3 px-4 py-2 border-b border-basalt-border">
         <Skeleton className="w-5 h-4" />
         <Skeleton className="w-9 h-4" />
         <Skeleton className="flex-1 h-4 max-w-[80px]" />
@@ -782,7 +761,7 @@ function BackupsListSkeleton() {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 px-4 py-3 md:flex-row md:items-center"
+            className="flex flex-col gap-3 rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3 md:flex-row md:items-center"
           >
             <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
               <Skeleton className="w-5 h-4 shrink-0 mt-2 md:mt-0" />
@@ -798,7 +777,7 @@ function BackupsListSkeleton() {
             </div>
             <Skeleton className="hidden md:block w-[140px] h-3" />
             <Skeleton className="hidden md:block w-[80px] h-3" />
-            <div className="flex items-center gap-1 border-t border-border/60 pt-3 md:w-[110px] md:border-t-0 md:pt-0">
+            <div className="flex items-center gap-1 border-t border-basalt-border/60 pt-3 md:w-[110px] md:border-t-0 md:pt-0">
               <Skeleton className="h-8 w-8 rounded" />
               <Skeleton className="h-8 w-8 rounded" />
               <Skeleton className="h-8 w-8 rounded" />

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@nocoo/basalt/icons";
 import { apiFetch, ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Label } from "@nocoo/basalt/components/label";
+import { LayerCard } from "@nocoo/basalt/components/layer-card";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 
 export function ProjectNewPage() {
   const navigate = useNavigate();
@@ -59,17 +61,15 @@ export function ProjectNewPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-foreground">New Project</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Create a project to generate a webhook endpoint for your AI agent.
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-basalt-layout-lg">
+      <PageHeader
+        title="New Project"
+        description="Create a project to generate a webhook endpoint for your AI agent."
+      />
+      <LayerCard>
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="flex flex-col gap-5"
+        className="flex flex-col gap-basalt-layout"
       >
         <div className="flex flex-col gap-2">
           <Label htmlFor="name">Name</Label>
@@ -87,7 +87,7 @@ export function ProjectNewPage() {
         <div className="flex flex-col gap-2">
           <Label htmlFor="description">
             Description{" "}
-            <span className="text-muted-foreground font-normal">
+            <span className="text-basalt-muted-foreground font-normal">
               (optional)
             </span>
           </Label>
@@ -102,7 +102,7 @@ export function ProjectNewPage() {
           />
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-sm text-basalt-destructive">{error}</p>}
 
         <div className="flex items-center gap-3 pt-1">
           <Button type="submit" disabled={saving || !name.trim()}>
@@ -119,6 +119,7 @@ export function ProjectNewPage() {
           </Button>
         </div>
       </form>
+      </LayerCard>
     </div>
   );
 }

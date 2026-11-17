@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, type ReactNode } from "react";
-import { Upload, FileJson, FileArchive, Loader2, X } from "lucide-react";
-import { toast } from "sonner";
+import { Upload, FileJson, FileArchive, Loader2, X } from "@nocoo/basalt/icons";
+import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, apiJson, ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Label } from "@nocoo/basalt/components/label";
 import {
   Dialog,
   DialogContent,
@@ -13,14 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@nocoo/basalt/components/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
 
 interface Project {
   id: string;
@@ -130,16 +130,16 @@ export function ManualUploadDialog({
     if (!file) return null;
     const name = file.name.toLowerCase();
     if (name.endsWith(".json"))
-      return <FileJson className="h-5 w-5 text-warning" />;
+      return <FileJson className="h-5 w-5 text-basalt-warning" />;
     if (
       name.endsWith(".zip") ||
       name.endsWith(".gz") ||
       name.endsWith(".tgz") ||
       name.endsWith(".tar.gz")
     ) {
-      return <FileArchive className="h-5 w-5 text-info" />;
+      return <FileArchive className="h-5 w-5 text-basalt-info" />;
     }
-    return <Upload className="h-5 w-5 text-muted-foreground" />;
+    return <Upload className="h-5 w-5 text-basalt-muted-foreground" />;
   }
 
   async function handleUpload() {
@@ -213,7 +213,7 @@ export function ManualUploadDialog({
             <div className="flex flex-col gap-2">
               <Label>Project</Label>
               {projectsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm text-basalt-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading projects...
                 </div>
@@ -252,7 +252,7 @@ export function ManualUploadDialog({
           <div className="flex flex-col gap-2">
             <Label>
               Environment{" "}
-              <span className="text-muted-foreground font-normal">
+              <span className="text-basalt-muted-foreground font-normal">
                 (optional)
               </span>
             </Label>
@@ -279,10 +279,10 @@ export function ManualUploadDialog({
               onClick={() => fileInputRef.current?.click()}
               className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 cursor-pointer transition-colors ${
                 dragOver
-                  ? "border-primary bg-primary/5"
+                  ? "border-basalt-primary bg-basalt-primary/5"
                   : file
-                    ? "border-border bg-muted/30"
-                    : "border-border hover:border-primary/50 hover:bg-muted/20"
+                    ? "border-basalt-border bg-basalt-muted/30"
+                    : "border-basalt-border hover:border-basalt-primary/50 hover:bg-basalt-muted/20"
               }`}
             >
               <input
@@ -297,17 +297,17 @@ export function ManualUploadDialog({
                 <div className="flex items-center gap-3 w-full">
                   {getFileIcon()}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
+                    <p className="text-sm font-medium text-basalt-foreground truncate">
                       {file.name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-basalt-muted-foreground">
                       {formatFileSize(file.size)}
                       {isJsonFile && " — will be compressed to ZIP"}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
-                    size="icon-xs"
+                    size="icon-sm"
                     aria-label="Remove selected file"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -320,12 +320,12 @@ export function ManualUploadDialog({
                 </div>
               ) : (
                 <>
-                  <Upload className="h-8 w-8 text-muted-foreground/40" />
+                  <Upload className="h-8 w-8 text-basalt-muted-foreground/40" />
                   <div className="text-center">
-                    <p className="text-sm text-foreground">
+                    <p className="text-sm text-basalt-foreground">
                       Drop a file here or click to browse
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-basalt-muted-foreground mt-1">
                       Any file format, up to 50MB
                     </p>
                   </div>

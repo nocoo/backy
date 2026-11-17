@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Loader2, Settings2 } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, Pencil, Trash2, Loader2, Settings2 } from "@nocoo/basalt/icons";
+import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Label } from "@nocoo/basalt/components/label";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@nocoo/basalt/components/dialog";
 import {
   CATEGORY_ICONS,
   CATEGORY_COLORS,
@@ -171,11 +171,11 @@ export function CategoryManagement({
         <div className="flex flex-col gap-4 py-2 max-h-[60vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="h-4 w-4 animate-spin text-basalt-muted-foreground" />
             </div>
           ) : categories.length === 0 && !showForm ? (
-            <div className="rounded-lg border border-border bg-background/50 p-6 text-center">
-              <p className="text-sm text-muted-foreground">
+            <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-6 text-center">
+              <p className="text-sm text-basalt-muted-foreground">
                 No categories yet. Create one to start organizing your projects.
               </p>
             </div>
@@ -187,7 +187,7 @@ export function CategoryManagement({
                 return (
                   <div
                     key={cat.id}
-                    className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-3 py-2.5"
+                    className="flex items-center justify-between rounded-lg border border-basalt-border bg-basalt-background/50 px-3 py-2.5"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
@@ -199,14 +199,14 @@ export function CategoryManagement({
                       >
                         <IconComponent className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-sm font-medium text-foreground truncate">
+                      <span className="text-sm font-medium text-basalt-foreground truncate">
                         {cat.name}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         aria-label={`Edit category ${cat.name}`}
                         onClick={() => startEdit(cat)}
                         disabled={isDeleting}
@@ -215,11 +215,11 @@ export function CategoryManagement({
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         aria-label={`Delete category ${cat.name}`}
                         onClick={() => void handleDelete(cat.id)}
                         disabled={isDeleting}
-                        className="text-destructive hover:text-destructive"
+                        className="text-basalt-destructive hover:text-basalt-destructive"
                       >
                         {isDeleting ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -235,8 +235,8 @@ export function CategoryManagement({
           )}
 
           {showForm && (
-            <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
-              <p className="text-sm font-medium text-foreground">
+            <div className="flex flex-col gap-3 rounded-lg border border-basalt-border bg-basalt-muted/30 p-4">
+              <p className="text-sm font-medium text-basalt-foreground">
                 {editingId ? "Edit Category" : "New Category"}
               </p>
 
@@ -265,8 +265,8 @@ export function CategoryManagement({
                       onClick={() => setFormColor(color)}
                       className={`h-7 w-7 rounded-md border-2 transition-all ${
                         formColor === color
-                          ? "border-foreground scale-110"
-                          : "border-transparent hover:border-muted-foreground/30"
+                          ? "border-basalt-foreground scale-110"
+                          : "border-transparent hover:border-basalt-muted-foreground/30"
                       }`}
                       style={{ backgroundColor: color }}
                       disabled={saving}
@@ -288,8 +288,8 @@ export function CategoryManagement({
                         onClick={() => setFormIcon(entry.name)}
                         className={`flex h-8 w-8 items-center justify-center rounded-md border transition-all ${
                           formIcon === entry.name
-                            ? "border-foreground bg-accent"
-                            : "border-transparent hover:border-muted-foreground/30 hover:bg-muted/50"
+                            ? "border-basalt-foreground bg-basalt-accent"
+                            : "border-transparent hover:border-basalt-muted-foreground/30 hover:bg-basalt-muted/50"
                         }`}
                         disabled={saving}
                         title={entry.label}

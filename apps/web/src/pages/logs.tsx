@@ -11,20 +11,21 @@ import {
   Trash2,
   MapPin,
   Wifi,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "@nocoo/basalt/icons";
+import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, ApiError } from "@/lib/api";
 import { generatePageNumbers, formatLogDate } from "@/lib/pagination";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
+import { Button } from "@nocoo/basalt/components/button";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
 
 interface WebhookLogEntry {
   id: string;
@@ -99,7 +100,7 @@ function StatusIcon({ code }: { code: number }) {
   if (code < 300) return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
   if (code < 400)
     return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-  return <XCircle className="h-4 w-4 text-destructive" />;
+  return <XCircle className="h-4 w-4 text-basalt-destructive" />;
 }
 
 function StatusBadge({ code }: { code: number }) {
@@ -177,35 +178,35 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
       : null;
 
   return (
-    <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-border bg-muted/30 px-4 py-3 text-sm">
+    <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-basalt-border bg-basalt-muted/30 px-4 py-3 text-sm">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <span className="text-xs text-muted-foreground block mb-0.5">
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
             Client IP
           </span>
-          <span className="text-xs font-mono text-foreground">
+          <span className="text-xs font-mono text-basalt-foreground">
             {log.client_ip ?? "—"}
           </span>
           {ipLoading && (
-            <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+            <div className="flex items-center gap-1.5 mt-1 text-basalt-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span className="text-xs">Loading IP info...</span>
             </div>
           )}
           {!ipLoading && (locationParts.length > 0 || isp) && (
-            <div className="flex flex-col gap-1 mt-1.5 pt-1.5 border-t border-border">
+            <div className="flex flex-col gap-1 mt-1.5 pt-1.5 border-t border-basalt-border">
               {locationParts.length > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3 text-basalt-muted-foreground shrink-0" />
+                  <span className="text-xs text-basalt-muted-foreground">
                     {locationParts.join(", ")}
                   </span>
                 </div>
               )}
               {isp && (
                 <div className="flex items-center gap-1.5">
-                  <Wifi className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-muted-foreground">{isp}</span>
+                  <Wifi className="h-3 w-3 text-basalt-muted-foreground shrink-0" />
+                  <span className="text-xs text-basalt-muted-foreground">{isp}</span>
                 </div>
               )}
             </div>
@@ -213,27 +214,27 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
         </div>
 
         <div>
-          <span className="text-xs text-muted-foreground block mb-0.5">
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
             User Agent
           </span>
-          <span className="text-xs font-mono text-foreground break-all">
+          <span className="text-xs font-mono text-basalt-foreground break-all">
             {log.user_agent ?? "—"}
           </span>
         </div>
 
         <div>
-          <span className="text-xs text-muted-foreground block mb-0.5">
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
             Path
           </span>
-          <span className="text-xs font-mono text-foreground">{log.path}</span>
+          <span className="text-xs font-mono text-basalt-foreground">{log.path}</span>
         </div>
 
         {log.error_message && (
           <div>
-            <span className="text-xs text-muted-foreground block mb-0.5">
+            <span className="text-xs text-basalt-muted-foreground block mb-0.5">
               Error
             </span>
-            <span className="text-xs text-destructive">
+            <span className="text-xs text-basalt-destructive">
               {log.error_message}
             </span>
           </div>
@@ -241,30 +242,30 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
 
         {log.metadata && (
           <div className="md:col-span-2">
-            <span className="text-xs text-muted-foreground block mb-0.5">
+            <span className="text-xs text-basalt-muted-foreground block mb-0.5">
               Metadata
             </span>
-            <pre className="text-xs font-mono text-foreground bg-background/50 rounded p-2 overflow-x-auto">
+            <pre className="text-xs font-mono text-basalt-foreground bg-basalt-background/50 rounded p-2 overflow-x-auto">
               {JSON.stringify(JSON.parse(log.metadata), null, 2)}
             </pre>
           </div>
         )}
 
         <div>
-          <span className="text-xs text-muted-foreground block mb-0.5">
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
             Log ID
           </span>
-          <span className="text-xs font-mono text-foreground/60">
+          <span className="text-xs font-mono text-basalt-foreground/60">
             {log.id}
           </span>
         </div>
 
         {log.project_id && (
           <div>
-            <span className="text-xs text-muted-foreground block mb-0.5">
+            <span className="text-xs text-basalt-muted-foreground block mb-0.5">
               Project ID
             </span>
-            <span className="text-xs font-mono text-foreground/60">
+            <span className="text-xs font-mono text-basalt-foreground/60">
               {log.project_id}
             </span>
           </div>
@@ -417,34 +418,15 @@ export function LogsPage() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Webhook Logs
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {data
-              ? `${data.total} log${data.total !== 1 ? "s" : ""} total`
-              : "Loading..."}
-          </p>
-        </div>
-        {data && data.total > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleClearLogs()}
-            disabled={deleting || loading}
-            className="text-destructive hover:text-destructive"
-          >
-            {deleting ? (
-              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-            )}
-            Clear
+      <PageHeader
+        title="Webhook Logs"
+        description={data ? `${data.total} log${data.total !== 1 ? "s" : ""} total` : "Loading..."}
+        actions={data && data.total > 0 ? (
+          <Button variant="outline" size="sm" onClick={() => void handleClearLogs()} disabled={deleting || loading} className="text-basalt-destructive">
+            {deleting ? <Loader2 className="mr-basalt-space-md h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />}Clear
           </Button>
-        )}
-      </div>
+        ) : null}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <Select
@@ -499,7 +481,7 @@ export function LogsPage() {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-9 text-xs text-muted-foreground"
+            className="h-9 text-xs text-basalt-muted-foreground"
           >
             <X className="h-3 w-3 mr-1" />
             Clear filters
@@ -510,8 +492,8 @@ export function LogsPage() {
       {loading && !data ? (
         <LogsListSkeleton />
       ) : error && !data ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
+          <p className="text-sm text-basalt-destructive">{error}</p>
           <Button
             variant="outline"
             size="sm"
@@ -522,12 +504,12 @@ export function LogsPage() {
           </Button>
         </div>
       ) : data && data.items.length === 0 ? (
-        <div className="rounded-lg border border-border bg-background/50 p-12 text-center">
-          <ScrollText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground">
+        <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-12 text-center">
+          <ScrollText className="h-10 w-10 text-basalt-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm font-medium text-basalt-foreground">
             {hasFilters ? "No logs match your filters" : "No webhook logs yet"}
           </p>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-basalt-muted-foreground mt-1">
             {hasFilters
               ? "Try adjusting your filters."
               : "Logs will appear when webhook requests are received."}
@@ -545,7 +527,7 @@ export function LogsPage() {
         </div>
       ) : data ? (
         <>
-          <div className="flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
+          <div className="flex items-center gap-3 px-4 py-2 text-xs text-basalt-muted-foreground border-b border-basalt-border">
             <div className="w-5 shrink-0" />
             <div className="w-[60px] shrink-0">Status</div>
             <div className="w-[60px] shrink-0">Method</div>
@@ -562,10 +544,10 @@ export function LogsPage() {
                   type="button"
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors w-full text-left cursor-pointer ${
                     expandedId === log.id
-                      ? "border-primary/40 bg-primary/5"
+                      ? "border-basalt-primary/40 bg-basalt-primary/5"
                       : log.status_code >= 400
-                        ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
-                        : "border-border bg-background/50 hover:bg-muted/50"
+                        ? "border-basalt-destructive/20 bg-basalt-destructive/5 hover:bg-basalt-destructive/10"
+                        : "border-basalt-border bg-basalt-background/50 hover:bg-basalt-muted/50"
                   }`}
                   onClick={() =>
                     setExpandedId(expandedId === log.id ? null : log.id)
@@ -584,24 +566,24 @@ export function LogsPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-foreground truncate">
+                    <div className="text-sm font-medium text-basalt-foreground truncate">
                       {log.project_name ?? "Unknown"}
                     </div>
                     {log.error_code && (
-                      <span className="text-xs text-destructive">
+                      <span className="text-xs text-basalt-destructive">
                         {errorCodeLabels[log.error_code] ?? log.error_code}
                       </span>
                     )}
                   </div>
 
                   <div className="w-[120px] shrink-0">
-                    <span className="text-xs text-muted-foreground font-mono truncate block">
+                    <span className="text-xs text-basalt-muted-foreground font-mono truncate block">
                       {log.client_ip ?? "—"}
                     </span>
                   </div>
 
                   <div className="w-[60px] shrink-0 text-right">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-basalt-muted-foreground">
                       {log.duration_ms !== null
                         ? `${log.duration_ms}ms`
                         : "—"}
@@ -609,7 +591,7 @@ export function LogsPage() {
                   </div>
 
                   <div className="w-[130px] shrink-0">
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <span className="text-xs text-basalt-muted-foreground whitespace-nowrap">
                       {formatLogDate(log.created_at)}
                     </span>
                   </div>
@@ -622,7 +604,7 @@ export function LogsPage() {
 
           {data.totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-basalt-muted-foreground">
                 Page {data.page} of {data.totalPages}
                 {" · "}
                 {data.total} log{data.total !== 1 ? "s" : ""}
@@ -640,7 +622,7 @@ export function LogsPage() {
                   p === "..." ? (
                     <span
                       key={`ellipsis-${i}`}
-                      className="px-2 text-xs text-muted-foreground"
+                      className="px-2 text-xs text-basalt-muted-foreground"
                     >
                       ...
                     </span>
@@ -674,8 +656,8 @@ export function LogsPage() {
       ) : null}
 
       {loading && data && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <div className="absolute inset-0 flex items-center justify-center bg-basalt-background/50 rounded-lg">
+          <Loader2 className="h-5 w-5 animate-spin text-basalt-muted-foreground" />
         </div>
       )}
     </div>
@@ -688,7 +670,7 @@ function LogsListSkeleton() {
       {Array.from({ length: 10 }).map((_, i) => (
         <div
           key={i}
-          className="flex flex-col gap-2 rounded-lg border border-border bg-background/50 px-4 py-3 md:flex-row md:items-center md:gap-4"
+          className="flex flex-col gap-2 rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3 md:flex-row md:items-center md:gap-4"
         >
           <div className="flex items-start gap-3 min-w-0 flex-1 md:items-center">
             <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />

@@ -7,70 +7,37 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { LayerCard } from "@nocoo/basalt/components/layer-card";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ChartFrame,
+  ChartTooltipContent,
+  chartAxis,
+  getChartColor,
+} from "@nocoo/basalt/components/chart";
 
 interface DailyBackup {
   date: string;
   count: number;
 }
 
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-
-  const date = label
-    ? new Date(label).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "";
-
-  const value = payload[0]?.value ?? 0;
-
-  return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2 shadow-md">
-      <p className="text-sm font-medium text-foreground mb-1">{date}</p>
-      <p className="text-xs text-muted-foreground">
-        {value} backup{value !== 1 ? "s" : ""}
-      </p>
-    </div>
-  );
-}
-
 export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Backup Activity</CardTitle>
-          <CardDescription>Daily backup count (last 30 days)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-[200px] items-center justify-center">
-            <p className="text-sm text-muted-foreground">No activity data</p>
+      <LayerCard>
+        <LayerCard.Header>
+          <div>
+            <h3 className="text-basalt-base font-medium">Backup Activity</h3>
+            <p className="text-basalt-sm text-basalt-muted-foreground">Daily backup count (last 30 days)</p>
           </div>
-        </CardContent>
-      </Card>
+        </LayerCard.Header>
+        <LayerCard.Empty title="No activity data" />
+      </LayerCard>
     );
   }
 
-  const chartData = data.map((d) => ({
-    ...d,
-    label: new Date(d.date).toLocaleDateString("en-US", {
+  const chartData = data.map((day) => ({
+    ...day,
+    label: new Date(day.date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     }),
@@ -78,61 +45,42 @@ export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
   const totalBackups = data.reduce((sum, day) => sum + day.count, 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Backup Activity</CardTitle>
-        <CardDescription>Daily backup count (last 30 days)</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart
-            data={chartData}
-            margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="backupGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="hsl(var(--chart-1))"
-                  stopOpacity={0.3}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="hsl(var(--chart-1))"
-                  stopOpacity={0}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              tickLine={false}
-              axisLine={false}
-              allowDecimals={false}
-            />
-            <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
-            <Area
-              type="monotone"
-              dataKey="count"
-              stroke="hsl(var(--chart-1))"
-              fill="url(#backupGradient)"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-        <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs">
-          <span className="text-muted-foreground">30-day total activity</span>
-          <span className="font-medium text-foreground">
+    <LayerCard>
+      <LayerCard.Header>
+        <div>
+          <h3 className="text-basalt-base font-medium">Backup Activity</h3>
+          <p className="text-basalt-sm text-basalt-muted-foreground">Daily backup count (last 30 days)</p>
+        </div>
+      </LayerCard.Header>
+      <LayerCard.Body>
+        <ChartFrame
+          ariaLabel="Daily backup activity for the last 30 days"
+          summary={`${totalBackups} backups in the last 30 days.`}
+          size="h-[200px] w-full"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="backupGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={getChartColor(0)} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={getChartColor(0)} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartAxis} opacity={0.25} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartAxis }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: chartAxis }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip content={<ChartTooltipContent />} isAnimationActive={false} />
+              <Area type="monotone" dataKey="count" name="Backups" stroke={getChartColor(0)} fill="url(#backupGradient)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartFrame>
+        <div className="mt-basalt-layout flex items-center justify-between border-t border-basalt-border pt-basalt-layout text-basalt-xs">
+          <span className="text-basalt-muted-foreground">30-day total activity</span>
+          <span className="font-medium text-basalt-foreground">
             {totalBackups} backup{totalBackups !== 1 ? "s" : ""}
           </span>
         </div>
-      </CardContent>
-    </Card>
+      </LayerCard.Body>
+    </LayerCard>
   );
 }

@@ -1,10 +1,12 @@
 import { Link } from "react-router";
 import useSWR from "swr";
-import { Archive } from "lucide-react";
+import { Archive } from "@nocoo/basalt/icons";
 import { swrFetcher } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { LayerCard } from "@nocoo/basalt/components/layer-card";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   BackupsByProjectChart,
   StorageByProjectChart,
@@ -69,18 +71,13 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Overview of your backup activity
-        </p>
-      </div>
+      <PageHeader title="Dashboard" description="Overview of your backup activity" />
 
       {loading ? (
         <DashboardSkeleton />
       ) : (
         <>
-          <div className="animate-fade-up grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <StatsCard
               label="Total Projects"
               value={String(stats.data?.totalProjects ?? 0)}
@@ -96,7 +93,7 @@ export function DashboardPage() {
           </div>
 
           <div
-            className="animate-fade-up grid grid-cols-1 lg:grid-cols-2 gap-4"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
             style={{ animationDelay: "80ms" }}
           >
             <BackupsByProjectChart data={charts.data?.projectStats ?? []} />
@@ -104,7 +101,7 @@ export function DashboardPage() {
           </div>
 
           <div
-            className="animate-fade-up grid grid-cols-1 lg:grid-cols-2 gap-4"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
             style={{ animationDelay: "160ms" }}
           >
             <DailyBackupsChart data={charts.data?.dailyBackups ?? []} />
@@ -112,15 +109,15 @@ export function DashboardPage() {
           </div>
 
           <div
-            className="animate-fade-up"
+            className=""
             style={{ animationDelay: "240ms" }}
           >
-            <h2 className="text-sm font-medium text-muted-foreground mb-3">
+            <h2 className="text-sm font-medium text-basalt-muted-foreground mb-3">
               Recent Backups
             </h2>
             {recentBackups.length === 0 ? (
-              <div className="rounded-lg border border-border bg-background/50 p-8 text-center">
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-8 text-center">
+                <p className="text-sm text-basalt-muted-foreground">
                   No backups yet. Create a project and configure your AI agent
                   to start sending backups.
                 </p>
@@ -131,15 +128,15 @@ export function DashboardPage() {
                   <Link
                     key={backup.id}
                     to={`/projects/${backup.project_id}`}
-                    className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3 transition-colors hover:bg-accent/50"
+                    className="flex items-center justify-between rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3 transition-colors hover:bg-basalt-accent/50"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-basalt-primary/10 text-basalt-primary">
                         <Archive className="h-3.5 w-3.5" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground truncate">
+                          <span className="text-sm font-medium text-basalt-foreground truncate">
                             {backup.project_name}
                           </span>
                           {backup.environment && (
@@ -151,12 +148,12 @@ export function DashboardPage() {
                             <Badge variant="outline">{backup.tag}</Badge>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-basalt-muted-foreground">
                           {formatDate(backup.created_at)}
                         </span>
                       </div>
                     </div>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-3">
+                    <span className="text-xs text-basalt-muted-foreground shrink-0 ml-3">
                       {formatBytes(backup.file_size)}
                     </span>
                   </Link>
@@ -172,10 +169,10 @@ export function DashboardPage() {
 
 function StatsCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-background/50 p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="text-2xl font-semibold text-foreground mt-1">{value}</p>
-    </div>
+    <LayerCard>
+      <p className="text-basalt-sm font-medium text-basalt-muted-foreground">{label}</p>
+      <p className="mt-basalt-space-sm text-basalt-3xl font-semibold text-basalt-foreground">{value}</p>
+    </LayerCard>
   );
 }
 
@@ -186,7 +183,7 @@ function DashboardSkeleton() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-lg border border-border bg-background/50 p-4"
+            className="rounded-lg border border-basalt-border bg-basalt-background/50 p-4"
           >
             <Skeleton className="h-3 w-24 mb-2" />
             <Skeleton className="h-7 w-16" />
@@ -197,7 +194,7 @@ function DashboardSkeleton() {
         {Array.from({ length: 2 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-[var(--radius-card)] bg-secondary p-6"
+            className="rounded-basalt-card bg-basalt-secondary p-6"
           >
             <Skeleton className="h-4 w-32 mb-1" />
             <Skeleton className="h-3 w-48 mb-4" />
@@ -209,7 +206,7 @@ function DashboardSkeleton() {
         {Array.from({ length: 2 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-[var(--radius-card)] bg-secondary p-6"
+            className="rounded-basalt-card bg-basalt-secondary p-6"
           >
             <Skeleton className="h-4 w-32 mb-1" />
             <Skeleton className="h-3 w-48 mb-4" />
@@ -223,7 +220,7 @@ function DashboardSkeleton() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 rounded-lg border border-border bg-background/50 px-4 py-3"
+              className="flex items-center gap-3 rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3"
             >
               <Skeleton className="h-8 w-8 rounded-lg" />
               <div className="flex-1">

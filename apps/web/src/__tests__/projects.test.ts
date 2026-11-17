@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Folder, FolderKanban } from "lucide-react";
+import { Folder, FolderKanban } from "@nocoo/basalt/icons";
 import {
   CATEGORY_ICONS,
   CATEGORY_COLORS,

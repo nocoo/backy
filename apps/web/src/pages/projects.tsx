@@ -1,10 +1,11 @@
 import { useMemo, createElement } from "react";
 import useSWR from "swr";
 import { Link, useNavigate } from "react-router";
-import { Plus, FolderKanban, Folder } from "lucide-react";
+import { Plus, FolderKanban, Folder } from "@nocoo/basalt/icons";
 import { swrFetcher } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Button } from "@nocoo/basalt/components/button";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { CategoryManagement } from "@/components/category-management";
 import { getCategoryIcon } from "@/lib/category-icons";
 
@@ -94,27 +95,25 @@ export function ProjectsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Projects</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your backup projects and webhook tokens
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <CategoryManagement onCategoriesChanged={refresh} />
-          <Button onClick={() => navigate("/projects/new")} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Project
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Projects"
+        description="Manage your backup projects and webhook tokens"
+        actions={
+          <>
+            <CategoryManagement onCategoriesChanged={refresh} />
+            <Button onClick={() => navigate("/projects/new")} size="sm">
+              <Plus className="mr-basalt-space-md h-4 w-4" />
+              New Project
+            </Button>
+          </>
+        }
+      />
 
       {loading ? (
         <ProjectsListSkeleton />
       ) : error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
+          <p className="text-sm text-basalt-destructive">{error}</p>
           <Button
             variant="outline"
             size="sm"
@@ -125,12 +124,12 @@ export function ProjectsPage() {
           </Button>
         </div>
       ) : projects.length === 0 ? (
-        <div className="rounded-lg border border-border bg-background/50 p-12 text-center">
-          <FolderKanban className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground">
+        <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-12 text-center">
+          <FolderKanban className="h-10 w-10 text-basalt-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm font-medium text-basalt-foreground">
             No projects yet
           </p>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-basalt-muted-foreground mt-1">
             Create your first project to start receiving backups from AI
             agents.
           </p>
@@ -150,7 +149,7 @@ export function ProjectsPage() {
             return (
               <div
                 key={key}
-                className="animate-fade-up"
+                className=""
                 style={{ animationDelay: `${i * 60}ms` }}
               >
                 <CategorySection
@@ -191,17 +190,17 @@ function CategorySection({
               >
                 {category.name}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-basalt-muted-foreground">
                 ({projects.length})
               </span>
             </>
           ) : (
             <>
-              <Folder className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">
+              <Folder className="h-3.5 w-3.5 text-basalt-muted-foreground" />
+              <span className="text-sm font-medium text-basalt-muted-foreground">
                 Uncategorized
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-basalt-muted-foreground">
                 ({projects.length})
               </span>
             </>
@@ -237,7 +236,7 @@ function ProjectCard({
   return (
     <Link
       to={`/projects/${project.id}`}
-      className="group flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3.5 transition-colors hover:bg-accent/50"
+      className="group flex items-center justify-between rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3.5 transition-colors hover:bg-basalt-accent/50"
     >
       <div className="flex items-center gap-3 min-w-0">
         {categoryColor ? (
@@ -251,23 +250,23 @@ function ProjectCard({
             <FolderKanban className="h-4 w-4" />
           </div>
         ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-basalt-primary/10 text-basalt-primary">
             <FolderKanban className="h-4 w-4" />
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">
+          <p className="text-sm font-medium text-basalt-foreground truncate">
             {project.name}
           </p>
           {project.description && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">
+            <p className="text-xs text-basalt-muted-foreground truncate mt-0.5">
               {project.description}
             </p>
           )}
         </div>
       </div>
       <div className="shrink-0 ml-4">
-        <p className="text-xs text-muted-foreground">{createdAt}</p>
+        <p className="text-xs text-basalt-muted-foreground">{createdAt}</p>
       </div>
     </Link>
   );
@@ -288,7 +287,7 @@ function ProjectsListSkeleton() {
               (_, cardIdx) => (
                 <div
                   key={cardIdx}
-                  className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3.5"
+                  className="flex items-center justify-between rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3.5"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Skeleton className="h-9 w-9 rounded-lg" />

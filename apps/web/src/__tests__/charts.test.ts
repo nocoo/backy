@@ -58,7 +58,7 @@ describe("truncateProjectName", () => {
 
 describe("getChartColor", () => {
   test("wraps around CHART_COLORS palette", () => {
-    expect(getChartColor(0)).toBe("hsl(var(--chart-1))");
+    expect(getChartColor(0)).toBe("hsl(var(--basalt-chart-1))");
     expect(getChartColor(5)).toBe(getChartColor(0));
   });
 
@@ -67,6 +67,6 @@ describe("getChartColor", () => {
     // undefined, the `?? CHART_COLORS[0]` fallback returns chart-1.
     // This documents the negative-index branch is handled by the ?? fallback,
     // not by a Math.abs / proper modulo wrap.
-    expect(getChartColor(-1)).toBe("hsl(var(--chart-1))");
+    expect(getChartColor(-1)).toBe("hsl(var(--basalt-chart-1))");
   });
 });

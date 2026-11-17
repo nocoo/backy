@@ -7,22 +7,18 @@ import {
   EyeOff,
   Timer,
   Play,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "@nocoo/basalt/icons";
+import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Label } from "@nocoo/basalt/components/label";
+import { Switch } from "@nocoo/basalt/components/switch";
+import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { LayerCard } from "@nocoo/basalt/components/layer-card";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   Dialog,
   DialogContent,
@@ -31,14 +27,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@nocoo/basalt/components/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
 import { ProjectWebhookPanel } from "@/components/project/project-webhook-panel";
 import { ProjectRecentBackupsCard } from "@/components/project/project-recent-backups-card";
 import { getCategoryIcon } from "@/lib/category-icons";
@@ -421,8 +417,8 @@ export function ProjectDetailPage() {
 
   if (error && !project) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-sm text-destructive">{error}</p>
+      <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
+        <p className="text-sm text-basalt-destructive">{error}</p>
         <Button
           variant="outline"
           size="sm"
@@ -441,39 +437,21 @@ export function ProjectDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Project Settings
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configure your project and manage its webhook integration.
-          </p>
-        </div>
-        <div className="text-xs text-muted-foreground/60 flex items-center gap-4">
-          <span>
-            Created{" "}
-            {new Date(project.created_at).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-          <span>
-            Updated{" "}
-            {new Date(project.updated_at).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-          <span className="font-mono">{project.id}</span>
-        </div>
-      </div>
+      <PageHeader
+        title="Project Settings"
+        description="Configure your project and manage its webhook integration."
+        actions={
+          <div className="flex flex-wrap items-center gap-basalt-layout text-basalt-xs text-basalt-muted-foreground">
+            <span>Created {new Date(project.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+            <span>Updated {new Date(project.updated_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+            <span className="font-mono">{project.id}</span>
+          </div>
+        }
+      />
 
       {dirty && (
-        <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-          <p className="text-sm text-muted-foreground flex-1">
+        <div className="flex items-center gap-3 rounded-lg border border-basalt-primary/20 bg-basalt-primary/5 px-4 py-3">
+          <p className="text-sm text-basalt-muted-foreground flex-1">
             You have unsaved changes.
           </p>
           <Button
@@ -509,14 +487,16 @@ export function ProjectDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>General</CardTitle>
-              <CardDescription>
-                Basic project information and access control.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+          <LayerCard>
+            <LayerCard.Header>
+              <div>
+                <h2 className="text-basalt-lg font-semibold">General</h2>
+                <p className="text-basalt-sm text-basalt-muted-foreground">
+                  Basic project information and access control.
+                </p>
+              </div>
+            </LayerCard.Header>
+            <LayerCard.Body className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="name">Name</Label>
                 <Input
@@ -531,7 +511,7 @@ export function ProjectDetailPage() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="description">
                   Description{" "}
-                  <span className="text-muted-foreground font-normal">
+                  <span className="text-basalt-muted-foreground font-normal">
                     (optional)
                   </span>
                 </Label>
@@ -548,7 +528,7 @@ export function ProjectDetailPage() {
               <div className="flex flex-col gap-2">
                 <Label>
                   Category{" "}
-                  <span className="text-muted-foreground font-normal">
+                  <span className="text-basalt-muted-foreground font-normal">
                     (optional)
                   </span>
                 </Label>
@@ -585,7 +565,7 @@ export function ProjectDetailPage() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="allowed-ips">
                   Allowed IP Ranges{" "}
-                  <span className="text-muted-foreground font-normal">
+                  <span className="text-basalt-muted-foreground font-normal">
                     (optional)
                   </span>
                 </Label>
@@ -600,54 +580,41 @@ export function ProjectDetailPage() {
                   rows={2}
                   disabled={saving}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-basalt-muted-foreground">
                   Comma-separated list of IP or CIDR ranges allowed to send
                   backups via webhook. Leave empty to allow all.
                 </p>
                 {ipError && (
-                  <p className="text-xs text-destructive">{ipError}</p>
+                  <p className="text-xs text-basalt-destructive">{ipError}</p>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Timer className="h-4 w-4" />
-                Auto Backup
-              </CardTitle>
-              <CardDescription>
-                Automatically trigger backups on a schedule by calling an
-                external webhook.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+          <LayerCard>
+            <LayerCard.Header>
+              <div>
+                <h2 className="flex items-center gap-2 text-basalt-lg font-semibold">
+                  <Timer className="h-4 w-4" />
+                  Auto Backup
+                </h2>
+                <p className="text-basalt-sm text-basalt-muted-foreground">
+                  Automatically trigger backups on a schedule by calling an
+                  external webhook.
+                </p>
+              </div>
+            </LayerCard.Header>
+            <LayerCard.Body className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <Label htmlFor="auto-backup-toggle" className="flex-1">
                   Enable Auto Backup
                 </Label>
-                <button
-                  type="button"
+                <Switch
                   id="auto-backup-toggle"
-                  role="switch"
-                  aria-checked={autoBackupEnabled === 1}
-                  onClick={() =>
-                    setAutoBackupEnabled(autoBackupEnabled === 1 ? 0 : 1)
-                  }
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                    autoBackupEnabled === 1 ? "bg-primary" : "bg-muted"
-                  }`}
+                  checked={autoBackupEnabled === 1}
+                  onCheckedChange={(checked) => setAutoBackupEnabled(checked ? 1 : 0)}
                   disabled={saving}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                      autoBackupEnabled === 1
-                        ? "translate-x-5"
-                        : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                />
               </div>
 
               {autoBackupEnabled === 1 && (
@@ -680,7 +647,7 @@ export function ProjectDetailPage() {
                       placeholder="https://your-saas.com/api/backup/trigger"
                       disabled={saving}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-basalt-muted-foreground">
                       The external endpoint to call when triggering a backup.
                     </p>
                   </div>
@@ -688,7 +655,7 @@ export function ProjectDetailPage() {
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="ab-header-key">
                       Auth Header Name{" "}
-                      <span className="text-muted-foreground font-normal">
+                      <span className="text-basalt-muted-foreground font-normal">
                         (optional)
                       </span>
                     </Label>
@@ -708,7 +675,7 @@ export function ProjectDetailPage() {
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="ab-header-value">
                       Auth Header Value{" "}
-                      <span className="text-muted-foreground font-normal">
+                      <span className="text-basalt-muted-foreground font-normal">
                         (optional)
                       </span>
                     </Label>
@@ -751,12 +718,12 @@ export function ProjectDetailPage() {
                   {project.auto_backup_enabled === 1 &&
                     project.auto_backup_webhook &&
                     !dirty && (
-                      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                      <div className="flex items-center gap-3 rounded-lg border border-basalt-border bg-basalt-muted/30 px-4 py-3">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">
+                          <p className="text-sm font-medium text-basalt-foreground">
                             Test Trigger
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-basalt-muted-foreground">
                             Manually fire the webhook once. The result will
                             appear in Cron Logs.
                           </p>
@@ -778,8 +745,8 @@ export function ProjectDetailPage() {
                     )}
                 </>
               )}
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
         </div>
 
         <ProjectWebhookPanel
@@ -810,14 +777,16 @@ export function ProjectDetailPage() {
         formatBytes={formatBytes}
       />
 
-      <Card className="border-destructive/30">
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            Deleting a project will permanently remove all associated backups.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LayerCard outlined>
+        <LayerCard.Header>
+          <div>
+            <h2 className="text-basalt-lg font-semibold text-basalt-destructive">Danger Zone</h2>
+            <p className="text-basalt-sm text-basalt-muted-foreground">
+              Deleting a project will permanently remove all associated backups.
+            </p>
+          </div>
+        </LayerCard.Header>
+        <LayerCard.Body>
           <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <DialogTrigger asChild>
               <Button variant="destructive" size="sm" className="w-fit">
@@ -856,8 +825,8 @@ export function ProjectDetailPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </CardContent>
-      </Card>
+        </LayerCard.Body>
+      </LayerCard>
     </div>
   );
 }
@@ -879,7 +848,7 @@ function ProjectDetailSkeleton() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="flex flex-col gap-6">
-          <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+          <div className="rounded-basalt-card bg-basalt-secondary p-6">
             <Skeleton className="h-5 w-24 mb-1" />
             <Skeleton className="h-3 w-64 mb-6" />
             <div className="flex flex-col gap-4">
@@ -903,7 +872,7 @@ function ProjectDetailSkeleton() {
             </div>
           </div>
 
-          <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+          <div className="rounded-basalt-card bg-basalt-secondary p-6">
             <div className="flex items-center gap-2 mb-1">
               <Skeleton className="h-4 w-4" />
               <Skeleton className="h-5 w-24" />
@@ -916,7 +885,7 @@ function ProjectDetailSkeleton() {
           </div>
         </div>
 
-        <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+        <div className="rounded-basalt-card bg-basalt-secondary p-6">
           <Skeleton className="h-5 w-32 mb-1" />
           <Skeleton className="h-3 w-64 mb-6" />
           <div className="flex flex-col gap-4">
@@ -937,14 +906,14 @@ function ProjectDetailSkeleton() {
         </div>
       </div>
 
-      <div className="rounded-[var(--radius-card)] bg-secondary p-6">
+      <div className="rounded-basalt-card bg-basalt-secondary p-6">
         <Skeleton className="h-5 w-32 mb-1" />
         <Skeleton className="h-3 w-48 mb-4" />
         <div className="flex flex-col gap-2">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3"
             >
               <div className="flex items-center gap-3">
                 <Skeleton className="h-8 w-8 rounded-lg" />
@@ -962,7 +931,7 @@ function ProjectDetailSkeleton() {
         </div>
       </div>
 
-      <div className="rounded-[var(--radius-card)] bg-secondary p-6 border border-destructive/30">
+      <div className="rounded-basalt-card bg-basalt-secondary p-6 border border-basalt-destructive/30">
         <Skeleton className="h-5 w-28 mb-1" />
         <Skeleton className="h-3 w-80 mb-4" />
         <Skeleton className="h-8 w-32 rounded-md" />

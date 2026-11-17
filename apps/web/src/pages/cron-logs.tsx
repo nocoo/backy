@@ -10,20 +10,21 @@ import {
   Clock,
   SkipForward,
   Trash2,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "@nocoo/basalt/icons";
+import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, ApiError } from "@/lib/api";
 import { generatePageNumbers, formatLogDate } from "@/lib/pagination";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
+import { Button } from "@nocoo/basalt/components/button";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
 
 interface CronLogEntry {
   id: string;
@@ -69,7 +70,7 @@ function StatusIcon({ status }: { status: CronLogEntry["status"] }) {
     case "skipped":
       return <SkipForward className="h-4 w-4 text-amber-500" />;
     case "failed":
-      return <XCircle className="h-4 w-4 text-destructive" />;
+      return <XCircle className="h-4 w-4 text-basalt-destructive" />;
   }
 }
 
@@ -109,14 +110,14 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
 
 function CronLogDetail({ log }: { log: CronLogEntry }) {
   return (
-    <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-border bg-muted/30 px-4 py-3 text-sm">
+    <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-basalt-border bg-basalt-muted/30 px-4 py-3 text-sm">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {log.response_code !== null && (
           <div>
-            <span className="mb-0.5 block text-xs text-muted-foreground">
+            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
               Response Code
             </span>
-            <span className="font-mono text-xs text-foreground">
+            <span className="font-mono text-xs text-basalt-foreground">
               {log.response_code}
             </span>
           </div>
@@ -124,10 +125,10 @@ function CronLogDetail({ log }: { log: CronLogEntry }) {
 
         {log.duration_ms !== null && (
           <div>
-            <span className="mb-0.5 block text-xs text-muted-foreground">
+            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
               Duration
             </span>
-            <span className="font-mono text-xs text-foreground">
+            <span className="font-mono text-xs text-basalt-foreground">
               {log.duration_ms}ms
             </span>
           </div>
@@ -135,29 +136,29 @@ function CronLogDetail({ log }: { log: CronLogEntry }) {
 
         {log.error && (
           <div className="md:col-span-2">
-            <span className="mb-0.5 block text-xs text-muted-foreground">
+            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
               Error
             </span>
-            <span className="break-all text-xs text-destructive">
+            <span className="break-all text-xs text-basalt-destructive">
               {log.error}
             </span>
           </div>
         )}
 
         <div>
-          <span className="mb-0.5 block text-xs text-muted-foreground">
+          <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
             Log ID
           </span>
-          <span className="font-mono text-xs text-foreground/60">
+          <span className="font-mono text-xs text-basalt-foreground/60">
             {log.id}
           </span>
         </div>
 
         <div>
-          <span className="mb-0.5 block text-xs text-muted-foreground">
+          <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
             Project ID
           </span>
-          <span className="font-mono text-xs text-foreground/60">
+          <span className="font-mono text-xs text-basalt-foreground/60">
             {log.project_id}
           </span>
         </div>
@@ -272,32 +273,15 @@ export function CronLogsPage() {
 
   return (
     <div className="relative flex flex-col gap-4 md:gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Cron Logs</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {data
-              ? `${data.total} log${data.total !== 1 ? "s" : ""} total`
-              : "Loading..."}
-          </p>
-        </div>
-        {data && data.total > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleClearLogs()}
-            disabled={deleting || loading}
-            className="text-destructive hover:text-destructive"
-          >
-            {deleting ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            Clear
+      <PageHeader
+        title="Cron Logs"
+        description={data ? `${data.total} log${data.total !== 1 ? "s" : ""} total` : "Loading..."}
+        actions={data && data.total > 0 ? (
+          <Button variant="outline" size="sm" onClick={() => void handleClearLogs()} disabled={deleting || loading} className="text-basalt-destructive">
+            {deleting ? <Loader2 className="mr-basalt-space-md h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />}Clear
           </Button>
-        )}
-      </div>
+        ) : null}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <Select
@@ -338,7 +322,7 @@ export function CronLogsPage() {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-9 text-xs text-muted-foreground"
+            className="h-9 text-xs text-basalt-muted-foreground"
           >
             <X className="mr-1 h-3 w-3" />
             Clear filters
@@ -349,8 +333,8 @@ export function CronLogsPage() {
       {loading && !data ? (
         <CronLogsListSkeleton />
       ) : error && !data ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
+          <p className="text-sm text-basalt-destructive">{error}</p>
           <Button
             variant="outline"
             size="sm"
@@ -361,14 +345,14 @@ export function CronLogsPage() {
           </Button>
         </div>
       ) : data && data.items.length === 0 ? (
-        <div className="rounded-lg border border-border bg-background/50 p-12 text-center">
-          <Timer className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-foreground">
+        <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-12 text-center">
+          <Timer className="mx-auto mb-3 h-10 w-10 text-basalt-muted-foreground/40" />
+          <p className="text-sm font-medium text-basalt-foreground">
             {hasFilters
               ? "No cron logs match your filters"
               : "No cron logs yet"}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-basalt-muted-foreground">
             {hasFilters
               ? "Try adjusting your filters."
               : "Cron logs will appear when auto-backup triggers run."}
@@ -386,7 +370,7 @@ export function CronLogsPage() {
         </div>
       ) : data ? (
         <>
-          <div className="hidden items-center gap-3 border-b border-border px-4 py-2 text-xs text-muted-foreground md:flex">
+          <div className="hidden items-center gap-3 border-b border-basalt-border px-4 py-2 text-xs text-basalt-muted-foreground md:flex">
             <div className="w-5 shrink-0" />
             <div className="w-[90px] shrink-0">Status</div>
             <div className="min-w-0 flex-1">Project</div>
@@ -402,10 +386,10 @@ export function CronLogsPage() {
                   type="button"
                   className={`flex w-full cursor-pointer flex-col gap-3 rounded-lg border px-4 py-3 text-left transition-colors md:flex-row md:items-center ${
                     expandedId === log.id
-                      ? "border-primary/40 bg-primary/5"
+                      ? "border-basalt-primary/40 bg-basalt-primary/5"
                       : log.status === "failed"
-                        ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
-                        : "border-border bg-background/50 hover:bg-muted/50"
+                        ? "border-basalt-destructive/20 bg-basalt-destructive/5 hover:bg-basalt-destructive/10"
+                        : "border-basalt-border bg-basalt-background/50 hover:bg-basalt-muted/50"
                   }`}
                   onClick={() =>
                     setExpandedId(expandedId === log.id ? null : log.id)
@@ -422,14 +406,14 @@ export function CronLogsPage() {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="truncate text-sm font-medium text-foreground">
+                        <div className="truncate text-sm font-medium text-basalt-foreground">
                           {log.project_name ?? "Unknown"}
                         </div>
                         <div className="md:hidden">
                           <StatusBadge status={log.status} />
                         </div>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:hidden">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-basalt-muted-foreground md:hidden">
                         <span className="font-mono">
                           {log.response_code ?? "—"}
                         </span>
@@ -441,7 +425,7 @@ export function CronLogsPage() {
                         <span>{formatLogDate(log.triggered_at)}</span>
                       </div>
                       {log.error && (
-                        <span className="mt-1 block truncate text-xs text-destructive">
+                        <span className="mt-1 block truncate text-xs text-basalt-destructive">
                           {log.error.length > 60
                             ? `${log.error.slice(0, 60)}...`
                             : log.error}
@@ -451,13 +435,13 @@ export function CronLogsPage() {
                   </div>
 
                   <div className="hidden w-[80px] shrink-0 text-right md:block">
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <span className="font-mono text-xs text-basalt-muted-foreground">
                       {log.response_code ?? "—"}
                     </span>
                   </div>
 
                   <div className="hidden w-[70px] shrink-0 text-right md:block">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-basalt-muted-foreground">
                       {log.duration_ms !== null
                         ? `${log.duration_ms}ms`
                         : "—"}
@@ -465,7 +449,7 @@ export function CronLogsPage() {
                   </div>
 
                   <div className="hidden w-[130px] shrink-0 md:block">
-                    <span className="whitespace-nowrap text-xs text-muted-foreground">
+                    <span className="whitespace-nowrap text-xs text-basalt-muted-foreground">
                       {formatLogDate(log.triggered_at)}
                     </span>
                   </div>
@@ -478,7 +462,7 @@ export function CronLogsPage() {
 
           {data.totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-basalt-muted-foreground">
                 Page {data.page} of {data.totalPages}
                 {" · "}
                 {data.total} log{data.total !== 1 ? "s" : ""}
@@ -496,7 +480,7 @@ export function CronLogsPage() {
                   p === "..." ? (
                     <span
                       key={`ellipsis-${i}`}
-                      className="px-2 text-xs text-muted-foreground"
+                      className="px-2 text-xs text-basalt-muted-foreground"
                     >
                       ...
                     </span>
@@ -530,8 +514,8 @@ export function CronLogsPage() {
       ) : null}
 
       {loading && data && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/50">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-basalt-background/50">
+          <Loader2 className="h-5 w-5 animate-spin text-basalt-muted-foreground" />
         </div>
       )}
     </div>
@@ -541,7 +525,7 @@ export function CronLogsPage() {
 function CronLogsListSkeleton() {
   return (
     <>
-      <div className="hidden items-center gap-3 border-b border-border px-4 py-2 md:flex">
+      <div className="hidden items-center gap-3 border-b border-basalt-border px-4 py-2 md:flex">
         <Skeleton className="h-4 w-5" />
         <Skeleton className="h-4 w-[90px]" />
         <Skeleton className="h-4 max-w-[120px] flex-1" />
@@ -554,7 +538,7 @@ function CronLogsListSkeleton() {
         {Array.from({ length: 10 }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 px-4 py-3 md:flex-row md:items-center"
+            className="flex flex-col gap-3 rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3 md:flex-row md:items-center"
           >
             <div className="flex min-w-0 flex-1 items-start gap-3 md:items-center">
               <Skeleton className="h-4 w-5 shrink-0" />

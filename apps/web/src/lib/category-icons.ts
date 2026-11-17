@@ -20,7 +20,7 @@ import {
   Briefcase,
   Users,
   type LucideIcon,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 
 export const CATEGORY_ICONS: Array<{
   name: string;
