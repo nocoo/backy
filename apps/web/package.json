@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@backy/api": "workspace:*",
-    "@nocoo/basalt": "^3.5.0",
+    "@nocoo/basalt": "^3.5.1",
     "clsx": "^2.1.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
