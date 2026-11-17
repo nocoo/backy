@@ -5,6 +5,183 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.6] - 2026-11-17
+
+### Added
+- Run pre-commit L1 on git index snapshot
+- Add Hexly project link and header tooltips
+- Adopt backy family identity
+
+### Changed
+- Migrate web to basalt 3.5
+- Bump @playwright/test 1.65.0 → 1.65.1
+- Bump hono 4.13.17 → 4.13.18
+- Bump lucide-react 1.70.0 → 1.73.0
+- Bump jose 6.2.15 → 6.2.17
+- Bump vite 8.3.5 → 8.3.8
+- Bump @aws-sdk/client-s3 3.1161.0 → 3.1169.0 and @aws-sdk/s3-request-presigner 3.1161.0 → 3.1169.0
+- Bump wrangler 4.156.2 → 4.162.0
+- Bump @vitejs/plugin-react 6.1.2 → 6.3.0
+- Migrate to System1 v1.3.0 Native Mode (v2026.15)
+- Migrate to base-ci v2026.12 quality.yml slot standard v1
+- Pin deploy-worker to base-ci v2026.12
+- Pin base-ci to v2026.10
+- Release 1.11.5
+- Bump @playwright/test 1.64.1 → 1.65.0
+- Bump @biomejs/biome 2.6.4 → 2.6.6
+- Bump vitest 5.0.5 → 5.1.0 and @vitest/coverage-v8 5.0.5 → 5.1.0
+- Bump tailwindcss 4.3.3 → 4.3.5 and @tailwindcss/vite 4.3.3 → 4.3.5
+- Bump lucide-react 1.61.0 → 1.70.0
+- Bump hono 4.13.13 → 4.13.17
+- Record index-snapshot L1 pre-commit enforcement
+- Bump jose 6.2.13 → 6.2.15
+- Bump @biomejs/biome 2.6.3 → 2.6.4
+- Bump @types/node 26.6.5 → 26.6.6
+- Bump react-router 8.5.0 → 8.5.1
+- Bump wrangler 4.152.0 → 4.156.2
+- Bump @aws-sdk/s3-request-presigner 3.1156.0 → 3.1161.0
+- Bump @aws-sdk/client-s3 3.1156.0 → 3.1161.0
+- Bump undici override 8.11.2 → 8.12.2
+- Bump @types/bun 1.4.3 → 1.4.4
+- Bump vite 8.3.4 → 8.3.5
+- Bump @cloudflare/workers-types 5.20261019.1 → 5.20261024.1
+- Bump @biomejs/biome 2.5.15 → 2.6.3
+- Bump wrangler 4.151.2 → 4.152.0
+- Bump lucide-react 1.59.0 → 1.61.0
+- Bump jose 6.2.12 → 6.2.13
+- Bump @aws-sdk/client-s3 and s3-request-presigner 3.1153.0 → 3.1156.0
+- Bump happy-dom 20.14.5 → 21.0.4
+- Bump node engine floor to 22.23.4
+- Bump base-ci to ac635753
+- Bump react-router to 8.5.0
+- Bump vitest and @vitest/coverage-v8 to 5.0.5
+- Bump react and react-dom to 19.3.1
+- Bump @playwright/test to 1.64.1
+- Bump wrangler to 4.151.2
+- Bump lucide-react to 1.59.0
+- Bump @cloudflare/workers-types to 5.20261019.1
+- Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1153.0
+- Upgrade base-ci to v2026.9
+- Bump vitest and @vitest/coverage-v8 to 5.0.4
+- Bump @types/bun to 1.4.3
+- Bump zod to 4.6.7
+- Bump wrangler to 4.149.0
+- Bump vite to 8.3.4
+- Bump tar-stream to 3.2.2
+- Bump sharp override to ^0.35.5
+- Bump radix-ui to 1.8.1
+- Bump nanoid to 6.0.2
+- Bump lucide-react to 1.55.0
+- Bump hono to 4.13.13
+- Bump @vitejs/plugin-react to 6.1.2
+- Bump @types/tar-stream to 3.1.5
+- Bump @types/node to 26.6.5
+- Bump @playwright/test to 1.64.0
+- Bump @cloudflare/workers-types to 5.20261012.1
+- Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1150.0
+- Bump biome (#693)
+- Bump lint-staged (#690)
+- Bump vitest (#689,#692)
+- Isolate S3 wiring fixture
+- Upgrade wrangler to 4.136.3
+- Upgrade @cloudflare/workers-types to 5.20260922.1
+- Upgrade aws-sdk s3 packages to 3.1138.0
+- Migrate claude handbook to agents.md
+- Upgrade wrangler to 4.136.1 (#682)
+- Upgrade @cloudflare/workers-types to 5.20260921.1 (#681)
+- Upgrade @aws-sdk/s3-request-presigner to 3.1137.0 (#680)
+- Upgrade @aws-sdk/client-s3 to 3.1137.0 (#679)
+- Update workers-types
+- Update wrangler
+- Update node
+- Update s3-request-presigner
+- Update client-s3
+- Update lucide-react
+- Align biome schema
+- Update biome
+- Normalize claude handbook and quality contract
+- Align release wrangler-version with lockfile
+- Update react-router
+- Update hono
+- Align vitest 5.0.1
+- Align Biome schema with 2.5.13 (#594)
+- Upgrade wrangler to 4.131.2 (#619)
+- Upgrade lucide-react to 1.46.0 (#618)
+- Upgrade @cloudflare/workers-types to 5.20260914.1 (#617)
+- Upgrade @aws-sdk/s3-request-presigner to 3.1132.0 (#616)
+- Upgrade @aws-sdk/client-s3 to 3.1132.0 (#615)
+- Upgrade zod to 4.6.5 (#612)
+- Upgrade @testing-library/dom to 10.4.2 (#610)
+- Upgrade tailwind-merge to 3.7.0 (#608)
+- Upgrade happy-dom to 20.14.5 (#604)
+- Upgrade vite to 8.3.0 (#598)
+- Upgrade lint-staged to 17.5.1 (#596)
+- Upgrade @biomejs/biome to 2.5.13 (#594)
+- Upgrade React and React DOM to 19.3.0 (#589, #590)
+- Upgrade @types/react-dom to 19.3.0 (#587)
+- Upgrade @types/react to 19.3.0 (#586)
+- Upgrade jszip to 3.10.2 (#579)
+- Upgrade @types/bun to 1.4.2 (#578)
+- Upgrade jose to 6.2.12 (#567)
+- Upgrade hono to 4.13.7 (#563)
+- Upgrade @playwright/test to 1.63.0 (#561)
+- Upgrade AWS S3 client to 3.1131.0
+- Upgrade @types/node to 26.5.1
+- Pin base-ci to ad43150
+- Pin base-ci to verified sha
+- Migrate workflows to base-ci
+- Refresh bilingual project documentation
+- Bump Cloudflare Workers types
+- Upgrade wrangler to 4.129.0
+- Bump lucide-react to 1.40.0
+- Bump happy-dom to 20.14.0
+- Upgrade Vitest coverage to 5.0.0
+- Bump @types/react-dom to 19.2.7
+- Bump workers types
+- Bump @biomejs/biome to 2.5.12
+- Upgrade s3 request presigner
+- Upgrade aws sdk s3 client
+- Note gitleaks also runs in ci
+- Sync quality table with real hooks
+- Use full path for release workflow
+- Fix readme ports stack and coverage
+- List ci and release workflows as enforcement
+- Point readme layout at claude handbook
+- Split combined security and monorepo retros
+- Align handbook with ci ports and deploy
+- Rewrite claude as agent handbook
+- Move claude accidents into Retrospective.md
+- Enable wrangler remote d1 and r2
+- STU-4532: sync current dependency upgrades
+- Bump hono to 4.13.4 in @backy/worker
+- STU-4392 STU-4393: chore(deps): bump @aws-sdk client-s3 and s3-request-presigner to 3.1117.0
+- Bump @types/node from 26.2.0 to 26.3.0 (#484)
+- Bump lucide-react to 1.34.0
+- STU-4271: chore(deps): bump @types/react-dom to 19.2.5
+- Bump workers-types to 5.20260823.1
+- Bump @aws-sdk client-s3 and s3-request-presigner to 3.1116.0
+- Bump jose from 6.2.9 to 6.2.10
+- Bump workers-types to 5.20260822.1
+- Bump @biomejs/biome from 2.5.9 to 2.5.10
+
+### Fixed
+- Patch source-map-js (#695)
+- Pin undici 8.11.2 for security (#691)
+- Patch undici on supported 7.x
+- Match locked wrangler version
+- Disable worker default and preview urls
+- Align release wrangler version
+- Add accessible sr-only text to hexly link
+- Align Vite override with 8.3.0 target (#598)
+- Pass empty wrangler env without quotes
+- Deploy default worker without empty env
+- Add release proof permissions
+- Upgrade sharp to 0.35.4
+
+### Removed
+- Drop unused ci secrets inherit
+- Remove unused LoadingScreen web component.
+
 ## [1.11.5] - 2026-11-10
 
 ### Changed
