@@ -1,101 +1,72 @@
 # Backy
 
-Backup ingestion for applications and agents: webhook/API receive, D1 metadata, R2 blobs and a Vite dashboard.
-Profile: ts-worker-web.
-Human overview: [README.md](README.md). Direction: [development guide](docs/10-development.md); `docs/01-design.md` predates the current Vite/Worker architecture. Frameworks must not rewrite this file. Maintain this root `AGENTS.md` as the only project handbook; do not create a `CLAUDE.md` alias, copy or import.
+Backup ingestion for applications and agents: Hono Worker webhook/API receive, D1 (`backy-db`) metadata, R2 (`backy`) blobs, and a Vite/React SPA (`@nocoo/basalt`).
+Docs: [README.md](README.md) · [Docs Index](docs/README.md) · [Development Guide](docs/10-development.md) · [Direct Upload](docs/09-large-file-direct-upload.md) · [Retrospective](Retrospective.md)
 
-## Sources of Truth
-
-This file is the contract; hooks, CI and configuration enforce it. Raise weaker enforcement instead of lowering this contract.
-
-| Fact                      | Where                                                                                             |
-| ------------------------- | ------------------------------------------------------------------------------------------------- |
-| Human docs                | [README.md](README.md), [docs index](docs/README.md)                                              |
-| Version                   | Root `package.json`; display with a `v` prefix                                                    |
-| Enforcement               | `.husky/`, CI/release workflows, Vitest configs, `scripts/gate-*.ts`                              |
-| Local secrets             | Ignored files next to the consuming workspace; Worker uses `.dev.vars` without a tracked template |
-| Machine rules / accidents | Global `AGENTS.md` and `rules/`; [Retrospective.md](Retrospective.md)                             |
-
-## Project Invariants
-
-- Dashboard auth is Cloudflare Access JWT; webhook/CLI integrations use project tokens. `E2E_SKIP_AUTH` is only for guarded local tests.
-- Sanitize and allowlist API input; validate `x-forwarded-host`; cap streaming decompression. Preserve normal-upload and direct-upload size/protocol limits in [docs/09](docs/09-large-file-direct-upload.md).
-- Restoring returns the original file or signed download; it never silently imports data into a caller's database.
-- Tests must never use production/daily-dev D1 or R2, even though interactive Wrangler config has `remote = true`. Never create remote `-test` resources.
-- Do not `mock.module` low-level D1/R2 modules. Keep views thin and isolate business logic from UI.
-- Vite writes `apps/worker/static/`; restore its `.gitignore` after `emptyOutDir`. Build the SPA before any authorized Worker deployment.
-
-## Stack / Layout
-
-| Component                    | Choice                                                                      |
-| ---------------------------- | --------------------------------------------------------------------------- |
-| Runtime / install            | TypeScript 7, Bun workspaces, Node ≥22.12; CI Bun 1.3.11                    |
-| App                          | Hono Worker with Vite/React SPA and scheduled backup work                   |
-| Data                         | D1 `backy-db`, R2 `backy`, local S3-compatible direct-upload test interface |
-| Static / tests               | TypeScript, Biome, Vitest, local HTTP and Playwright                        |
-| `apps/web/`, `apps/worker/`  | SPA on 7017; Worker/API/assets on 7018                                      |
-| `packages/api/`, `apps/cli/` | Shared backup/storage logic; CLI is currently a placeholder                 |
-| `e2e/`, `scripts/`           | HTTP/BDD suites, local runners, gates and release                           |
+`docs/01-design.md` predates the current Vite/Worker architecture; use [docs/10-development.md](docs/10-development.md) for current setup and integration rules. Raise weaker enforcement instead of lowering this contract.
 
 ## Commands
 
-Run from the root with Bun and Node installed. `bun run dev` uses configured remote bindings; inspect [development setup](docs/10-development.md) before starting it. Tests need no Cloudflare production credentials.
+Run from root with Bun (CI `1.3.11`), TypeScript 7, and Node `>=22.23.4`. `bun run dev` uses configured remote bindings (`remote = true`); read [docs/10-development.md](docs/10-development.md) first. Tests need no prod credentials.
 
-```bash
-bun install --frozen-lockfile
-bun run typecheck
-bun run lint
-bun run build
-bun run test:coverage
-bun run test:e2e:api
-bunx playwright install chromium
-bun run test:e2e:bdd
-bun run gate:security
+```sh
+bun install --frozen-lockfile     # installs workspaces and Husky hooks
+bun run dev                       # Vite 7017 (backy.dev.hexly.ai) + Worker 7018
+bun run typecheck                 # S1 across all workspaces
+bun run lint                      # S2 Biome check-only, 0 warnings
+bun run build                     # B1 builds SPA into apps/worker/static/
+bun run test:coverage             # L1 Vitest (95/90/95/95 floors)
+bun run test:e2e:api              # L3 local Worker HTTP E2E on 17018
+bunx playwright install chromium  # one-time browser install for L4
+bun run test:e2e:bdd              # L4 builds SPA + Playwright E2E on 17018
+bun run gate:security             # G1 gitleaks + G2 osv-scanner locally
 ```
 
-Both HTTP and BDD runners use port 17018; run them sequentially. BDD builds the SPA automatically; API tests start their own local Worker and initialize its schema/marker. Per-workspace commands are listed in `package.json`.
+`test:e2e:api` and `test:e2e:bdd` both bind port `17018`; run them sequentially. BDD builds the SPA automatically; API E2E spawns a local Worker and initializes schema/`_test_marker`. Per-workspace scripts live in `package.json`.
 
-## Verification
+## Workspace Layout
 
-Quality follows System1 v1.3.0 Native Mode (`nocoo/base-ci v2026.15`) in `.github/workflows/quality-slots.yml` and `.github/workflows/ci.yml`. Status: `enforced`, `planned`, `manual`, `N/A`.
+| Path | Role |
+| --- | --- |
+| `apps/web/` | Vite/React + `@nocoo/basalt` SPA (dev `7017`), builds into `apps/worker/static/` |
+| `apps/worker/` | Hono Worker, Cloudflare Access auth, D1/R2 bindings, hourly scheduled jobs (dev `7018`) |
+| `packages/api/` | Runtime-agnostic backup/storage handlers, D1/R2 adapters, extractors |
+| `apps/cli/` | CLI package (currently a placeholder) |
+| `e2e/`, `scripts/` | HTTP/BDD E2E suites, local runners, quality gates (`scripts/gate-*.ts`), release script |
 
-| Slot              | Status   | Evidence                                                        |
-| ----------------- | -------- | --------------------------------------------------------------- |
-| `S1` Types        | enforced | `bun run typecheck` (pre-commit + CI)                           |
-| `S2` Lint         | enforced | `bun run lint` (pre-commit + CI)                                |
-| `S3` Workflow     | enforced | SHA-pinned workflow action check in CI                          |
-| `G1` Secrets      | enforced | `gitleaks` (`.gitleaks.toml`) in pre-commit + CI                |
-| `G2` Dependencies | enforced | `osv-scanner` (`osv-scanner.toml`, `bun.lock`) in pre-push + CI |
-| `B1` Build        | enforced | `bun run build` in CI                                           |
-| `L1` Unit         | enforced | `bun run test:coverage` (95/90/95/95 floors) in pre-commit + CI |
-| `L2` Runtime      | N/A      | `wrangler dev` integration covered by `L3`/`L4` runners         |
-| `L3` Integration  | enforced | `bun run test:e2e:api` in CI                                    |
-| `L4` E2E          | enforced | `bun run test:e2e:bdd` (Playwright Chromium) in CI              |
-| `P1` Package      | N/A      | Private monorepo, not published to npm                          |
-| `Z1` Gate         | enforced | `quality / Z1: Gate` required status check on `main`            |
+## Invariants
 
-| Hook       | Current behavior                                                              | Required follow-up                                                     |
-| ---------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| pre-commit | Index snapshot: secrets (staged), typecheck, lint, route/page gates, coverage | Measured warm path <30s; negative fixture rejects staged-only breakage |
-| pre-push   | `gate:deps` only                                                              | L2+G2 (and needed build) on stdin push refs, <3min                     |
+- **Auth**: Dashboard uses Cloudflare Access JWT; webhook/CLI integrations use project tokens. `E2E_SKIP_AUTH` is restricted to guarded local test runners.
+- **API safety**: Sanitize/allowlist API responses and inputs, validate `x-forwarded-host` (`ALLOWED_HOSTS`), cap streaming decompression, and keep upload limits in [docs/09](docs/09-large-file-direct-upload.md).
+- **Restore safety**: Restoring returns the original file or a signed download URL; never silently import data into a caller's database.
+- **Version & secrets**: Root `package.json` is the version source (display with `v` prefix). Keep ignored secrets next to consuming workspaces; Worker uses `apps/worker/.dev.vars` without a tracked template.
+- **Test isolation**: Tests must never use production or daily-dev D1/R2 despite `remote = true` in `apps/worker/wrangler.toml`; never create remote `-test` resources.
+- **Testing & UI**: Never `mock.module` low-level D1/R2 modules (process-wide in Bun). Keep views thin, isolate logic in `packages/api/`, and follow `@nocoo/basalt` rules (`system1-design-basalt`).
+- **Static assets**: Vite writes `apps/worker/static/` with `emptyOutDir`; restore its `.gitignore` after builds (`apps/web` build script does this). Build the SPA before any authorized Worker deploy.
+- **Release & CD**: Production deploys require explicit authorization. Maintainers use `bun run release`; `release.yml` deploys the proven CI commit, builds assets, and applies incremental D1 migrations.
+- **CD exclusivity**: Never run a parallel `bun run worker:deploy` that races CD. Deployment credentials differ from Access JWT credentials; see [docs/10-development.md](docs/10-development.md).
 
-Install restores Husky. Hooks are check-only; never use `--no-verify` on commits or branch pushes.
+## Quality & Local Gates
 
-## Resources / Isolation
+Follows `system1-quality`; CI slot definitions and pinned `nocoo/base-ci` revision live in `.github/workflows/quality-slots.yml` (via `.github/workflows/ci.yml`, `quality / Z1: Gate` required on `main`). Status vocabulary: `enforced`, `planned`, `manual`, `N/A`.
 
-| Lane      | Port / state                           | Boundary                                                                                      |
-| --------- | -------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Daily dev | Vite 7017, Worker 7018                 | Current bindings can reach remote D1/R2; ordinary development must use intended dev resources |
-| L2        | 17018, `apps/worker/.wrangler/e2e-api` | Local runtime and SQLite/R2 simulation                                                        |
-| L3        | 17018, `apps/worker/.wrangler/e2e-bdd` | Local browser lane; cannot run alongside L2                                                   |
+- **Exceptions / gaps**: `L2 Runtime` is `N/A` (`wrangler dev` integration covered by `L3`/`L4`); `P1 Package` is `N/A` (private monorepo, unpublished). All other CI slots are `enforced`.
+- **Coverage boundary**: `L1 Unit` enforces 95/90/95/95 (statements/branches/functions/lines) in `vitest.config.ts` across workspace `src/**` (excluding TSX views, hooks, auth glue, DB/S3 adapters, CLI entry).
+- **Local hooks**: `bun install` restores Husky (`.husky/`). Hooks are check-only; never bypass with `--no-verify` on commits or branch pushes.
+- **Pre-commit**: Runs on a Git index snapshot (rejecting staged-only breakage): `gate:secrets`, `typecheck`, `lint`, `gate:routes`, `gate:pages`, and `test:coverage`.
+- **Pre-push**: Runs `gate:deps` (`osv-scanner` on `bun.lock`) only; `B1`/`L3` + `G2` against stdin push refs (<3 min) is `planned`.
 
-Required Worker harness: reject remote bindings/production credential fallback; allocate a fresh per-run directory; assert local test mode before fixtures; initialize and verify `_test_marker` before reset/cleanup. The current fixed-directory harness is partial implementation. The older remote-resource plan in `docs/05-test-resource-isolation.md` is superseded by this contract.
+## Resources & Isolation
 
-## Operations / Release
+| Lane | Endpoint / State | Boundary |
+| --- | --- | --- |
+| Daily dev | Vite `7017` (`backy.dev.hexly.ai`), Worker `7018` | Wrangler bindings have `remote = true`; use intended dev resources, not prod |
+| API E2E (`L3`) | `127.0.0.1:17018`, `apps/worker/.wrangler/e2e-api` | Local miniflare D1/R2 + local S3 direct-upload interface + `_test_marker` |
+| BDD E2E (`L4`) | `127.0.0.1:17018`, `apps/worker/.wrangler/e2e-bdd` | Local Playwright lane; shares port `17018`, run sequentially with `L3` |
+| Prod | `https://backy.hexly.ai` (`backy-db`, `backy` R2) | Read-only checks unless release/deploy is authorized |
 
-Authorized maintainers use `bun run release` for version/changelog/commit/tag. `release.yml` deploys the proven CI commit, builds assets and applies incremental D1 migrations. Do not add a parallel `worker:deploy` invocation that races CD.
-Deployment credentials differ from Access JWT credentials. Setup, migration and live-check details are in [docs/10-development.md](docs/10-development.md).
+Required Worker harness: reject remote bindings/prod credential fallback, allocate a fresh per-run persist dir, assert local test mode, and initialize/verify `_test_marker` before reset/cleanup. Current fixed-dir harness is partial; [docs/05-test-resource-isolation.md](docs/05-test-resource-isolation.md) is superseded.
 
 ## Retrospective
 
-Narratives remain in [Retrospective.md](Retrospective.md); keep only recurring project rules here, cross-project lessons in global rules/nmem, and deterministic requirements in hooks/tests.
+Record incident narratives in [Retrospective.md](Retrospective.md); promote recurring project constraints to `Invariants` above, cross-project lessons to global rules, and enforceable safeguards to tests/hooks.
