@@ -18,7 +18,7 @@ import { generatePageNumbers, formatLogDate } from "@/lib/pagination";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Button } from "@nocoo/basalt/components/button";
 import { Badge } from "@nocoo/basalt/components/badge";
-import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import {
   Select,
   SelectContent,
@@ -107,7 +107,7 @@ function StatusBadge({ code }: { code: number }) {
   if (code < 300)
     return (
       <Badge
-        variant="secondary"
+        tone="neutral"
         className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
       >
         {code}
@@ -116,13 +116,13 @@ function StatusBadge({ code }: { code: number }) {
   if (code < 400)
     return (
       <Badge
-        variant="secondary"
+        tone="neutral"
         className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
       >
         {code}
       </Badge>
     );
-  return <Badge variant="destructive">{code}</Badge>;
+  return <Badge tone="danger">{code}</Badge>;
 }
 
 function MethodBadge({ method }: { method: string }) {
@@ -132,7 +132,7 @@ function MethodBadge({ method }: { method: string }) {
     HEAD: "bg-purple-500/10 text-purple-600 border-purple-500/20",
   };
   return (
-    <Badge variant="secondary" className={colors[method] ?? ""}>
+    <Badge tone="neutral" className={colors[method] ?? ""}>
       {method}
     </Badge>
   );
@@ -342,7 +342,7 @@ export function LogsPage() {
     } catch (err) {
       const msg = errorMessage(err, "Failed to fetch logs");
       setError(msg);
-      toast.error(msg);
+      toast.danger(msg);
     } finally {
       setLoading(false);
     }
@@ -410,7 +410,7 @@ export function LogsPage() {
       setPage(1);
       await fetchLogs();
     } catch (err) {
-      toast.error(errorMessage(err, "Failed to delete logs"));
+      toast.danger(errorMessage(err, "Failed to delete logs"));
     } finally {
       setDeleting(false);
     }

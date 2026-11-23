@@ -20,7 +20,7 @@ import { Button } from "@nocoo/basalt/components/button";
 import { Badge } from "@nocoo/basalt/components/badge";
 import { Input } from "@nocoo/basalt/components/input";
 import { Checkbox } from "@nocoo/basalt/components/checkbox";
-import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import { ManualUploadDialog } from "@/components/manual-upload-dialog";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
@@ -209,7 +209,7 @@ export function BackupsPage() {
       const result = (await res.json()) as { url: string };
       window.open(result.url, "_blank");
     } catch (err) {
-      toast.error(errorMessage(err, "Download failed"));
+      toast.danger(errorMessage(err, "Download failed"));
     } finally {
       setDownloading(null);
     }
@@ -224,7 +224,7 @@ export function BackupsPage() {
       toast.success("Backup deleted");
       await fetchBackups();
     } catch (err) {
-      toast.error(errorMessage(err, "Delete failed"));
+      toast.danger(errorMessage(err, "Delete failed"));
     } finally {
       setDeleting(false);
     }
@@ -245,7 +245,7 @@ export function BackupsPage() {
       toast.success(`${count} backup${count !== 1 ? "s" : ""} deleted`);
       await fetchBackups();
     } catch (err) {
-      toast.error(errorMessage(err, "Batch delete failed"));
+      toast.danger(errorMessage(err, "Batch delete failed"));
     } finally {
       setDeleting(false);
     }
@@ -513,7 +513,7 @@ export function BackupsPage() {
                         {backup.project_name}
                       </Link>
                       {backup.environment && (
-                        <Badge variant="secondary">
+                        <Badge tone="neutral">
                           {backup.environment}
                         </Badge>
                       )}
@@ -522,8 +522,8 @@ export function BackupsPage() {
                       )}
                       {backup.file_type && (
                         <Badge
-                          variant={
-                            backup.file_type === "json" ? "default" : "secondary"
+                          tone={
+                            backup.file_type === "json" ? "info" : "neutral"
                           }
                         >
                           {FILE_TYPE_LABELS[backup.file_type] ??

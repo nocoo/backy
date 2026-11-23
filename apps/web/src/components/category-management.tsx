@@ -57,7 +57,7 @@ export function CategoryManagement({
       const data = (await res.json()) as Category[];
       setCategories(data);
     } catch {
-      toast.error("Failed to load categories");
+      toast.danger("Failed to load categories");
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export function CategoryManagement({
 
   async function handleSave() {
     if (!formName.trim()) {
-      toast.error("Name is required");
+      toast.danger("Name is required");
       return;
     }
 
@@ -127,7 +127,7 @@ export function CategoryManagement({
       await fetchCategories();
       onCategoriesChanged?.();
     } catch (err) {
-      toast.error(
+      toast.danger(
         err instanceof Error ? err.message : "Failed to save category",
       );
     } finally {
@@ -143,7 +143,7 @@ export function CategoryManagement({
       await fetchCategories();
       onCategoriesChanged?.();
     } catch (err) {
-      toast.error(
+      toast.danger(
         err instanceof Error ? err.message : "Failed to delete category",
       );
     } finally {

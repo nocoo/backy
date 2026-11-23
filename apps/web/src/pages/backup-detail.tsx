@@ -23,7 +23,7 @@ import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@nocoo/basalt/components/button";
 import { Badge } from "@nocoo/basalt/components/badge";
-import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -222,7 +222,7 @@ export function BackupDetailPage() {
       const data = (await res.json()) as { url: string };
       window.open(data.url, "_blank");
     } catch (err) {
-      toast.error(errorMessage(err, "Download failed"));
+      toast.danger(errorMessage(err, "Download failed"));
     }
   }
 
@@ -232,7 +232,7 @@ export function BackupDetailPage() {
       await apiFetch(`/api/backups/${id}`, { method: "DELETE" });
       navigate("/backups");
     } catch (err) {
-      toast.error(errorMessage(err, "Delete failed"));
+      toast.danger(errorMessage(err, "Delete failed"));
       setDeleting(false);
     }
   }
@@ -245,7 +245,7 @@ export function BackupDetailPage() {
       const data = (await res.json()) as { command: string };
       setRestoreCommand(data.command);
     } catch (err) {
-      toast.error(errorMessage(err, "Failed to generate restore command"));
+      toast.danger(errorMessage(err, "Failed to generate restore command"));
     } finally {
       setRestoreLoading(false);
     }
@@ -507,7 +507,7 @@ export function BackupDetailPage() {
               icon={<Unplug className="h-4 w-4" />}
               label="Environment"
               value={
-                <Badge variant="secondary" className="text-xs">
+                <Badge tone="neutral" className="text-xs">
                   {backup.environment}
                 </Badge>
               }
@@ -528,7 +528,7 @@ export function BackupDetailPage() {
             <div className="flex items-center gap-2 text-sm">
               <span className="text-basalt-muted-foreground text-xs">Type:</span>
               <Badge
-                variant={isJson ? "default" : "secondary"}
+                tone={isJson ? "info" : "neutral"}
                 className="text-xs"
               >
                 {FILE_TYPE_LABELS[fileType] ?? fileType.toUpperCase()}
@@ -547,7 +547,7 @@ export function BackupDetailPage() {
                   {backup.json_key}
                 </code>
                 {backup.json_extracted ? (
-                  <Badge variant="secondary" className="text-xs ml-1">
+                  <Badge tone="neutral" className="text-xs ml-1">
                     extracted
                   </Badge>
                 ) : null}

@@ -74,7 +74,7 @@ export function ManualUploadDialog({
       const data = await apiJson<Project[]>("/api/projects");
       setProjects(data);
     } catch {
-      toast.error("Failed to load projects");
+      toast.danger("Failed to load projects");
     } finally {
       setProjectsLoading(false);
     }
@@ -94,7 +94,7 @@ export function ManualUploadDialog({
 
   function validateFile(f: File): boolean {
     if (f.size > 50 * 1024 * 1024) {
-      toast.error("File is too large (max 50MB)");
+      toast.danger("File is too large (max 50MB)");
       return false;
     }
     return true;
@@ -145,11 +145,11 @@ export function ManualUploadDialog({
   async function handleUpload() {
     const targetProjectId = fixedProjectId ?? selectedProjectId;
     if (!targetProjectId) {
-      toast.error("Please select a project");
+      toast.danger("Please select a project");
       return;
     }
     if (!file) {
-      toast.error("Please select a file");
+      toast.danger("Please select a file");
       return;
     }
 
@@ -177,7 +177,7 @@ export function ManualUploadDialog({
       } else if (err instanceof Error) {
         message = err.message;
       }
-      toast.error(message);
+      toast.danger(message);
     } finally {
       setUploading(false);
     }

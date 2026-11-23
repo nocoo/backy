@@ -3,7 +3,7 @@ import useSWR from "swr";
 import { Link, useNavigate } from "react-router";
 import { Plus, FolderKanban, Folder } from "@nocoo/basalt/icons";
 import { swrFetcher } from "@/lib/api";
-import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import { Button } from "@nocoo/basalt/components/button";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { CategoryManagement } from "@/components/category-management";

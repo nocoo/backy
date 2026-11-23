@@ -77,7 +77,7 @@ export function ProjectWebhookPanel({
                 {regenerating ? <Loader2 className="mr-basalt-space-md h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-basalt-space-md h-3.5 w-3.5" />}
                 Regenerate Token
               </Button>
-              <Badge variant="secondary">Bearer token</Badge>
+              <Badge tone="neutral">Bearer token</Badge>
             </div>
           </div>
         </LayerCard.Body>

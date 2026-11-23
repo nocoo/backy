@@ -13,10 +13,10 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
 import { Button } from "@nocoo/basalt/components/button";
 import { Input } from "@nocoo/basalt/components/input";
-import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Textarea } from "@nocoo/basalt/components/textarea";
 import { Label } from "@nocoo/basalt/components/label";
 import { Switch } from "@nocoo/basalt/components/switch";
-import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import { LayerCard } from "@nocoo/basalt/components/layer-card";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
@@ -297,7 +297,7 @@ export function ProjectDetailPage() {
           return;
         }
       }
-      toast.error(errorMessage(err, "Failed to save project"));
+      toast.danger(errorMessage(err, "Failed to save project"));
     } finally {
       setSaving(false);
     }
@@ -315,7 +315,7 @@ export function ProjectDetailPage() {
       setTokenVisible(true);
       toast.success("Token regenerated successfully");
     } catch (err) {
-      toast.error(errorMessage(err, "Failed to regenerate token"));
+      toast.danger(errorMessage(err, "Failed to regenerate token"));
     } finally {
       setRegenerating(false);
     }
@@ -327,7 +327,7 @@ export function ProjectDetailPage() {
       await apiFetch(`/api/projects/${id}`, { method: "DELETE" });
       navigate("/projects");
     } catch (err) {
-      toast.error(errorMessage(err, "Failed to delete project"));
+      toast.danger(errorMessage(err, "Failed to delete project"));
       setDeleting(false);
     }
   }
@@ -348,7 +348,7 @@ export function ProjectDetailPage() {
       const data = (await res.json()) as { url: string };
       window.open(data.url, "_blank");
     } catch (err) {
-      toast.error(errorMessage(err, "Download failed"));
+      toast.danger(errorMessage(err, "Download failed"));
     } finally {
       setDownloading(null);
     }
@@ -361,7 +361,7 @@ export function ProjectDetailPage() {
       toast.success("Backup deleted");
       await fetchBackups();
     } catch (err) {
-      toast.error(errorMessage(err, "Delete failed"));
+      toast.danger(errorMessage(err, "Delete failed"));
       throw err;
     } finally {
       setDeletingBackup(null);
@@ -376,7 +376,7 @@ export function ProjectDetailPage() {
       const data = (await res.json()) as { prompt: string };
       setPromptText(data.prompt);
     } catch (err) {
-      toast.error(errorMessage(err, "Failed to load prompt"));
+      toast.danger(errorMessage(err, "Failed to load prompt"));
     } finally {
       setPromptLoading(false);
     }
@@ -400,12 +400,12 @@ export function ProjectDetailPage() {
           `Trigger successful (${data.responseCode}, ${data.durationMs}ms)`,
         );
       } else {
-        toast.error(
+        toast.danger(
           `Trigger failed: ${data.error ?? `HTTP ${data.responseCode}`}`,
         );
       }
     } catch (err) {
-      toast.error(errorMessage(err, "Failed to trigger backup"));
+      toast.danger(errorMessage(err, "Failed to trigger backup"));
     } finally {
       setTestingTrigger(false);
     }

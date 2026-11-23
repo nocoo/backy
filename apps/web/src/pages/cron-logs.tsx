@@ -17,7 +17,7 @@ import { generatePageNumbers, formatLogDate } from "@/lib/pagination";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Button } from "@nocoo/basalt/components/button";
 import { Badge } from "@nocoo/basalt/components/badge";
-import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import {
   Select,
   SelectContent,
@@ -79,7 +79,7 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
     case "success":
       return (
         <Badge
-          variant="secondary"
+          tone="neutral"
           className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
         >
           Success
@@ -88,7 +88,7 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
     case "triggered":
       return (
         <Badge
-          variant="secondary"
+          tone="neutral"
           className="border-sky-500/20 bg-sky-500/10 text-sky-600"
         >
           Triggered
@@ -97,14 +97,14 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
     case "skipped":
       return (
         <Badge
-          variant="secondary"
+          tone="neutral"
           className="border-amber-500/20 bg-amber-500/10 text-amber-600"
         >
           Skipped
         </Badge>
       );
     case "failed":
-      return <Badge variant="destructive">Failed</Badge>;
+      return <Badge tone="danger">Failed</Badge>;
   }
 }
 
@@ -213,7 +213,7 @@ export function CronLogsPage() {
     } catch (err) {
       const msg = errorMessage(err, "Failed to fetch cron logs");
       setError(msg);
-      toast.error(msg);
+      toast.danger(msg);
     } finally {
       setLoading(false);
     }
@@ -265,7 +265,7 @@ export function CronLogsPage() {
       setPage(1);
       await fetchLogs();
     } catch (err) {
-      toast.error(errorMessage(err, "Failed to delete cron logs"));
+      toast.danger(errorMessage(err, "Failed to delete cron logs"));
     } finally {
       setDeleting(false);
     }

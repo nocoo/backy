@@ -3,7 +3,7 @@ import useSWR from "swr";
 import { Archive } from "@nocoo/basalt/icons";
 import { swrFetcher } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
-import { SkeletonLine as Skeleton } from "@nocoo/basalt/components/skeleton-line";
+import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import { Badge } from "@nocoo/basalt/components/badge";
 import { LayerCard } from "@nocoo/basalt/components/layer-card";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
@@ -140,7 +140,7 @@ export function DashboardPage() {
                             {backup.project_name}
                           </span>
                           {backup.environment && (
-                            <Badge variant="secondary">
+                            <Badge tone="neutral">
                               {backup.environment}
                             </Badge>
                           )}

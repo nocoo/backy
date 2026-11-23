@@ -4,7 +4,7 @@ import { Loader2 } from "@nocoo/basalt/icons";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@nocoo/basalt/components/button";
 import { Input } from "@nocoo/basalt/components/input";
-import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Textarea } from "@nocoo/basalt/components/textarea";
 import { Label } from "@nocoo/basalt/components/label";
 import { LayerCard } from "@nocoo/basalt/components/layer-card";
 import { PageHeader } from "@nocoo/basalt/components/page-header";

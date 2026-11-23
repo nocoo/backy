@@ -99,8 +99,8 @@ export function ProjectRecentBackupsCard({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-basalt-space-lg">
                       {backup.tag ? <span className="text-basalt-base font-medium">{backup.tag}</span> : null}
-                      {backup.environment ? <Badge variant="secondary" className="text-basalt-xs">{backup.environment}</Badge> : null}
-                      {backup.file_type ? <Badge variant={backup.file_type === "json" ? "default" : "secondary"}>{FILE_TYPE_LABELS[backup.file_type] ?? backup.file_type.toUpperCase()}</Badge> : null}
+                      {backup.environment ? <Badge tone="neutral" className="text-basalt-xs">{backup.environment}</Badge> : null}
+                      {backup.file_type ? <Badge tone={backup.file_type === "json" ? "info" : "neutral"}>{FILE_TYPE_LABELS[backup.file_type] ?? backup.file_type.toUpperCase()}</Badge> : null}
                     </div>
                     <div className="mt-basalt-space-sm flex items-center gap-basalt-layout text-basalt-xs text-basalt-muted-foreground">
                       <span>{formatDate(backup.created_at)}</span>
