@@ -16,19 +16,9 @@
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import { runHourlyJobs } from "@backy/api/handlers/gc";
-import {
-  createBindingD1Adapter,
-  type D1Binding,
-} from "@backy/api/db/d1-binding-adapter";
-import {
-  createBindingR2Adapter,
-  type R2Binding,
-} from "@backy/api/r2/binding-adapter";
-import {
-  workerRuntimeInfo,
-  type BackyEnv,
-  type RuntimeContext,
-} from "@backy/api/runtime";
+import { createBindingD1Adapter, type D1Binding } from "@backy/api/db/d1-binding-adapter";
+import { createBindingR2Adapter, type R2Binding } from "@backy/api/r2/binding-adapter";
+import { workerRuntimeInfo, type BackyEnv, type RuntimeContext } from "@backy/api/runtime";
 import type { AppEnv, Bindings } from "./lib/types";
 import { accessAuth } from "./middleware/access-auth";
 import { ctxMiddleware } from "./middleware/ctx";
@@ -68,10 +58,7 @@ app.route("/api/me", meRoutes);
  * Build a RuntimeContext from raw bindings (no Hono Context). Used by
  * `scheduled()` since the cron event has no request to drive middleware.
  */
-function ctxFromBindings(
-  env: Bindings,
-  exec?: ExecutionContext,
-): RuntimeContext {
+function ctxFromBindings(env: Bindings, exec?: ExecutionContext): RuntimeContext {
   const backyEnv: BackyEnv = {
     ...(env.CRON_SECRET !== undefined && { CRON_SECRET: env.CRON_SECRET }),
     ...(env.ALLOWED_HOSTS !== undefined && { ALLOWED_HOSTS: env.ALLOWED_HOSTS }),
@@ -95,11 +82,7 @@ function ctxFromBindings(
 
 export default {
   fetch: app.fetch,
-  async scheduled(
-    _event: ScheduledEvent,
-    env: Bindings,
-    exec: ExecutionContext,
-  ): Promise<void> {
+  async scheduled(_event: ScheduledEvent, env: Bindings, exec: ExecutionContext): Promise<void> {
     const cronSecret = env.CRON_SECRET;
     const ctx = ctxFromBindings(env, exec);
     await runHourlyJobs(ctx, {

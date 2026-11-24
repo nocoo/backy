@@ -24,26 +24,18 @@ app.get("/:id", async (c) =>
 );
 app.put("/:id", async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  return toResponse(
-    await updateProjectHandler({ id: c.req.param("id"), body }, c.get("ctx")),
-  );
+  return toResponse(await updateProjectHandler({ id: c.req.param("id"), body }, c.get("ctx")));
 });
 app.delete("/:id", async (c) =>
-  toResponse(
-    await deleteProjectHandler({ id: c.req.param("id") }, c.get("ctx")),
-  ),
+  toResponse(await deleteProjectHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 app.post("/:id/token", async (c) =>
-  toResponse(
-    await regenerateTokenHandler({ id: c.req.param("id") }, c.get("ctx")),
-  ),
+  toResponse(await regenerateTokenHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 app.get("/:id/prompt", async (c) => {
   const ctx = c.get("ctx");
   const baseUrl = buildBaseUrl(c.req.raw, ctx.env);
-  return toResponse(
-    await projectPromptHandler({ id: c.req.param("id"), baseUrl }, ctx),
-  );
+  return toResponse(await projectPromptHandler({ id: c.req.param("id"), baseUrl }, ctx));
 });
 
 export { app as projectsRoutes };

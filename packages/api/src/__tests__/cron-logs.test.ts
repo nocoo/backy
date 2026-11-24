@@ -9,15 +9,12 @@ import { makeMockD1 } from "./helpers";
 describe("cron-logs", () => {
   let db: ReturnType<typeof makeMockD1>;
 
-  const createCronLog = (
-    input: Parameters<typeof createCronLogRaw>[1],
-  ) => createCronLogRaw(db, input);
-  const listCronLogs = (
-    options?: Parameters<typeof listCronLogsRaw>[1],
-  ) => listCronLogsRaw(db, options);
-  const deleteCronLogs = (
-    options?: Parameters<typeof deleteCronLogsRaw>[1],
-  ) => deleteCronLogsRaw(db, options);
+  const createCronLog = (input: Parameters<typeof createCronLogRaw>[1]) =>
+    createCronLogRaw(db, input);
+  const listCronLogs = (options?: Parameters<typeof listCronLogsRaw>[1]) =>
+    listCronLogsRaw(db, options);
+  const deleteCronLogs = (options?: Parameters<typeof deleteCronLogsRaw>[1]) =>
+    deleteCronLogsRaw(db, options);
 
   beforeEach(() => {
     db = makeMockD1();

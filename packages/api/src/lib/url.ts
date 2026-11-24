@@ -24,36 +24,28 @@ type DnsResolver = {
   resolve6(hostname: string): Promise<string[]>;
 };
 
-const BLOCKED_HOSTNAMES = new Set([
-  "localhost",
-  "metadata.google.internal",
-  "metadata.goog",
-]);
+const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal", "metadata.goog"]);
 
-const BLOCKED_HOSTNAME_SUFFIXES = [
-  ".internal",
-  ".local",
-  ".localhost",
-];
+const BLOCKED_HOSTNAME_SUFFIXES = [".internal", ".local", ".localhost"];
 
 /**
  * Private/reserved IPv4 CIDR ranges to block.
  * Each entry is [networkInt, mask].
  */
 const BLOCKED_CIDRS: Array<[number, number]> = [
-  cidr("127.0.0.0", 8),       // loopback
-  cidr("10.0.0.0", 8),        // private class A
-  cidr("172.16.0.0", 12),     // private class B
-  cidr("192.168.0.0", 16),    // private class C
-  cidr("169.254.0.0", 16),    // link-local
-  cidr("0.0.0.0", 8),         // "this" network
-  cidr("100.64.0.0", 10),     // shared address space (RFC 6598, CGN/cloud)
-  cidr("198.18.0.0", 15),     // benchmarking (RFC 2544)
-  cidr("192.0.0.0", 24),      // IETF protocol assignments (RFC 6890)
-  cidr("192.0.2.0", 24),      // TEST-NET-1 (RFC 5737)
-  cidr("198.51.100.0", 24),   // TEST-NET-2 (RFC 5737)
-  cidr("203.0.113.0", 24),    // TEST-NET-3 (RFC 5737)
-  cidr("240.0.0.0", 4),       // reserved for future use
+  cidr("127.0.0.0", 8), // loopback
+  cidr("10.0.0.0", 8), // private class A
+  cidr("172.16.0.0", 12), // private class B
+  cidr("192.168.0.0", 16), // private class C
+  cidr("169.254.0.0", 16), // link-local
+  cidr("0.0.0.0", 8), // "this" network
+  cidr("100.64.0.0", 10), // shared address space (RFC 6598, CGN/cloud)
+  cidr("198.18.0.0", 15), // benchmarking (RFC 2544)
+  cidr("192.0.0.0", 24), // IETF protocol assignments (RFC 6890)
+  cidr("192.0.2.0", 24), // TEST-NET-1 (RFC 5737)
+  cidr("198.51.100.0", 24), // TEST-NET-2 (RFC 5737)
+  cidr("203.0.113.0", 24), // TEST-NET-3 (RFC 5737)
+  cidr("240.0.0.0", 4), // reserved for future use
   cidr("255.255.255.255", 32), // limited broadcast
 ];
 
@@ -158,8 +150,10 @@ function expandIpv6(addr: string): string | null {
     /* v8 ignore next 2 -- @preserve defensive: nums[0..3] guaranteed by length===4 check above; ?? 0 is TS strict-mode narrowing */
     const hi = (((nums[0] ?? 0) << 8) | (nums[1] ?? 0)) & 0xffff;
     const lo = (((nums[2] ?? 0) << 8) | (nums[3] ?? 0)) & 0xffff;
-    normalized = normalized.slice(0, lastColon + 1) +
-      hi.toString(16).padStart(4, "0") + ":" +
+    normalized =
+      normalized.slice(0, lastColon + 1) +
+      hi.toString(16).padStart(4, "0") +
+      ":" +
       lo.toString(16).padStart(4, "0");
   }
 
@@ -200,10 +194,7 @@ function expandIpv6(addr: string): string | null {
  *
  * Returns true if the URL is allowlisted (bypasses all SSRF checks).
  */
-function isAllowlisted(
-  url: string,
-  env: Pick<BackyEnv, "SSRF_ALLOWLIST">,
-): boolean {
+function isAllowlisted(url: string, env: Pick<BackyEnv, "SSRF_ALLOWLIST">): boolean {
   const allowlist = env.SSRF_ALLOWLIST;
   if (!allowlist) return false;
 
@@ -214,7 +205,10 @@ function isAllowlisted(
     return false;
   }
 
-  const entries = allowlist.split(",").map((s) => s.trim()).filter(Boolean);
+  const entries = allowlist
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   return entries.some((entry) => {
     try {
       const allowed = new URL(entry);

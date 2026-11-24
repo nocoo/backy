@@ -110,9 +110,7 @@ function main(): void {
   }
 
   if (uncovered.length === 0) {
-    console.log(
-      `✅ All ${pages.length} pages have at least one BDD visit.\n`,
-    );
+    console.log(`✅ All ${pages.length} pages have at least one BDD visit.\n`);
     return;
   }
 

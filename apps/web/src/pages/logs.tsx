@@ -98,27 +98,20 @@ function errorMessage(err: unknown, fallback: string): string {
 
 function StatusIcon({ code }: { code: number }) {
   if (code < 300) return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-  if (code < 400)
-    return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+  if (code < 400) return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
   return <XCircle className="h-4 w-4 text-basalt-destructive" />;
 }
 
 function StatusBadge({ code }: { code: number }) {
   if (code < 300)
     return (
-      <Badge
-        tone="neutral"
-        className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-      >
+      <Badge tone="neutral" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
         {code}
       </Badge>
     );
   if (code < 400)
     return (
-      <Badge
-        tone="neutral"
-        className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-      >
+      <Badge tone="neutral" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
         {code}
       </Badge>
     );
@@ -149,9 +142,7 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
     async function fetchIpInfo() {
       try {
         setIpLoading(true);
-        const res = await apiFetch(
-          `/api/ip-info?ip=${encodeURIComponent(clientIp)}`,
-        );
+        const res = await apiFetch(`/api/ip-info?ip=${encodeURIComponent(clientIp)}`);
         const data = (await res.json()) as IpInfo;
         setIpInfo(data);
       } catch {
@@ -165,28 +156,19 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
   }, [log.client_ip, ipInfo, ipLoading]);
 
   const locationParts = ipInfo?.location
-    ? [
-        ipInfo.location.city,
-        ipInfo.location.province,
-        ipInfo.location.country,
-      ].filter((s) => s && s !== "0")
+    ? [ipInfo.location.city, ipInfo.location.province, ipInfo.location.country].filter(
+        (s) => s && s !== "0",
+      )
     : [];
 
-  const isp =
-    ipInfo?.location?.isp && ipInfo.location.isp !== "0"
-      ? ipInfo.location.isp
-      : null;
+  const isp = ipInfo?.location?.isp && ipInfo.location.isp !== "0" ? ipInfo.location.isp : null;
 
   return (
     <div className="mx-4 mb-1 rounded-b-lg border border-t-0 border-basalt-border bg-basalt-muted/30 px-4 py-3 text-sm">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
-            Client IP
-          </span>
-          <span className="text-xs font-mono text-basalt-foreground">
-            {log.client_ip ?? "—"}
-          </span>
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">Client IP</span>
+          <span className="text-xs font-mono text-basalt-foreground">{log.client_ip ?? "—"}</span>
           {ipLoading && (
             <div className="flex items-center gap-1.5 mt-1 text-basalt-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -214,37 +196,27 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
         </div>
 
         <div>
-          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
-            User Agent
-          </span>
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">User Agent</span>
           <span className="text-xs font-mono text-basalt-foreground break-all">
             {log.user_agent ?? "—"}
           </span>
         </div>
 
         <div>
-          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
-            Path
-          </span>
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">Path</span>
           <span className="text-xs font-mono text-basalt-foreground">{log.path}</span>
         </div>
 
         {log.error_message && (
           <div>
-            <span className="text-xs text-basalt-muted-foreground block mb-0.5">
-              Error
-            </span>
-            <span className="text-xs text-basalt-destructive">
-              {log.error_message}
-            </span>
+            <span className="text-xs text-basalt-muted-foreground block mb-0.5">Error</span>
+            <span className="text-xs text-basalt-destructive">{log.error_message}</span>
           </div>
         )}
 
         {log.metadata && (
           <div className="md:col-span-2">
-            <span className="text-xs text-basalt-muted-foreground block mb-0.5">
-              Metadata
-            </span>
+            <span className="text-xs text-basalt-muted-foreground block mb-0.5">Metadata</span>
             <pre className="text-xs font-mono text-basalt-foreground bg-basalt-background/50 rounded p-2 overflow-x-auto">
               {JSON.stringify(JSON.parse(log.metadata), null, 2)}
             </pre>
@@ -252,22 +224,14 @@ function LogDetail({ log }: { log: WebhookLogEntry }) {
         )}
 
         <div>
-          <span className="text-xs text-basalt-muted-foreground block mb-0.5">
-            Log ID
-          </span>
-          <span className="text-xs font-mono text-basalt-foreground/60">
-            {log.id}
-          </span>
+          <span className="text-xs text-basalt-muted-foreground block mb-0.5">Log ID</span>
+          <span className="text-xs font-mono text-basalt-foreground/60">{log.id}</span>
         </div>
 
         {log.project_id && (
           <div>
-            <span className="text-xs text-basalt-muted-foreground block mb-0.5">
-              Project ID
-            </span>
-            <span className="text-xs font-mono text-basalt-foreground/60">
-              {log.project_id}
-            </span>
+            <span className="text-xs text-basalt-muted-foreground block mb-0.5">Project ID</span>
+            <span className="text-xs font-mono text-basalt-foreground/60">{log.project_id}</span>
           </div>
         )}
       </div>
@@ -300,9 +264,7 @@ export function LogsPage() {
         const res = await apiFetch("/api/projects");
         const list = (await res.json()) as ProjectInfo[];
         setProjects(list);
-        const ids = list
-          .filter((p) => EXCLUDED_PROJECT_NAMES.includes(p.name))
-          .map((p) => p.id);
+        const ids = list.filter((p) => EXCLUDED_PROJECT_NAMES.includes(p.name)).map((p) => p.id);
         setExcludedProjectIds(ids);
       } catch {
         // Non-critical
@@ -325,10 +287,7 @@ export function LogsPage() {
 
       if (projectFilter === "exclude-test" && excludedProjectIds.length > 0) {
         params.set("excludeProjectIds", excludedProjectIds.join(","));
-      } else if (
-        projectFilter !== "all" &&
-        projectFilter !== "exclude-test"
-      ) {
+      } else if (projectFilter !== "all" && projectFilter !== "exclude-test") {
         params.set("projectId", projectFilter);
       }
 
@@ -352,10 +311,7 @@ export function LogsPage() {
     void fetchLogs();
   }, [fetchLogs]);
 
-  function handleFilterChange(
-    type: "method" | "success" | "project",
-    value: string,
-  ) {
+  function handleFilterChange(type: "method" | "success" | "project", value: string) {
     if (type === "method") setMethodFilter(value);
     else if (type === "success") setSuccessFilter(value);
     else setProjectFilter(value);
@@ -369,10 +325,7 @@ export function LogsPage() {
     setPage(1);
   }
 
-  const hasFilters =
-    methodFilter !== "all" ||
-    successFilter !== "all" ||
-    projectFilter !== "all";
+  const hasFilters = methodFilter !== "all" || successFilter !== "all" || projectFilter !== "all";
 
   async function handleClearLogs() {
     const filterDesc: string[] = [];
@@ -384,10 +337,7 @@ export function LogsPage() {
     if (successFilter === "success") filterDesc.push("successful");
     else if (successFilter === "failure") filterDesc.push("failed");
 
-    const desc =
-      filterDesc.length > 0
-        ? `${filterDesc.join(", ")} logs`
-        : "all visible logs";
+    const desc = filterDesc.length > 0 ? `${filterDesc.join(", ")} logs` : "all visible logs";
 
     if (!confirm(`Delete ${desc}? This action cannot be undone.`)) return;
 
@@ -421,18 +371,28 @@ export function LogsPage() {
       <PageHeader
         title="Webhook Logs"
         description={data ? `${data.total} log${data.total !== 1 ? "s" : ""} total` : "Loading..."}
-        actions={data && data.total > 0 ? (
-          <Button variant="outline" size="sm" onClick={() => void handleClearLogs()} disabled={deleting || loading} className="text-basalt-destructive">
-            {deleting ? <Loader2 className="mr-basalt-space-md h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />}Clear
-          </Button>
-        ) : null}
+        actions={
+          data && data.total > 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleClearLogs()}
+              disabled={deleting || loading}
+              className="text-basalt-destructive"
+            >
+              {deleting ? (
+                <Loader2 className="mr-basalt-space-md h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />
+              )}
+              Clear
+            </Button>
+          ) : null
+        }
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={projectFilter}
-          onValueChange={(v) => handleFilterChange("project", v)}
-        >
+        <Select value={projectFilter} onValueChange={(v) => handleFilterChange("project", v)}>
           <SelectTrigger className="w-[160px] h-9 text-sm">
             <SelectValue placeholder="All Projects" />
           </SelectTrigger>
@@ -447,10 +407,7 @@ export function LogsPage() {
           </SelectContent>
         </Select>
 
-        <Select
-          value={methodFilter}
-          onValueChange={(v) => handleFilterChange("method", v)}
-        >
+        <Select value={methodFilter} onValueChange={(v) => handleFilterChange("method", v)}>
           <SelectTrigger className="w-[130px] h-9 text-sm">
             <SelectValue placeholder="All Methods" />
           </SelectTrigger>
@@ -462,10 +419,7 @@ export function LogsPage() {
           </SelectContent>
         </Select>
 
-        <Select
-          value={successFilter}
-          onValueChange={(v) => handleFilterChange("success", v)}
-        >
+        <Select value={successFilter} onValueChange={(v) => handleFilterChange("success", v)}>
           <SelectTrigger className="w-[140px] h-9 text-sm">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
@@ -494,12 +448,7 @@ export function LogsPage() {
       ) : error && !data ? (
         <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
           <p className="text-sm text-basalt-destructive">{error}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => void fetchLogs()}
-          >
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => void fetchLogs()}>
             Retry
           </Button>
         </div>
@@ -515,12 +464,7 @@ export function LogsPage() {
               : "Logs will appear when webhook requests are received."}
           </p>
           {hasFilters && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={clearFilters}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
               Clear filters
             </Button>
           )}
@@ -549,9 +493,7 @@ export function LogsPage() {
                         ? "border-basalt-destructive/20 bg-basalt-destructive/5 hover:bg-basalt-destructive/10"
                         : "border-basalt-border bg-basalt-background/50 hover:bg-basalt-muted/50"
                   }`}
-                  onClick={() =>
-                    setExpandedId(expandedId === log.id ? null : log.id)
-                  }
+                  onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                 >
                   <div className="w-5 shrink-0 flex items-center justify-center">
                     <StatusIcon code={log.status_code} />
@@ -584,9 +526,7 @@ export function LogsPage() {
 
                   <div className="w-[60px] shrink-0 text-right">
                     <span className="text-xs text-basalt-muted-foreground">
-                      {log.duration_ms !== null
-                        ? `${log.duration_ms}ms`
-                        : "—"}
+                      {log.duration_ms !== null ? `${log.duration_ms}ms` : "—"}
                     </span>
                   </div>
 
@@ -642,9 +582,7 @@ export function LogsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setPage((p) => Math.min(data.totalPages, p + 1))
-                  }
+                  onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
                   disabled={page >= data.totalPages || loading}
                 >
                   <ChevronRight className="h-3.5 w-3.5" />

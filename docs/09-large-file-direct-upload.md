@@ -48,18 +48,18 @@ via `initializeSchema`.
 
 ## Decision
 
-| Topic | Choice | Why |
-|---|---|---|
-| Protocol | Two-phase **init → PUT R2 → complete** | D1 row only after the object exists; init can expire unused URLs |
-| Transport | S3 presigned `PUT` to `https://{account}.r2.cloudflarestorage.com` | Same signer as restore; no `x-forwarded-host` in the URL |
-| Max size | `1 … 5_000_000_000` | Single CopyObject limit (stricter than PutObject 5 GiB − 5 MiB). Pin tests at `5000000000` (accept) and `5000000001` (400). |
-| Min size | 1 byte | Old path stays the small-file default; no artificial >50 MiB gate |
-| Key prefix | staging `direct-staging/{projectId}/{uploadId}/in{ext}`; final `backups/{projectId}/direct/{uploadId}{ext}` | Client never writes the restore key |
-| Auth | Same Bearer `webhook_token` as today's webhook | Agents already have it |
-| Access JWT | Explicit extra public paths + nanoid grammar (not a prefix glob) | Today's matcher allows only `/api/webhook/:id` with **one** extra segment |
-| PUT integrity | Sign `content-type`, `content-length`, `if-none-match`; client writes a **staging** key; complete copies to a **final** key the client never PUT | Late PUT after GC cannot mutate a completed backup; `If-None-Match: *` still makes staging one-shot while it exists |
-| Complete check | Conditional claim on `direct_uploads`, then binding `head` | Binding `head` works locally; claim prevents double `backups` rows |
-| Schema | Wrangler D1 migration `--remote` + `initializeSchema` for local | Production CD never calls `/api/db/init` |
+| Topic          | Choice                                                                                                                                           | Why                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Protocol       | Two-phase **init → PUT R2 → complete**                                                                                                           | D1 row only after the object exists; init can expire unused URLs                                                            |
+| Transport      | S3 presigned `PUT` to `https://{account}.r2.cloudflarestorage.com`                                                                               | Same signer as restore; no `x-forwarded-host` in the URL                                                                    |
+| Max size       | `1 … 5_000_000_000`                                                                                                                              | Single CopyObject limit (stricter than PutObject 5 GiB − 5 MiB). Pin tests at `5000000000` (accept) and `5000000001` (400). |
+| Min size       | 1 byte                                                                                                                                           | Old path stays the small-file default; no artificial >50 MiB gate                                                           |
+| Key prefix     | staging `direct-staging/{projectId}/{uploadId}/in{ext}`; final `backups/{projectId}/direct/{uploadId}{ext}`                                      | Client never writes the restore key                                                                                         |
+| Auth           | Same Bearer `webhook_token` as today's webhook                                                                                                   | Agents already have it                                                                                                      |
+| Access JWT     | Explicit extra public paths + nanoid grammar (not a prefix glob)                                                                                 | Today's matcher allows only `/api/webhook/:id` with **one** extra segment                                                   |
+| PUT integrity  | Sign `content-type`, `content-length`, `if-none-match`; client writes a **staging** key; complete copies to a **final** key the client never PUT | Late PUT after GC cannot mutate a completed backup; `If-None-Match: *` still makes staging one-shot while it exists         |
+| Complete check | Conditional claim on `direct_uploads`, then binding `head`                                                                                       | Binding `head` works locally; claim prevents double `backups` rows                                                          |
+| Schema         | Wrangler D1 migration `--remote` + `initializeSchema` for local                                                                                  | Production CD never calls `/api/db/init`                                                                                    |
 
 ## Coexistence
 
@@ -77,14 +77,14 @@ Agent
                                   → claim → head staging → CopyObject → final → INSERT backups
 ```
 
-| Surface | Old path | New path |
-|---|---|---|
-| Webhook POST multipart | yes, 50 MiB | no |
-| Direct PUT | no | yes, 5,000,000,000 bytes |
-| R2 key | `backups/{projectId}/{ts}{ext}` | `backups/{projectId}/direct/{uploadId}{ext}` |
-| D1 `backups` row | same table | same table; **`file_key` UNIQUE** (new) |
-| Restore / download / delete | `file_key` | `file_key` |
-| Preview / extract | on ingest if previewable | complete does not extract; see JSON rule below |
+| Surface                     | Old path                        | New path                                       |
+| --------------------------- | ------------------------------- | ---------------------------------------------- |
+| Webhook POST multipart      | yes, 50 MiB                     | no                                             |
+| Direct PUT                  | no                              | yes, 5,000,000,000 bytes                       |
+| R2 key                      | `backups/{projectId}/{ts}{ext}` | `backups/{projectId}/direct/{uploadId}{ext}`   |
+| D1 `backups` row            | same table                      | same table; **`file_key` UNIQUE** (new)        |
+| Restore / download / delete | `file_key`                      | `file_key`                                     |
+| Preview / extract           | on ingest if previewable        | complete does not extract; see JSON rule below |
 
 Prompt generator and README document **both**. Existing agent snippets keep working.
 
@@ -181,16 +181,16 @@ states are `pending` and `completing` (an aborted URL is still writable
 until `purge_after`, so aborted/expired-unpurged also count toward the
 byte/row cap).
 
-| Limit | Value | Init response |
-|---|---|---|
-| Unpurged writable rows per project (`purged_at IS NULL` and status in pending/completing/aborted/expired) | 20 | 429 |
-| Sum of `declared_size` for those rows | 20 GiB | 429 |
-| Inits per project per 60s (all statuses, `created_at > now-60`) | 30 | 429 |
-| Global unpurged **non-completed** rows (`purged_at IS NULL` AND status in pending/completing/aborted/expired) | 200 | 429 |
-| Rolling bytes per project (hourly) | 20 GiB | 429 |
-| Rolling bytes globally (hourly) | 100 GiB | 429 |
-| Rolling bytes per project (daily) | 100 GiB | 429 |
-| Rolling bytes globally (daily) | 500 GiB | 429 |
+| Limit                                                                                                         | Value   | Init response |
+| ------------------------------------------------------------------------------------------------------------- | ------- | ------------- |
+| Unpurged writable rows per project (`purged_at IS NULL` and status in pending/completing/aborted/expired)     | 20      | 429           |
+| Sum of `declared_size` for those rows                                                                         | 20 GiB  | 429           |
+| Inits per project per 60s (all statuses, `created_at > now-60`)                                               | 30      | 429           |
+| Global unpurged **non-completed** rows (`purged_at IS NULL` AND status in pending/completing/aborted/expired) | 200     | 429           |
+| Rolling bytes per project (hourly)                                                                            | 20 GiB  | 429           |
+| Rolling bytes globally (hourly)                                                                               | 100 GiB | 429           |
+| Rolling bytes per project (daily)                                                                             | 100 GiB | 429           |
+| Rolling bytes globally (daily)                                                                                | 500 GiB | 429           |
 
 Rolling bytes = sum of `declared_size` for rows with `completed_at` in the window **plus** all outstanding unpurged declared bytes (`pending`/`completing`/`aborted`/`expired` with `purged_at IS NULL`) **plus** this init's `file_size`. Enforce atomically with the insert.
 
@@ -218,32 +218,32 @@ Request JSON:
 }
 ```
 
-| Field | Rule |
-|---|---|
-| `file_name` | required, see key contract |
+| Field          | Rule                                                                      |
+| -------------- | ------------------------------------------------------------------------- |
+| `file_name`    | required, see key contract                                                |
 | `content_type` | optional, default `application/octet-stream`, then `normalizeContentType` |
-| `file_size` | required integer, `1 … 5000000000` |
-| `environment` | optional, same enum as ingest (`dev/prod/staging/test`) |
-| `tag` | optional string |
+| `file_size`    | required integer, `1 … 5000000000`                                        |
+| `environment`  | optional, same enum as ingest (`dev/prod/staging/test`)                   |
+| `tag`          | optional string                                                           |
 
 Responses:
 
-| Status | When |
-|---|---|
-| 200 | `{ upload_id, put_url, method: "PUT", headers, file_key, expires_in, max_bytes }` |
-| 401/403 | missing/invalid token or IP allowlist |
-| 400 | validation |
-| 404 | unknown project |
-| 429 | quota |
-| 503 | `isS3R2Configured` false (cannot presign) |
+| Status  | When                                                                              |
+| ------- | --------------------------------------------------------------------------------- |
+| 200     | `{ upload_id, put_url, method: "PUT", headers, file_key, expires_in, max_bytes }` |
+| 401/403 | missing/invalid token or IP allowlist                                             |
+| 400     | validation                                                                        |
+| 404     | unknown project                                                                   |
+| 429     | quota                                                                             |
+| 503     | `isS3R2Configured` false (cannot presign)                                         |
 
 `headers` is the **exact** set the client must send on the PUT:
 
-| Header | Value |
-|---|---|
-| `Content-Type` | signed content type |
+| Header           | Value               |
+| ---------------- | ------------------- |
+| `Content-Type`   | signed content type |
 | `Content-Length` | decimal `file_size` |
-| `If-None-Match` | `*` |
+| `If-None-Match`  | `*`                 |
 
 Mismatch → R2 403 SignatureDoesNotMatch. `If-None-Match: *` → R2 412 if the object already exists (replay / post-complete overwrite).
 
@@ -297,11 +297,11 @@ Today `isPublicPath` allows webhook methods only when there is **exactly one** s
 
 Match **`c.req.path` as received by `accessAuth`** (raw path; Hono has **not** decoded route params yet). Reject any path containing `%` (encoded separators never become public). Then apply a **nanoid** charset (`A-Za-z0-9_-`, length 21 — `generateId` is 21 chars):
 
-| Method | Regex (anchored) |
-|---|---|
-| POST | `^/api/webhook/[A-Za-z0-9_-]{21}/uploads$` |
-| POST | `^/api/webhook/[A-Za-z0-9_-]{21}/uploads/[A-Za-z0-9_-]{21}/complete$` |
-| DELETE | `^/api/webhook/[A-Za-z0-9_-]{21}/uploads/[A-Za-z0-9_-]{21}$` |
+| Method | Regex (anchored)                                                      |
+| ------ | --------------------------------------------------------------------- |
+| POST   | `^/api/webhook/[A-Za-z0-9_-]{21}/uploads$`                            |
+| POST   | `^/api/webhook/[A-Za-z0-9_-]{21}/uploads/[A-Za-z0-9_-]{21}/complete$` |
+| DELETE | `^/api/webhook/[A-Za-z0-9_-]{21}/uploads/[A-Za-z0-9_-]{21}$`          |
 
 Still no `/api/webhook/*` glob.
 
@@ -336,18 +336,18 @@ Init uses `presignUpload`. Complete uses `head`. GC uses `delete` only after `pu
 
 ## Security
 
-| Risk | Mitigation |
-|---|---|
-| Client-chosen key | Server generates `file_key`; unique on both tables |
-| Host-header injection | Presign host is R2 S3, never `buildBaseUrl` |
+| Risk                                 | Mitigation                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Client-chosen key                    | Server generates `file_key`; unique on both tables                                               |
+| Host-header injection                | Presign host is R2 S3, never `buildBaseUrl`                                                      |
 | PUT URL leak / replay after complete | Staging key + CopyObject to final; `If-None-Match: *`; D1 GC + R2 lifecycle on `direct-staging/` |
-| Size lie | Signed `Content-Length` + complete `head.size` |
-| Token floods D1/R2 | Pending caps + rolling hourly/daily completed+outstanding bytes |
-| Incomplete uploads | Tombstones; D1 GC at `purge_after`/`reap_until`; lifecycle backstop |
-| Extract bomb | Complete does not extract |
-| Secrets in API/logs | Allowlisted JSON and `fireLog` metadata; no `put_url` |
-| Access matcher too broad | Nanoid regex, encoded-separator tests |
-| Production missing table | Remote D1 migration before deploy |
+| Size lie                             | Signed `Content-Length` + complete `head.size`                                                   |
+| Token floods D1/R2                   | Pending caps + rolling hourly/daily completed+outstanding bytes                                  |
+| Incomplete uploads                   | Tombstones; D1 GC at `purge_after`/`reap_until`; lifecycle backstop                              |
+| Extract bomb                         | Complete does not extract                                                                        |
+| Secrets in API/logs                  | Allowlisted JSON and `fireLog` metadata; no `put_url`                                            |
+| Access matcher too broad             | Nanoid regex, encoded-separator tests                                                            |
+| Production missing table             | Remote D1 migration before deploy                                                                |
 
 ## Garbage collection
 
@@ -359,14 +359,14 @@ GC is a **sibling** job. Auto-backup keeps today's throw-to-retry behavior. **GC
 
 Eligible: `purged_at IS NULL AND next_gc_at <= now`, limit 100, order by `next_gc_at`. After each object:
 
-| Condition | Action |
-|---|---|
-| `completed` AND backup row exists | skip; `next_gc_at = now+7d`. May `r2.delete(staging_key)` only. |
-| `completed` AND no backup row AND `purge_after < now` | `r2.delete` staging **and** final; `next_gc_at=now+3600`; set `purged_at` **only when now ≥ reap_until** |
-| `pending`/`aborted`/`expired` AND `purge_after < now` | `r2.delete` **staging and final** (copy may have created final before crash); `status=expired` if pending; `next_gc_at=now+3600` until `now ≥ reap_until`, **then** `purged_at=now` |
-| `completing` AND `lease_expires_at < now` AND backup with final key exists | attach `backup_id`, `status=completed` |
-| `completing` AND `lease_expires_at < now` AND no backup | treat as pending (above) |
-| otherwise | `next_gc_at = min(purge_after, lease_expires_at ?? purge_after, now+3600)` |
+| Condition                                                                  | Action                                                                                                                                                                              |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `completed` AND backup row exists                                          | skip; `next_gc_at = now+7d`. May `r2.delete(staging_key)` only.                                                                                                                     |
+| `completed` AND no backup row AND `purge_after < now`                      | `r2.delete` staging **and** final; `next_gc_at=now+3600`; set `purged_at` **only when now ≥ reap_until**                                                                            |
+| `pending`/`aborted`/`expired` AND `purge_after < now`                      | `r2.delete` **staging and final** (copy may have created final before crash); `status=expired` if pending; `next_gc_at=now+3600` until `now ≥ reap_until`, **then** `purged_at=now` |
+| `completing` AND `lease_expires_at < now` AND backup with final key exists | attach `backup_id`, `status=completed`                                                                                                                                              |
+| `completing` AND `lease_expires_at < now` AND no backup                    | treat as pending (above)                                                                                                                                                            |
+| otherwise                                                                  | `next_gc_at = min(purge_after, lease_expires_at ?? purge_after, now+3600)`                                                                                                          |
 
 Do **not** set `purged_at` until `now ≥ reap_until` (last scheduled reap). Then `DELETE FROM direct_uploads WHERE purged_at < now-7d` (**mandatory**, every GC run, bounded).
 
@@ -408,13 +408,13 @@ Do not send 1 GiB through L2.
 
 ## Test / quality mapping
 
-| Layer | What |
-|---|---|
-| L1 | handlers, adapter presign headers, Access matcher, GC isolation, quotas, **503 without S3 keys** |
-| L2 | three Backy routes: init, complete, abort (+ 409 / 410); **required** real PUT + CopyObject on 17018; single/batch/project delete of direct keys defer to GC while timestamp keys still delete immediately |
-| L3 | not in wave 1 (no UI) |
-| G1 | tsc + biome |
-| gate:routes | three new webhook routes (not the external PUT) |
+| Layer       | What                                                                                                                                                                                                       |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1          | handlers, adapter presign headers, Access matcher, GC isolation, quotas, **503 without S3 keys**                                                                                                           |
+| L2          | three Backy routes: init, complete, abort (+ 409 / 410); **required** real PUT + CopyObject on 17018; single/batch/project delete of direct keys defer to GC while timestamp keys still delete immediately |
+| L3          | not in wave 1 (no UI)                                                                                                                                                                                      |
+| G1          | tsc + biome                                                                                                                                                                                                |
+| gate:routes | three new webhook routes (not the external PUT)                                                                                                                                                            |
 
 ## Acceptance
 

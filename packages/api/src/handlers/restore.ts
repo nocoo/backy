@@ -42,10 +42,7 @@ export async function restoreHandler(
       }
     }
 
-    const downloadUrl = await ctx.r2.presignDownload(
-      backup.file_key,
-      PRESIGN_EXPIRES_IN,
-    );
+    const downloadUrl = await ctx.r2.presignDownload(backup.file_key, PRESIGN_EXPIRES_IN);
     return json(200, {
       url: downloadUrl,
       backup_id: backup.id,

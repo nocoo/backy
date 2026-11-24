@@ -123,16 +123,12 @@ export function BackupsPage() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const [deleteTarget, setDeleteTarget] = useState<BackupWithProject | null>(
-    null,
-  );
+  const [deleteTarget, setDeleteTarget] = useState<BackupWithProject | null>(null);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
 
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     searchTimerRef.current = setTimeout(() => {
       setDebouncedSearch(search);
@@ -279,12 +275,8 @@ export function BackupsPage() {
     setPage(1);
   }
 
-  const hasFilters =
-    debouncedSearch !== "" || projectFilter !== "all" || envFilter !== "all";
-  const allSelected =
-    data !== null &&
-    data.items.length > 0 &&
-    selected.size === data.items.length;
+  const hasFilters = debouncedSearch !== "" || projectFilter !== "all" || envFilter !== "all";
+  const allSelected = data !== null && data.items.length > 0 && selected.size === data.items.length;
   const someSelected = selected.size > 0 && !allSelected;
 
   const sortIcon = (column: SortBy) => {
@@ -299,25 +291,34 @@ export function BackupsPage() {
 
   function getSortAriaLabel(column: SortBy, label: string): string {
     if (sortBy !== column) return `${label}, not sorted`;
-    return sortOrder === "desc"
-      ? `${label}, sorted descending`
-      : `${label}, sorted ascending`;
+    return sortOrder === "desc" ? `${label}, sorted descending` : `${label}, sorted ascending`;
   }
 
   return (
     <div className="relative flex flex-col gap-4 md:gap-6">
       <PageHeader
         title="Backups"
-        description={data ? `${data.total} backup${data.total !== 1 ? "s" : ""} total` : "Loading..."}
-        actions={selected.size > 0 ? (
-          <>
-            <span className="text-basalt-sm text-basalt-muted-foreground">{selected.size} selected</span>
-            <Button variant="destructive" size="sm" onClick={() => setBatchDeleteOpen(true)}>
-              <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />Delete Selected
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
-          </>
-        ) : <ManualUploadDialog onSuccess={() => void fetchBackups()} />}
+        description={
+          data ? `${data.total} backup${data.total !== 1 ? "s" : ""} total` : "Loading..."
+        }
+        actions={
+          selected.size > 0 ? (
+            <>
+              <span className="text-basalt-sm text-basalt-muted-foreground">
+                {selected.size} selected
+              </span>
+              <Button variant="destructive" size="sm" onClick={() => setBatchDeleteOpen(true)}>
+                <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />
+                Delete Selected
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
+                Clear
+              </Button>
+            </>
+          ) : (
+            <ManualUploadDialog onSuccess={() => void fetchBackups()} />
+          )
+        }
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -342,10 +343,7 @@ export function BackupsPage() {
         </div>
 
         {data && data.projects.length > 0 && (
-          <Select
-            value={projectFilter}
-            onValueChange={(v) => handleFilterChange("project", v)}
-          >
+          <Select value={projectFilter} onValueChange={(v) => handleFilterChange("project", v)}>
             <SelectTrigger className="w-[160px] h-9 text-sm">
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
@@ -361,10 +359,7 @@ export function BackupsPage() {
         )}
 
         {data && data.environments.length > 0 && (
-          <Select
-            value={envFilter}
-            onValueChange={(v) => handleFilterChange("env", v)}
-          >
+          <Select value={envFilter} onValueChange={(v) => handleFilterChange("env", v)}>
             <SelectTrigger className="w-[140px] h-9 text-sm">
               <SelectValue placeholder="All Environments" />
             </SelectTrigger>
@@ -397,12 +392,7 @@ export function BackupsPage() {
       ) : error && !data ? (
         <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
           <p className="text-sm text-basalt-destructive">{error}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => void fetchBackups()}
-          >
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => void fetchBackups()}>
             Retry
           </Button>
         </div>
@@ -418,12 +408,7 @@ export function BackupsPage() {
               : "Configure your AI agent to send backups via webhook."}
           </p>
           {hasFilters && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={clearFilters}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
               Clear filters
             </Button>
           )}
@@ -433,16 +418,8 @@ export function BackupsPage() {
           <div className="hidden md:flex items-center gap-3 px-4 py-2 text-xs text-basalt-muted-foreground border-b border-basalt-border">
             <div className="w-5 shrink-0">
               <Checkbox
-                checked={
-                  allSelected
-                    ? true
-                    : someSelected
-                      ? "indeterminate"
-                      : false
-                }
-                onCheckedChange={(checked) =>
-                  handleSelectAll(checked === true)
-                }
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={(checked) => handleSelectAll(checked === true)}
                 aria-label="Select all backups on this page"
               />
             </div>
@@ -494,9 +471,7 @@ export function BackupsPage() {
                   <div className="w-5 shrink-0 pt-2 md:pt-0">
                     <Checkbox
                       checked={selected.has(backup.id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectOne(backup.id, checked === true)
-                      }
+                      onCheckedChange={(checked) => handleSelectOne(backup.id, checked === true)}
                     />
                   </div>
 
@@ -512,22 +487,11 @@ export function BackupsPage() {
                       >
                         {backup.project_name}
                       </Link>
-                      {backup.environment && (
-                        <Badge tone="neutral">
-                          {backup.environment}
-                        </Badge>
-                      )}
-                      {backup.tag && (
-                        <Badge variant="outline">{backup.tag}</Badge>
-                      )}
+                      {backup.environment && <Badge tone="neutral">{backup.environment}</Badge>}
+                      {backup.tag && <Badge variant="outline">{backup.tag}</Badge>}
                       {backup.file_type && (
-                        <Badge
-                          tone={
-                            backup.file_type === "json" ? "info" : "neutral"
-                          }
-                        >
-                          {FILE_TYPE_LABELS[backup.file_type] ??
-                            backup.file_type.toUpperCase()}
+                        <Badge tone={backup.file_type === "json" ? "info" : "neutral"}>
+                          {FILE_TYPE_LABELS[backup.file_type] ?? backup.file_type.toUpperCase()}
                         </Badge>
                       )}
                     </div>
@@ -628,9 +592,7 @@ export function BackupsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setPage((p) => Math.min(data.totalPages, p + 1))
-                  }
+                  onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
                   disabled={page >= data.totalPages || loading}
                 >
                   <ChevronRight className="h-3.5 w-3.5" />
@@ -647,24 +609,17 @@ export function BackupsPage() {
         </div>
       )}
 
-      <Dialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Backup?</DialogTitle>
             <DialogDescription>
-              This will permanently delete this backup file from storage. This
-              action cannot be undone.
+              This will permanently delete this backup file from storage. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
               Cancel
             </Button>
             <Button
@@ -672,34 +627,25 @@ export function BackupsPage() {
               onClick={() => void handleDeleteSingle()}
               disabled={deleting}
             >
-              {deleting && (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              )}
+              {deleting && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
               Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={batchDeleteOpen}
-        onOpenChange={(open) => !open && setBatchDeleteOpen(false)}
-      >
+      <Dialog open={batchDeleteOpen} onOpenChange={(open) => !open && setBatchDeleteOpen(false)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete {selected.size} Backups?</DialogTitle>
             <DialogDescription>
               This will permanently delete {selected.size} backup
-              {selected.size !== 1 ? "s" : ""} and their files from storage.
-              This action cannot be undone.
+              {selected.size !== 1 ? "s" : ""} and their files from storage. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setBatchDeleteOpen(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setBatchDeleteOpen(false)} disabled={deleting}>
               Cancel
             </Button>
             <Button
@@ -707,9 +653,7 @@ export function BackupsPage() {
               onClick={() => void handleBatchDelete()}
               disabled={deleting}
             >
-              {deleting && (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              )}
+              {deleting && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
               Delete {selected.size} Backup{selected.size !== 1 ? "s" : ""}
             </Button>
           </DialogFooter>
@@ -719,10 +663,7 @@ export function BackupsPage() {
   );
 }
 
-export function generatePageNumbers(
-  current: number,
-  total: number,
-): Array<number | "..."> {
+export function generatePageNumbers(current: number, total: number): Array<number | "..."> {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }

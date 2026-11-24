@@ -48,31 +48,21 @@ app.get("/:id", async (c) =>
   toResponse(await getBackupHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 app.delete("/:id", async (c) =>
-  toResponse(
-    await deleteBackupHandler({ id: c.req.param("id") }, c.get("ctx")),
-  ),
+  toResponse(await deleteBackupHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 app.get("/:id/download", async (c) =>
-  toResponse(
-    await downloadBackupHandler({ id: c.req.param("id") }, c.get("ctx")),
-  ),
+  toResponse(await downloadBackupHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 app.get("/:id/preview", async (c) =>
-  toResponse(
-    await previewBackupHandler({ id: c.req.param("id") }, c.get("ctx")),
-  ),
+  toResponse(await previewBackupHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 app.post("/:id/extract", async (c) =>
-  toResponse(
-    await extractBackupHandler({ id: c.req.param("id") }, c.get("ctx")),
-  ),
+  toResponse(await extractBackupHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 app.get("/:id/restore-command", async (c) => {
   const ctx = c.get("ctx");
   const baseUrl = buildBaseUrl(c.req.raw, ctx.env);
-  return toResponse(
-    await restoreCommandHandler({ id: c.req.param("id"), baseUrl }, ctx),
-  );
+  return toResponse(await restoreCommandHandler({ id: c.req.param("id"), baseUrl }, ctx));
 });
 
 export { app as backupsRoutes };

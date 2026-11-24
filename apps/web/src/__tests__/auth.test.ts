@@ -8,9 +8,7 @@ import { CF_ACCESS_LOGOUT_URL } from "../lib/RequireAuth";
 
 describe("CF_ACCESS_LOGOUT_URL", () => {
   test("points at the nocoo CF Access team", () => {
-    expect(CF_ACCESS_LOGOUT_URL).toBe(
-      "https://nocoo.cloudflareaccess.com/cdn-cgi/access/logout",
-    );
+    expect(CF_ACCESS_LOGOUT_URL).toBe("https://nocoo.cloudflareaccess.com/cdn-cgi/access/logout");
   });
 
   test("uses the canonical /cdn-cgi/access/logout path", () => {

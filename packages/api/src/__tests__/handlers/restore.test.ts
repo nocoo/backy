@@ -1,15 +1,10 @@
 import { describe, expect, test, beforeEach, vi } from "vitest";
-import {
-  BACKUP_STUBS,
-  PROJECT_STUBS,
-  makeMockCtx,
-  makeMockR2,
-} from "../helpers";
+import { BACKUP_STUBS, PROJECT_STUBS, makeMockCtx, makeMockR2 } from "../helpers";
 
 let mockGetBackup: (id: string) => Promise<any> = async () => undefined;
 let mockGetProject: (id: string) => Promise<any> = async () => undefined;
-let mockCreatePresignedDownloadUrl: (key: string, ttl: number) => Promise<string> =
-  async () => "https://mock.example.com/signed";
+let mockCreatePresignedDownloadUrl: (key: string, ttl: number) => Promise<string> = async () =>
+  "https://mock.example.com/signed";
 
 vi.doMock("../../lib/db/backups", () => ({
   ...BACKUP_STUBS,
@@ -33,17 +28,19 @@ describe("restore handler", () => {
   beforeEach(() => {
     mockGetBackup = async () => undefined;
     mockGetProject = async () => undefined;
-    mockCreatePresignedDownloadUrl = async () =>
-      "https://mock.example.com/signed";
+    mockCreatePresignedDownloadUrl = async () => "https://mock.example.com/signed";
   });
 
   test("401 when no auth", async () => {
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: null,
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: null,
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(401);
     expect(r.kind).toBe("json");
     if (r.kind === "json")
@@ -54,12 +51,15 @@ describe("restore handler", () => {
   });
 
   test("401 when authorization not Bearer", async () => {
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Basic xyz",
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Basic xyz",
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(401);
     expect(r.kind).toBe("json");
     if (r.kind === "json")
@@ -72,16 +72,18 @@ describe("restore handler", () => {
   });
 
   test("404 when backup missing", async () => {
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer t",
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer t",
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(404);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Backup not found" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Backup not found" });
   });
 
   test("403 when project missing", async () => {
@@ -91,12 +93,15 @@ describe("restore handler", () => {
       file_key: "k",
       file_size: 100,
     });
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer t",
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer t",
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(403);
     expect(r.kind).toBe("json");
     if (r.kind === "json")
@@ -118,16 +123,18 @@ describe("restore handler", () => {
       webhook_token: "right",
       allowed_ips: null,
     });
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer wrong",
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer wrong",
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(403);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Invalid token" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Invalid token" });
   });
 
   test("403 when client IP not allowed", async () => {
@@ -142,12 +149,15 @@ describe("restore handler", () => {
       webhook_token: "t",
       allowed_ips: "10.0.0.0/8",
     });
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer t",
-      queryToken: null,
-      clientIp: "1.2.3.4",
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer t",
+        queryToken: null,
+        clientIp: "1.2.3.4",
+      },
+      ctx,
+    );
     expect(r.status).toBe(403);
     expect(r.kind).toBe("json");
     if (r.kind === "json")
@@ -168,12 +178,15 @@ describe("restore handler", () => {
       webhook_token: "t",
       allowed_ips: "10.0.0.0/8",
     });
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer t",
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer t",
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(403);
     expect(r.kind).toBe("json");
     if (r.kind === "json")
@@ -199,12 +212,15 @@ describe("restore handler", () => {
       calledArgs = [key, ttl];
       return "https://signed.example.com/k1";
     };
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer t",
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer t",
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(200);
     // Tightened: positively verify both forwarded args (key + 900s ttl)
     // instead of just the key. Catches a regression that hard-codes a
@@ -238,12 +254,15 @@ describe("restore handler", () => {
       webhook_token: "t",
       allowed_ips: "10.0.0.0/8",
     });
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer t",
-      queryToken: null,
-      clientIp: "10.1.2.3",
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer t",
+        queryToken: null,
+        clientIp: "10.1.2.3",
+      },
+      ctx,
+    );
     expect(r.status).toBe(200);
   });
 
@@ -251,16 +270,18 @@ describe("restore handler", () => {
     mockGetBackup = async () => {
       throw new Error("db");
     };
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer t",
-      queryToken: null,
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer t",
+        queryToken: null,
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to generate restore URL" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to generate restore URL" });
   });
 
   test("200 with query-param token (no Authorization header)", async () => {
@@ -280,12 +301,15 @@ describe("restore handler", () => {
       calledArgs = [key, ttl];
       return "https://signed.example.com/k1";
     };
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: null,
-      queryToken: "t",
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: null,
+        queryToken: "t",
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(200);
     // Tightened: query-param auth must take the same code path as
     // Bearer (presign called with file_key + 900s TTL); status-only
@@ -306,16 +330,18 @@ describe("restore handler", () => {
       webhook_token: "right",
       allowed_ips: null,
     });
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: null,
-      queryToken: "wrong",
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: null,
+        queryToken: "wrong",
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(403);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Invalid token" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Invalid token" });
   });
 
   test("Bearer wins over query-param when both provided", async () => {
@@ -335,12 +361,15 @@ describe("restore handler", () => {
       presignCalls++;
       return "https://signed.example.com/k1";
     };
-    const r = await restoreHandler({
-      id: "b1",
-      authorization: "Bearer bearer-token",
-      queryToken: "wrong-query",
-      clientIp: null,
-    }, ctx);
+    const r = await restoreHandler(
+      {
+        id: "b1",
+        authorization: "Bearer bearer-token",
+        queryToken: "wrong-query",
+        clientIp: null,
+      },
+      ctx,
+    );
     expect(r.status).toBe(200);
     // Tightened: precedence rule must be Bearer-first, NOT query-token-
     // first (with bearer-token matching, wrong-query irrelevant). Status

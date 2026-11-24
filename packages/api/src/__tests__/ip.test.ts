@@ -1,5 +1,12 @@
 import { describe, test, expect } from "vitest";
-import { isValidCidr, validateAllowedIps, normalizeAllowedIps, isIpAllowed, getClientIp, enforceIpRestriction } from "@backy/api/ip";
+import {
+  isValidCidr,
+  validateAllowedIps,
+  normalizeAllowedIps,
+  isIpAllowed,
+  getClientIp,
+  enforceIpRestriction,
+} from "@backy/api/ip";
 
 describe("isValidCidr", () => {
   test("accepts plain IPv4 address", () => {
@@ -63,7 +70,9 @@ describe("validateAllowedIps", () => {
 
 describe("normalizeAllowedIps", () => {
   test("trims and deduplicates", () => {
-    expect(normalizeAllowedIps("  1.2.3.4/8 , 10.0.0.0/16,  1.2.3.4/8 ")).toBe("1.2.3.4/8,10.0.0.0/16");
+    expect(normalizeAllowedIps("  1.2.3.4/8 , 10.0.0.0/16,  1.2.3.4/8 ")).toBe(
+      "1.2.3.4/8,10.0.0.0/16",
+    );
   });
 
   test("returns null for empty", () => {

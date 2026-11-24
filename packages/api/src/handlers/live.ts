@@ -9,10 +9,7 @@ interface DependencyStatus {
   message?: string;
 }
 
-async function checkWithTimeout<T>(
-  fn: () => Promise<T>,
-  timeoutMs: number,
-): Promise<T> {
+async function checkWithTimeout<T>(fn: () => Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     fn(),
     new Promise<never>((_, reject) =>
@@ -24,10 +21,7 @@ async function checkWithTimeout<T>(
 async function checkD1(ctx: RuntimeContext): Promise<DependencyStatus> {
   const start = performance.now();
   try {
-    await checkWithTimeout(
-      () => ctx.db.query("SELECT 1"),
-      HEALTH_CHECK_TIMEOUT_MS,
-    );
+    await checkWithTimeout(() => ctx.db.query("SELECT 1"), HEALTH_CHECK_TIMEOUT_MS);
     return { status: "up", latency_ms: Math.round(performance.now() - start) };
   } catch (err) {
     return {
@@ -56,9 +50,7 @@ function sanitizeMessage(msg: string): string {
   return msg.replace(/\bok\b/gi, "***");
 }
 
-export async function liveCheckHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function liveCheckHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   const timestamp = new Date().toISOString();
   const [d1, r2] = await Promise.all([checkD1(ctx), checkR2(ctx)]);
 

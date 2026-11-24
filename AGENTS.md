@@ -26,12 +26,12 @@ bun run gate:security             # G1 gitleaks + G2 osv-scanner locally
 
 ## Workspace Layout
 
-| Path | Role |
-| --- | --- |
-| `apps/web/` | Vite/React + `@nocoo/basalt` SPA (dev `7017`), builds into `apps/worker/static/` |
-| `apps/worker/` | Hono Worker, Cloudflare Access auth, D1/R2 bindings, hourly scheduled jobs (dev `7018`) |
-| `packages/api/` | Runtime-agnostic backup/storage handlers, D1/R2 adapters, extractors |
-| `apps/cli/` | CLI package (currently a placeholder) |
+| Path               | Role                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `apps/web/`        | Vite/React + `@nocoo/basalt` SPA (dev `7017`), builds into `apps/worker/static/`        |
+| `apps/worker/`     | Hono Worker, Cloudflare Access auth, D1/R2 bindings, hourly scheduled jobs (dev `7018`) |
+| `packages/api/`    | Runtime-agnostic backup/storage handlers, D1/R2 adapters, extractors                    |
+| `apps/cli/`        | CLI package (currently a placeholder)                                                   |
 | `e2e/`, `scripts/` | HTTP/BDD E2E suites, local runners, quality gates (`scripts/gate-*.ts`), release script |
 
 ## Invariants
@@ -58,12 +58,12 @@ Follows `system1-quality`; CI slot definitions and pinned `nocoo/base-ci` revisi
 
 ## Resources & Isolation
 
-| Lane | Endpoint / State | Boundary |
-| --- | --- | --- |
-| Daily dev | Vite `7017` (`backy.dev.hexly.ai`), Worker `7018` | Wrangler bindings have `remote = true`; use intended dev resources, not prod |
-| API E2E (`L3`) | `127.0.0.1:17018`, `apps/worker/.wrangler/e2e-api` | Local miniflare D1/R2 + local S3 direct-upload interface + `_test_marker` |
-| BDD E2E (`L4`) | `127.0.0.1:17018`, `apps/worker/.wrangler/e2e-bdd` | Local Playwright lane; shares port `17018`, run sequentially with `L3` |
-| Prod | `https://backy.hexly.ai` (`backy-db`, `backy` R2) | Read-only checks unless release/deploy is authorized |
+| Lane           | Endpoint / State                                   | Boundary                                                                     |
+| -------------- | -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Daily dev      | Vite `7017` (`backy.dev.hexly.ai`), Worker `7018`  | Wrangler bindings have `remote = true`; use intended dev resources, not prod |
+| API E2E (`L3`) | `127.0.0.1:17018`, `apps/worker/.wrangler/e2e-api` | Local miniflare D1/R2 + local S3 direct-upload interface + `_test_marker`    |
+| BDD E2E (`L4`) | `127.0.0.1:17018`, `apps/worker/.wrangler/e2e-bdd` | Local Playwright lane; shares port `17018`, run sequentially with `L3`       |
+| Prod           | `https://backy.hexly.ai` (`backy-db`, `backy` R2)  | Read-only checks unless release/deploy is authorized                         |
 
 Required Worker harness: reject remote bindings/prod credential fallback, allocate a fresh per-run persist dir, assert local test mode, and initialize/verify `_test_marker` before reset/cleanup. Current fixed-dir harness is partial; [docs/05-test-resource-isolation.md](docs/05-test-resource-isolation.md) is superseded.
 

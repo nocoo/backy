@@ -7,15 +7,9 @@ import { Skeleton } from "@nocoo/basalt/components/skeleton";
 import { Badge } from "@nocoo/basalt/components/badge";
 import { LayerCard } from "@nocoo/basalt/components/layer-card";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import {
-  BackupsByProjectChart,
-  StorageByProjectChart,
-} from "@/components/charts/project-charts";
+import { BackupsByProjectChart, StorageByProjectChart } from "@/components/charts/project-charts";
 import { DailyBackupsChart } from "@/components/charts/activity-chart";
-import {
-  CronActivityChart,
-  type DailyCronStat,
-} from "@/components/charts/cron-chart";
+import { CronActivityChart, type DailyCronStat } from "@/components/charts/cron-chart";
 
 interface Stats {
   totalProjects: number;
@@ -60,10 +54,7 @@ interface BackupsListResponse {
 
 export function DashboardPage() {
   const stats = useSWR<Stats>("/api/stats/totals", swrFetcher);
-  const backups = useSWR<BackupsListResponse>(
-    "/api/backups?pageSize=5",
-    swrFetcher,
-  );
+  const backups = useSWR<BackupsListResponse>("/api/backups?pageSize=5", swrFetcher);
   const charts = useSWR<ChartData>("/api/stats/charts", swrFetcher);
 
   const loading = stats.isLoading || backups.isLoading || charts.isLoading;
@@ -78,24 +69,15 @@ export function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatsCard
-              label="Total Projects"
-              value={String(stats.data?.totalProjects ?? 0)}
-            />
-            <StatsCard
-              label="Total Backups"
-              value={String(stats.data?.totalBackups ?? 0)}
-            />
+            <StatsCard label="Total Projects" value={String(stats.data?.totalProjects ?? 0)} />
+            <StatsCard label="Total Backups" value={String(stats.data?.totalBackups ?? 0)} />
             <StatsCard
               label="Storage Used"
               value={formatBytes(stats.data?.totalStorageBytes ?? 0)}
             />
           </div>
 
-          <div
-            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-            style={{ animationDelay: "80ms" }}
-          >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" style={{ animationDelay: "80ms" }}>
             <BackupsByProjectChart data={charts.data?.projectStats ?? []} />
             <StorageByProjectChart data={charts.data?.projectStats ?? []} />
           </div>
@@ -108,18 +90,15 @@ export function DashboardPage() {
             <CronActivityChart data={charts.data?.cronStats ?? []} />
           </div>
 
-          <div
-            className=""
-            style={{ animationDelay: "240ms" }}
-          >
+          <div className="" style={{ animationDelay: "240ms" }}>
             <h2 className="text-sm font-medium text-basalt-muted-foreground mb-3">
               Recent Backups
             </h2>
             {recentBackups.length === 0 ? (
               <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-8 text-center">
                 <p className="text-sm text-basalt-muted-foreground">
-                  No backups yet. Create a project and configure your AI agent
-                  to start sending backups.
+                  No backups yet. Create a project and configure your AI agent to start sending
+                  backups.
                 </p>
               </div>
             ) : (
@@ -139,14 +118,8 @@ export function DashboardPage() {
                           <span className="text-sm font-medium text-basalt-foreground truncate">
                             {backup.project_name}
                           </span>
-                          {backup.environment && (
-                            <Badge tone="neutral">
-                              {backup.environment}
-                            </Badge>
-                          )}
-                          {backup.tag && (
-                            <Badge variant="outline">{backup.tag}</Badge>
-                          )}
+                          {backup.environment && <Badge tone="neutral">{backup.environment}</Badge>}
+                          {backup.tag && <Badge variant="outline">{backup.tag}</Badge>}
                         </div>
                         <span className="text-xs text-basalt-muted-foreground">
                           {formatDate(backup.created_at)}
@@ -171,7 +144,9 @@ function StatsCard({ label, value }: { label: string; value: string }) {
   return (
     <LayerCard>
       <p className="text-basalt-sm font-medium text-basalt-muted-foreground">{label}</p>
-      <p className="mt-basalt-space-sm text-basalt-3xl font-semibold text-basalt-foreground">{value}</p>
+      <p className="mt-basalt-space-sm text-basalt-3xl font-semibold text-basalt-foreground">
+        {value}
+      </p>
     </LayerCard>
   );
 }
@@ -192,10 +167,7 @@ function DashboardSkeleton() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-basalt-card bg-basalt-secondary p-6"
-          >
+          <div key={i} className="rounded-basalt-card bg-basalt-secondary p-6">
             <Skeleton className="h-4 w-32 mb-1" />
             <Skeleton className="h-3 w-48 mb-4" />
             <Skeleton className="h-[200px] w-full rounded-md" />
@@ -204,10 +176,7 @@ function DashboardSkeleton() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-basalt-card bg-basalt-secondary p-6"
-          >
+          <div key={i} className="rounded-basalt-card bg-basalt-secondary p-6">
             <Skeleton className="h-4 w-32 mb-1" />
             <Skeleton className="h-3 w-48 mb-4" />
             <Skeleton className="h-[200px] w-full rounded-md" />

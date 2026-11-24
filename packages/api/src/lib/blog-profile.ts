@@ -1,5 +1,4 @@
-export const AUTHOR_PROFILE_ENDPOINT =
-  "https://lizheng.blog/api/authors/profile";
+export const AUTHOR_PROFILE_ENDPOINT = "https://lizheng.blog/api/authors/profile";
 
 export const AUTHOR_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -8,10 +7,7 @@ export type AuthorProfile = {
   avatar: string | null;
 };
 
-export type AuthorProfileFetcher = (
-  url: string,
-  init?: RequestInit,
-) => Promise<Response>;
+export type AuthorProfileFetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 const EMPTY: AuthorProfile = { name: null, avatar: null };
 const SHA256_HEX = /^[0-9a-f]{64}$/;
@@ -33,9 +29,7 @@ export function isSha256Hex(hash: string): boolean {
 export async function emailSha256Hex(email: string): Promise<string> {
   const bytes = new TextEncoder().encode(normalizeEmail(email));
   const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function pickProfile(data: unknown): AuthorProfile {

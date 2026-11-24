@@ -65,9 +65,7 @@ export function ProjectsPage() {
 
     for (const project of projects) {
       const key =
-        project.category_id && categoryMap.has(project.category_id)
-          ? project.category_id
-          : null;
+        project.category_id && categoryMap.has(project.category_id) ? project.category_id : null;
       const list = grouped.get(key);
       if (list) {
         list.push(project);
@@ -126,18 +124,11 @@ export function ProjectsPage() {
       ) : projects.length === 0 ? (
         <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-12 text-center">
           <FolderKanban className="h-10 w-10 text-basalt-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-medium text-basalt-foreground">
-            No projects yet
-          </p>
+          <p className="text-sm font-medium text-basalt-foreground">No projects yet</p>
           <p className="text-sm text-basalt-muted-foreground mt-1">
-            Create your first project to start receiving backups from AI
-            agents.
+            Create your first project to start receiving backups from AI agents.
           </p>
-          <Button
-            size="sm"
-            className="mt-4"
-            onClick={() => navigate("/projects/new")}
-          >
+          <Button size="sm" className="mt-4" onClick={() => navigate("/projects/new")}>
             <Plus className="h-4 w-4 mr-1.5" />
             Create Project
           </Button>
@@ -147,15 +138,8 @@ export function ProjectsPage() {
           {groups.map((group, i) => {
             const key = group.category?.id ?? "__uncategorized__";
             return (
-              <div
-                key={key}
-                className=""
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <CategorySection
-                  group={group}
-                  showHeader={categories.length > 0}
-                />
+              <div key={key} className="" style={{ animationDelay: `${i * 60}ms` }}>
+                <CategorySection group={group} showHeader={categories.length > 0} />
               </div>
             );
           })}
@@ -165,13 +149,7 @@ export function ProjectsPage() {
   );
 }
 
-function CategorySection({
-  group,
-  showHeader,
-}: {
-  group: CategoryGroup;
-  showHeader: boolean;
-}) {
+function CategorySection({ group, showHeader }: { group: CategoryGroup; showHeader: boolean }) {
   const { category, projects } = group;
 
   return (
@@ -184,15 +162,10 @@ function CategorySection({
                 className: "h-3.5 w-3.5",
                 style: { color: category.color },
               })}
-              <span
-                className="text-sm font-medium"
-                style={{ color: category.color }}
-              >
+              <span className="text-sm font-medium" style={{ color: category.color }}>
                 {category.name}
               </span>
-              <span className="text-xs text-basalt-muted-foreground">
-                ({projects.length})
-              </span>
+              <span className="text-xs text-basalt-muted-foreground">({projects.length})</span>
             </>
           ) : (
             <>
@@ -200,20 +173,14 @@ function CategorySection({
               <span className="text-sm font-medium text-basalt-muted-foreground">
                 Uncategorized
               </span>
-              <span className="text-xs text-basalt-muted-foreground">
-                ({projects.length})
-              </span>
+              <span className="text-xs text-basalt-muted-foreground">({projects.length})</span>
             </>
           )}
         </div>
       )}
       <div className="grid grid-cols-1 gap-1.5">
         {projects.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            categoryColor={category?.color}
-          />
+          <ProjectCard key={project.id} project={project} categoryColor={category?.color} />
         ))}
       </div>
     </div>
@@ -255,9 +222,7 @@ function ProjectCard({
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-sm font-medium text-basalt-foreground truncate">
-            {project.name}
-          </p>
+          <p className="text-sm font-medium text-basalt-foreground truncate">{project.name}</p>
           {project.description && (
             <p className="text-xs text-basalt-muted-foreground truncate mt-0.5">
               {project.description}
@@ -283,25 +248,23 @@ function ProjectsListSkeleton() {
             <Skeleton className="h-3 w-8" />
           </div>
           <div className="grid grid-cols-1 gap-1.5">
-            {Array.from({ length: groupIdx === 0 ? 3 : 2 }).map(
-              (_, cardIdx) => (
-                <div
-                  key={cardIdx}
-                  className="flex items-center justify-between rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3.5"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Skeleton className="h-9 w-9 rounded-lg" />
-                    <div className="min-w-0">
-                      <Skeleton className="h-4 w-32 mb-1.5" />
-                      <Skeleton className="h-3 w-48" />
-                    </div>
-                  </div>
-                  <div className="shrink-0 ml-4">
-                    <Skeleton className="h-3 w-20" />
+            {Array.from({ length: groupIdx === 0 ? 3 : 2 }).map((_, cardIdx) => (
+              <div
+                key={cardIdx}
+                className="flex items-center justify-between rounded-lg border border-basalt-border bg-basalt-background/50 px-4 py-3.5"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <div className="min-w-0">
+                    <Skeleton className="h-4 w-32 mb-1.5" />
+                    <Skeleton className="h-3 w-48" />
                   </div>
                 </div>
-              ),
-            )}
+                <div className="shrink-0 ml-4">
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ))}

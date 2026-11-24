@@ -11,10 +11,7 @@
  * runs synchronously.
  */
 import { beforeEach, describe, expect, test } from "vitest";
-import {
-  createRestD1Adapter,
-  isRestD1Configured,
-} from "@backy/api/db/d1-rest-adapter";
+import { createRestD1Adapter, isRestD1Configured } from "@backy/api/db/d1-rest-adapter";
 import type { BackyEnv } from "@backy/api/runtime";
 
 const baseEnv: Pick<BackyEnv, "D1_ACCOUNT_ID" | "D1_DATABASE_ID" | "D1_API_TOKEN"> = {
@@ -28,9 +25,7 @@ interface FetchCall {
   init: RequestInit | undefined;
 }
 
-function makeFetchStub(
-  responses: Array<Response | (() => Response | Promise<Response>)>,
-) {
+function makeFetchStub(responses: Array<Response | (() => Response | Promise<Response>)>) {
   const calls: FetchCall[] = [];
   let i = 0;
   const fn = ((url: string, init?: RequestInit) => {
@@ -55,15 +50,9 @@ describe("isRestD1Configured", () => {
   });
 
   test("returns false when any cred is missing or empty", () => {
-    expect(
-      isRestD1Configured({ ...baseEnv, D1_ACCOUNT_ID: "" } as BackyEnv),
-    ).toBe(false);
-    expect(
-      isRestD1Configured({ ...baseEnv, D1_DATABASE_ID: "" } as BackyEnv),
-    ).toBe(false);
-    expect(
-      isRestD1Configured({ ...baseEnv, D1_API_TOKEN: "" } as BackyEnv),
-    ).toBe(false);
+    expect(isRestD1Configured({ ...baseEnv, D1_ACCOUNT_ID: "" } as BackyEnv)).toBe(false);
+    expect(isRestD1Configured({ ...baseEnv, D1_DATABASE_ID: "" } as BackyEnv)).toBe(false);
+    expect(isRestD1Configured({ ...baseEnv, D1_API_TOKEN: "" } as BackyEnv)).toBe(false);
   });
 });
 
@@ -76,13 +65,11 @@ describe("createRestD1Adapter", () => {
 
   test("throws 'D1 credentials not configured' when any cred missing", async () => {
     const { fn } = makeFetchStub([]);
-    const adapter = createRestD1Adapter(
-      { ...baseEnv, D1_API_TOKEN: "" } as typeof baseEnv,
-      { fetch: fn, sleep: noSleep },
-    );
-    await expect(adapter.query("SELECT 1")).rejects.toThrow(
-      "D1 credentials not configured",
-    );
+    const adapter = createRestD1Adapter({ ...baseEnv, D1_API_TOKEN: "" } as typeof baseEnv, {
+      fetch: fn,
+      sleep: noSleep,
+    });
+    await expect(adapter.query("SELECT 1")).rejects.toThrow("D1 credentials not configured");
   });
 
   test("happy path: posts to v4 URL with bearer + JSON body and returns rows+meta", async () => {
@@ -138,9 +125,7 @@ describe("createRestD1Adapter", () => {
       baseUrl: "https://example.test/api",
     });
     await adapter.query("SELECT 1");
-    expect(calls[0]!.url).toBe(
-      "https://example.test/api/accounts/acc-1/d1/database/db-1/query",
-    );
+    expect(calls[0]!.url).toBe("https://example.test/api/accounts/acc-1/d1/database/db-1/query");
   });
 
   test("default empty params still serializes params=[]", async () => {
@@ -156,9 +141,7 @@ describe("createRestD1Adapter", () => {
     ]);
     const adapter = createRestD1Adapter(baseEnv, { fetch: fn, sleep: noSleep });
     await adapter.query("SELECT 1");
-    expect(calls[0]!.init?.body).toBe(
-      JSON.stringify({ sql: "SELECT 1", params: [] }),
-    );
+    expect(calls[0]!.init?.body).toBe(JSON.stringify({ sql: "SELECT 1", params: [] }));
   });
 
   test("missing meta in response still resolves with empty results", async () => {
@@ -234,9 +217,7 @@ describe("createRestD1Adapter", () => {
       ),
     ]);
     const adapter = createRestD1Adapter(baseEnv, { fetch: fn, sleep: noSleep });
-    await expect(adapter.query("INSERT ...")).rejects.toThrow(
-      "UNIQUE constraint failed",
-    );
+    await expect(adapter.query("INSERT ...")).rejects.toThrow("UNIQUE constraint failed");
   });
 
   test("payload-level success=false with non-unique detail throws 'D1 query failed'", async () => {
@@ -280,10 +261,7 @@ describe("createRestD1Adapter", () => {
 
   test("HTTP 503 every attempt: exhausts D1_MAX_RETRIES and throws", async () => {
     const { fn, calls } = makeFetchStub(
-      Array.from(
-        { length: 4 },
-        () => new Response("503 always", { status: 503 }),
-      ),
+      Array.from({ length: 4 }, () => new Response("503 always", { status: 503 })),
     );
     const adapter = createRestD1Adapter(baseEnv, { fetch: fn, sleep: noSleep });
     await expect(adapter.query("SELECT 1")).rejects.toThrow("D1 query failed");

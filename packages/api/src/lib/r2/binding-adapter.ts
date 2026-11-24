@@ -46,11 +46,7 @@ export interface BindingR2AdapterOptions {
    * proxies the bytes through the worker).
    */
   presignDownload?: (key: string, ttlSeconds: number) => Promise<string>;
-  presignUpload?: (
-    key: string,
-    ttlSeconds: number,
-    opts: R2PresignUploadOpts,
-  ) => Promise<string>;
+  presignUpload?: (key: string, ttlSeconds: number, opts: R2PresignUploadOpts) => Promise<string>;
   copy?: (sourceKey: string, destKey: string) => Promise<void>;
 }
 
@@ -61,9 +57,7 @@ export function createBindingR2Adapter(
   return {
     async put(key, body, opts) {
       const normalised: ReadableStream | ArrayBuffer | ArrayBufferView =
-        body instanceof ArrayBuffer || ArrayBuffer.isView(body)
-          ? body
-          : (body as ReadableStream);
+        body instanceof ArrayBuffer || ArrayBuffer.isView(body) ? body : (body as ReadableStream);
       await bucket.put(key, normalised, {
         ...(opts?.contentType !== undefined && {
           httpMetadata: { contentType: opts.contentType },

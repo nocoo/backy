@@ -55,8 +55,7 @@ describe("categories handlers", () => {
     const r = await listCategoriesHandler(ctx);
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to list categories" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to list categories" });
   });
 
   test("create 201 with valid input", async () => {
@@ -84,10 +83,7 @@ describe("categories handlers", () => {
   });
 
   test("create 400 invalid color", async () => {
-    const r = await createCategoryHandler(
-      { body: { name: "X", color: "red" } },
-      ctx,
-    );
+    const r = await createCategoryHandler({ body: { name: "X", color: "red" } }, ctx);
     expect(r.status).toBe(400);
     expect(r.kind).toBe("json");
     // 'red' is not a valid hex color; the color field should surface
@@ -101,9 +97,7 @@ describe("categories handlers", () => {
   });
 
   test("create 400 missing name", async () => {
-    expect(
-      (await createCategoryHandler({ body: {} }, ctx)).status,
-    ).toBe(400);
+    expect((await createCategoryHandler({ body: {} }, ctx)).status).toBe(400);
   });
 
   test("create 500 on db error", async () => {
@@ -113,8 +107,7 @@ describe("categories handlers", () => {
     const r = await createCategoryHandler({ body: { name: "X" } }, ctx);
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to create category" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to create category" });
   });
 
   test("get 200 when found", async () => {
@@ -139,8 +132,7 @@ describe("categories handlers", () => {
     const r = await getCategoryHandler({ id: "c1" }, ctx);
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to get category" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to get category" });
   });
 
   test("update 200 when patched", async () => {
@@ -152,10 +144,7 @@ describe("categories handlers", () => {
   });
 
   test("update 400 invalid input", async () => {
-    const r = await updateCategoryHandler(
-      { id: "c1", body: { color: "red" } },
-      ctx,
-    );
+    const r = await updateCategoryHandler({ id: "c1", body: { color: "red" } }, ctx);
     expect(r.status).toBe(400);
     expect(r.kind).toBe("json");
     expect((r as { body: unknown }).body).toMatchObject({
@@ -177,14 +166,10 @@ describe("categories handlers", () => {
     mockUpdateCategory = async () => {
       throw new Error("db");
     };
-    const r = await updateCategoryHandler(
-      { id: "c1", body: { name: "X" } },
-      ctx,
-    );
+    const r = await updateCategoryHandler({ id: "c1", body: { name: "X" } }, ctx);
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to update category" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to update category" });
   });
 
   test("delete 200 when deleted", async () => {
@@ -209,7 +194,6 @@ describe("categories handlers", () => {
     const r = await deleteCategoryHandler({ id: "c1" }, ctx);
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to delete category" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to delete category" });
   });
 });

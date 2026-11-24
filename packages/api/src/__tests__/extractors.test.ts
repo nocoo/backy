@@ -44,9 +44,7 @@ async function createGzBuffer(content: string): Promise<Uint8Array> {
 }
 
 /** Create a TAR.GZ buffer containing given files. */
-async function createTgzBuffer(
-  files: Record<string, string>,
-): Promise<Uint8Array> {
+async function createTgzBuffer(files: Record<string, string>): Promise<Uint8Array> {
   const pack = createTarPack();
   for (const [name, content] of Object.entries(files)) {
     pack.entry({ name, size: Buffer.byteLength(content) }, content);
@@ -98,9 +96,7 @@ describe("extractJson", () => {
     const result = await extractJson(new Uint8Array(), "unknown");
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toBe(
-        "Unsupported file format — cannot extract preview content",
-      );
+      expect(result.reason).toBe("Unsupported file format — cannot extract preview content");
     }
   });
 });
@@ -157,9 +153,7 @@ describe("extractFromZip", () => {
     const result = await extractFromZip(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toBe(
-        "Failed to parse ZIP archive — file may be corrupt",
-      );
+      expect(result.reason).toBe("Failed to parse ZIP archive — file may be corrupt");
     }
   });
 
@@ -210,14 +204,12 @@ describe("extractFromGz", () => {
     const result = await extractFromGz(corrupt);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toBe(
-        "Failed to decompress GZ file — file may be corrupt",
-      );
+      expect(result.reason).toBe("Failed to decompress GZ file — file may be corrupt");
     }
   });
 
   test("handles json arrays", async () => {
-    const gz = await createGzBuffer('[1, 2, 3]');
+    const gz = await createGzBuffer("[1, 2, 3]");
     const result = await extractFromGz(gz);
     expect(result.success).toBe(true);
     if (result.success) {
@@ -280,9 +272,7 @@ describe("extractFromTgz", () => {
     if (!result.success) {
       // 6-byte input fails the gunzip step (not the tar parse), so the
       // 'decompress TGZ' reason is what surfaces (not 'parse TAR').
-      expect(result.reason).toBe(
-        "Failed to decompress TGZ file — file may be corrupt",
-      );
+      expect(result.reason).toBe("Failed to decompress TGZ file — file may be corrupt");
     }
   });
 
@@ -355,9 +345,7 @@ describe("decompression bomb defense", () => {
     // central directory header (signature 0x02014b50). Find that
     // signature, overwrite the size, and JSZip.loadAsync will believe
     // it.
-    const zipBuffer = Buffer.from(
-      await createZipBuffer({ "data.json": '{"ok":true}' }),
-    );
+    const zipBuffer = Buffer.from(await createZipBuffer({ "data.json": '{"ok":true}' }));
     const CENTRAL_DIR_SIG = Buffer.from([0x50, 0x4b, 0x01, 0x02]);
     const cdOffset = zipBuffer.indexOf(CENTRAL_DIR_SIG);
     expect(cdOffset).toBeGreaterThan(-1);
@@ -395,9 +383,8 @@ describe("decompression bomb defense", () => {
     let written = 0;
     while (written < giantSize) {
       const remaining = giantSize - written;
-      const chunk = remaining >= ZEROS_CHUNK.length
-        ? ZEROS_CHUNK
-        : ZEROS_CHUNK.subarray(0, remaining);
+      const chunk =
+        remaining >= ZEROS_CHUNK.length ? ZEROS_CHUNK : ZEROS_CHUNK.subarray(0, remaining);
       entryStream.write(chunk);
       written += chunk.length;
     }
@@ -428,9 +415,7 @@ describe("decompression bomb defense", () => {
     // resolves cleanly; tar-stream then errors when it tries to
     // parse the bytes as a tar header.
     const garbage = Buffer.from(
-      "this is definitely not a valid tar archive but it gunzips fine".repeat(
-        20,
-      ),
+      "this is definitely not a valid tar archive but it gunzips fine".repeat(20),
     );
     const gz = await gzipAsync(garbage);
     const result = await extractFromTgz(new Uint8Array(gz));
@@ -473,10 +458,7 @@ describe("decompression bomb defense", () => {
     // that the directory itself was not surfaced as a json-candidate.
     const pack = createTarPack();
     pack.entry({ name: "subdir/", type: "directory" });
-    pack.entry(
-      { name: "subdir/data.json", size: Buffer.byteLength('{"ok":true}') },
-      '{"ok":true}',
-    );
+    pack.entry({ name: "subdir/data.json", size: Buffer.byteLength('{"ok":true}') }, '{"ok":true}');
     pack.finalize();
     const chunks: Buffer[] = [];
     for await (const chunk of pack) {
@@ -530,9 +512,7 @@ describe("decompression bomb defense", () => {
     if (!result.success) {
       // Must be the header-bomb guard, not a generic parse error.
       expect(result.reason).toContain("huge.json");
-      expect(result.reason).toContain(
-        `${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`,
-      );
+      expect(result.reason).toContain(`${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit`);
     }
   });
 });

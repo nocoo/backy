@@ -41,8 +41,7 @@ export interface RestD1AdapterOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-const defaultSleep = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
+const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export function createRestD1Adapter(
   env: Pick<BackyEnv, "D1_ACCOUNT_ID" | "D1_DATABASE_ID" | "D1_API_TOKEN">,
@@ -61,8 +60,7 @@ export function createRestD1Adapter(
         throw new Error("D1 credentials not configured");
       }
 
-      const base =
-        options.baseUrl ?? "https://api.cloudflare.com/client/v4";
+      const base = options.baseUrl ?? "https://api.cloudflare.com/client/v4";
       const url = `${base}/accounts/${accountId}/d1/database/${databaseId}/query`;
       const requestBody = JSON.stringify({ sql, params });
 
@@ -86,10 +84,7 @@ export function createRestD1Adapter(
 
         if (!response.ok) {
           const error = await response.text();
-          if (
-            attempt < D1_MAX_RETRIES &&
-            isTransientError(response.status, error)
-          ) {
+          if (attempt < D1_MAX_RETRIES && isTransientError(response.status, error)) {
             console.warn("D1 transient error:", error);
             lastError = new Error("D1 query failed");
             continue;

@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { makeMockCtx, makeMockD1, makeMockR2 } from "../helpers";
-import {
-  dbInitHandler,
-  getTestMarkerHandler,
-  seedTestProjectHandler,
-} from "../../handlers/db";
+import { dbInitHandler, getTestMarkerHandler, seedTestProjectHandler } from "../../handlers/db";
 
 describe("db handlers", () => {
   let db: ReturnType<typeof makeMockD1>;
@@ -66,9 +62,7 @@ describe("db handlers", () => {
       return { results: [] };
     });
 
-    const r = await seedTestProjectHandler(
-      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
-    );
+    const r = await seedTestProjectHandler(makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }));
     expect(r.status).toBe(200);
     expect(r.kind).toBe("json");
     // Tightened: pin the full created-branch shape with TEST_PROJECT id
@@ -109,9 +103,7 @@ describe("db handlers", () => {
       };
     });
 
-    const r = await seedTestProjectHandler(
-      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
-    );
+    const r = await seedTestProjectHandler(makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }));
     expect(r.status).toBe(200);
     // Tightened: pin the verified-branch contract: action='verified',
     // cleanedBackups=0. The previous fixture had a name-drift bug that
@@ -140,9 +132,7 @@ describe("db handlers", () => {
       return { results: [] };
     });
 
-    const r = await seedTestProjectHandler(
-      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
-    );
+    const r = await seedTestProjectHandler(makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }));
     expect(r.status).toBe(200);
     expect(r2.deletes).toEqual(["a", "b"]);
     // Tightened: also pin the body action='created' (handler creates
@@ -162,9 +152,7 @@ describe("db handlers", () => {
       throw new Error("db");
     });
 
-    const r = await seedTestProjectHandler(
-      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
-    );
+    const r = await seedTestProjectHandler(makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }));
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
     // Tightened: handler surfaces the raw error message via String(err).
@@ -198,9 +186,7 @@ describe("db handlers", () => {
       return { results: [] };
     });
 
-    const r = await seedTestProjectHandler(
-      makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }),
-    );
+    const r = await seedTestProjectHandler(makeMockCtx({ db, r2, env: { E2E_SKIP_AUTH: "true" } }));
     expect(r.status).toBe(200);
     expect(r.kind).toBe("json");
     // Tightened: pin the full reset-branch envelope. cleanedBackups=0

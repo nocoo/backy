@@ -72,22 +72,22 @@ bun run dev
 
 Vite serves `http://localhost:7017` and proxies `/api/*` to the Worker on port 7018. Both D1 and R2 in `apps/worker/wrangler.toml` use `remote = true`, so the default command accesses those remote resources. Replace them with your own development database, bucket, and Access configuration. Local secrets belong in `apps/worker/.dev.vars`; the repository has no template for this file. See the [development guide](10-development.md) for configuration and initialization details.
 
-| Configuration | Purpose |
-| --- | --- |
-| `DB`, `R2` bindings | D1 database and R2 file storage |
-| `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` | Access JWT validation for management APIs; the development entry point must supply the expected authentication |
-| `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Download signing, direct-upload signing, and object copying |
-| `CRON_SECRET` | Automatic backup triggers and their HTTP endpoint |
+| Configuration                                                                 | Purpose                                                                                                        |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `DB`, `R2` bindings                                                           | D1 database and R2 file storage                                                                                |
+| `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`                                      | Access JWT validation for management APIs; the development entry point must supply the expected authentication |
+| `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Download signing, direct-upload signing, and object copying                                                    |
+| `CRON_SECRET`                                                                 | Automatic backup triggers and their HTTP endpoint                                                              |
 
 Keep test authentication flags out of ordinary development. Use the existing test runners below for entirely local D1, R2, and test identities.
 
-| Command / path | Purpose |
-| --- | --- |
-| `bun run web:dev`, `bun run worker:dev` | Start the frontend and Worker separately |
-| `bun run typecheck`, `bun run lint` | Workspace type and code checks |
-| `apps/web/` | Dashboard and frontend routes |
-| `apps/worker/` | Hono routes, Access verification, scheduled jobs, and static assets |
-| `packages/api/` | Backup, storage, project, direct-upload, and logging logic |
+| Command / path                          | Purpose                                                             |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| `bun run web:dev`, `bun run worker:dev` | Start the frontend and Worker separately                            |
+| `bun run typecheck`, `bun run lint`     | Workspace type and code checks                                      |
+| `apps/web/`                             | Dashboard and frontend routes                                       |
+| `apps/worker/`                          | Hono routes, Access verification, scheduled jobs, and static assets |
+| `packages/api/`                         | Backup, storage, project, direct-upload, and logging logic          |
 
 After CI succeeds on `main`, the Release workflow builds the website, applies incremental D1 migrations, and deploys the Worker. `bun run worker:deploy` only deploys the Worker; prepare static files and the database before a manual release. See [deployment details](10-development.md).
 
@@ -109,17 +109,17 @@ The browser runner builds the website first and also uses port 17018; run the tw
 
 ## Stack
 
-| Technology | Purpose |
-| --- | --- |
-| TypeScript, Bun workspaces | Shared types, business packages, and scripts |
-| Vite, React, React Router | Dashboard and frontend routing |
-| Tailwind CSS, Radix UI, Recharts | Styling, interactive components, and charts |
-| Hono, Cloudflare Workers | HTTP APIs, scheduled jobs, and static assets |
-| Cloudflare D1 | Projects, backups, direct-upload state, and logs |
-| Cloudflare R2, AWS S3 SDK | File storage, signed URLs, and object copying |
-| Cloudflare Access, jose | Administrative identity and JWT validation |
-| JSZip, tar-stream, zlib | JSON extraction from archives |
-| Vitest, Bun test, Playwright | Unit, HTTP, and browser tests |
+| Technology                       | Purpose                                          |
+| -------------------------------- | ------------------------------------------------ |
+| TypeScript, Bun workspaces       | Shared types, business packages, and scripts     |
+| Vite, React, React Router        | Dashboard and frontend routing                   |
+| Tailwind CSS, Radix UI, Recharts | Styling, interactive components, and charts      |
+| Hono, Cloudflare Workers         | HTTP APIs, scheduled jobs, and static assets     |
+| Cloudflare D1                    | Projects, backups, direct-upload state, and logs |
+| Cloudflare R2, AWS S3 SDK        | File storage, signed URLs, and object copying    |
+| Cloudflare Access, jose          | Administrative identity and JWT validation       |
+| JSZip, tar-stream, zlib          | JSON extraction from archives                    |
+| Vitest, Bun test, Playwright     | Unit, HTTP, and browser tests                    |
 
 ## Documentation
 

@@ -28,9 +28,7 @@ describe("toResponse", () => {
       body: { problem: true },
       headers: { "content-type": "application/problem+json" },
     });
-    expect(res.headers.get("content-type")).toBe(
-      "application/problem+json",
-    );
+    expect(res.headers.get("content-type")).toBe("application/problem+json");
   });
 
   test("bytes", async () => {
@@ -62,9 +60,7 @@ describe("toResponse", () => {
       headers: { "content-disposition": 'attachment; filename="x.zip"' },
     });
     expect(res.headers.get("content-type")).toBe("application/zip");
-    expect(res.headers.get("content-disposition")).toBe(
-      'attachment; filename="x.zip"',
-    );
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="x.zip"');
   });
 
   test("text with default content-type", async () => {

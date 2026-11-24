@@ -4,14 +4,14 @@ A leaf along for the ride. One native 2048 × 2048 Azure gpt-image-2 request. Th
 
 ## Use by surface
 
-| Surface | Asset | Treatment |
-| --- | --- | --- |
-| README / large gallery | `assets/brand/icon-rounded.png` | Selected rounded presentation at 128 px in README |
-| Sidebar, both states | `apps/web/public/logo-24.png` | Transparent 24 px foreground |
-| Other small UI marks | `apps/web/public/logo-80.png` | Transparent foreground |
-| Browser favicon | `apps/web/public/favicon.png and favicon.ico` | Transparent 32 px PNG and decoded 16/32/48 ICO |
-| Apple touch | `apps/web/public/apple-touch-icon.png` | Opaque square 180 px presentation |
-| Social | `apps/web/public/opengraph-image.png` | Rounded presentation on a 1200 × 630 canvas |
+| Surface                | Asset                                         | Treatment                                         |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------- |
+| README / large gallery | `assets/brand/icon-rounded.png`               | Selected rounded presentation at 128 px in README |
+| Sidebar, both states   | `apps/web/public/logo-24.png`                 | Transparent 24 px foreground                      |
+| Other small UI marks   | `apps/web/public/logo-80.png`                 | Transparent foreground                            |
+| Browser favicon        | `apps/web/public/favicon.png and favicon.ico` | Transparent 32 px PNG and decoded 16/32/48 ICO    |
+| Apple touch            | `apps/web/public/apple-touch-icon.png`        | Opaque square 180 px presentation                 |
+| Social                 | `apps/web/public/opengraph-image.png`         | Rounded presentation on a 1200 × 630 canvas       |
 
 Root `logo.png` is the canonical 2048 × 2048 transparent foreground. `assets/brand/icon.png` and `icon-rounded.png` preserve the independent square and rounded presentation. Small UI and browser marks use the foreground with its original proportions and alpha, without a background tile, glow, color filter or additional mask. Native app and touch icons follow their platform's separate masking contract.
 

@@ -14,7 +14,7 @@
  */
 
 import { describe, expect, test, beforeAll } from "bun:test";
-import { url, jsonRequest, } from "./config";
+import { url, jsonRequest } from "./config";
 
 describe("L2: API /api/backups", () => {
   let testProjectId: string;
@@ -97,10 +97,7 @@ describe("L2: API /api/backups", () => {
   test("POST /api/backups/:id/extract extracts backup", async () => {
     expect(createdBackupId).toBeTruthy();
 
-    const res = await jsonRequest(
-      "POST",
-      `/api/backups/${createdBackupId}/extract`,
-    );
+    const res = await jsonRequest("POST", `/api/backups/${createdBackupId}/extract`);
     // Extract may succeed or fail based on file format
     expect([200, 400]).toContain(res.status);
   });
@@ -108,9 +105,7 @@ describe("L2: API /api/backups", () => {
   test("GET /api/backups/:id/restore-command returns command", async () => {
     expect(createdBackupId).toBeTruthy();
 
-    const res = await fetch(
-      url(`/api/backups/${createdBackupId}/restore-command`),
-    );
+    const res = await fetch(url(`/api/backups/${createdBackupId}/restore-command`));
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as { command: string };
@@ -120,10 +115,7 @@ describe("L2: API /api/backups", () => {
   test("DELETE /api/backups/:id deletes single backup", async () => {
     expect(createdBackupId).toBeTruthy();
 
-    const res = await jsonRequest(
-      "DELETE",
-      `/api/backups/${createdBackupId}`,
-    );
+    const res = await jsonRequest("DELETE", `/api/backups/${createdBackupId}`);
     expect(res.status).toBe(200);
 
     // Verify deletion

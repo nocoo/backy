@@ -1,12 +1,4 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { LayerCard } from "@nocoo/basalt/components/layer-card";
 import {
   ChartFrame,
@@ -37,7 +29,9 @@ export function CronActivityChart({ data }: { data: DailyCronStat[] }) {
         <LayerCard.Header>
           <div>
             <h3 className="text-basalt-base font-medium">Cron Activity</h3>
-            <p className="text-basalt-sm text-basalt-muted-foreground">Auto-backup trigger results (last 30 days)</p>
+            <p className="text-basalt-sm text-basalt-muted-foreground">
+              Auto-backup trigger results (last 30 days)
+            </p>
           </div>
         </LayerCard.Header>
         <LayerCard.Empty title="No cron activity data" />
@@ -66,7 +60,9 @@ export function CronActivityChart({ data }: { data: DailyCronStat[] }) {
       <LayerCard.Header>
         <div>
           <h3 className="text-basalt-base font-medium">Cron Activity</h3>
-          <p className="text-basalt-sm text-basalt-muted-foreground">Auto-backup trigger results (last 30 days)</p>
+          <p className="text-basalt-sm text-basalt-muted-foreground">
+            Auto-backup trigger results (last 30 days)
+          </p>
         </div>
       </LayerCard.Header>
       <LayerCard.Body>
@@ -79,19 +75,49 @@ export function CronActivityChart({ data }: { data: DailyCronStat[] }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={chartAxis} opacity={0.25} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartAxis }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: chartAxis }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: chartAxis }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: chartAxis }}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+              />
               <Tooltip content={<ChartTooltipContent />} isAnimationActive={false} />
               <Bar dataKey="success" stackId="cron" fill={getChartColor(1)} maxBarSize={40} />
-              <Bar dataKey="failed" stackId="cron" fill="hsl(var(--basalt-destructive))" maxBarSize={40} />
-              <Bar dataKey="skipped" stackId="cron" fill={getChartColor(3)} radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar
+                dataKey="failed"
+                stackId="cron"
+                fill="hsl(var(--basalt-destructive))"
+                maxBarSize={40}
+              />
+              <Bar
+                dataKey="skipped"
+                stackId="cron"
+                fill={getChartColor(3)}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={40}
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartFrame>
         <div className="mt-basalt-layout grid grid-cols-3 gap-basalt-space-lg border-t border-basalt-border pt-basalt-layout text-basalt-xs">
-          <div className="text-center"><div className="text-basalt-muted-foreground">Success</div><div className="mt-basalt-space-sm font-medium">{totals.success}</div></div>
-          <div className="text-center"><div className="text-basalt-muted-foreground">Failed</div><div className="mt-basalt-space-sm font-medium">{totals.failed}</div></div>
-          <div className="text-center"><div className="text-basalt-muted-foreground">Skipped</div><div className="mt-basalt-space-sm font-medium">{totals.skipped}</div></div>
+          <div className="text-center">
+            <div className="text-basalt-muted-foreground">Success</div>
+            <div className="mt-basalt-space-sm font-medium">{totals.success}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-basalt-muted-foreground">Failed</div>
+            <div className="mt-basalt-space-sm font-medium">{totals.failed}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-basalt-muted-foreground">Skipped</div>
+            <div className="mt-basalt-space-sm font-medium">{totals.skipped}</div>
+          </div>
         </div>
       </LayerCard.Body>
     </LayerCard>

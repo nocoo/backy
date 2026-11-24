@@ -1,24 +1,11 @@
-import {
-  describe,
-  expect,
-  test,
-  beforeEach,
-  afterAll,
-  vi,
-} from "vitest";
-import {
-  PROJECT_STUBS,
-  CRON_LOG_STUBS,
-  makeMockCtx,
-  mockFetch,
-} from "../helpers";
+import { describe, expect, test, beforeEach, afterAll, vi } from "vitest";
+import { PROJECT_STUBS, CRON_LOG_STUBS, makeMockCtx, mockFetch } from "../helpers";
 
 // Capture real implementations BEFORE mock.module replaces them, otherwise
 // re-reading via `realIsUrlSafe` would dispatch back through the mock
 // wrapper and infinite-loop.
 const realIsUrlSafe = (await import("../../lib/url")).isUrlSafe;
-const realResolveAndValidateUrl = (await import("../../lib/url"))
-  .resolveAndValidateUrl;
+const realResolveAndValidateUrl = (await import("../../lib/url")).resolveAndValidateUrl;
 
 let mockListAutoBackupProjects: () => Promise<any[]> = async () => [];
 let mockGetProject: (id: string) => Promise<any> = async () => undefined;
@@ -27,10 +14,7 @@ let mockCreateCronLog: (...a: any[]) => Promise<void> = async () => {};
 // Default to real implementations so other test files (e.g. projects.test.ts)
 // that exercise the real url helpers continue to pass under mock.module's
 // global pollution. Tests here override per-case in beforeEach.
-let mockIsUrlSafe: (
-  url: string,
-  env: { SSRF_ALLOWLIST?: string },
-) => boolean = realIsUrlSafe;
+let mockIsUrlSafe: (url: string, env: { SSRF_ALLOWLIST?: string }) => boolean = realIsUrlSafe;
 let mockResolveAndValidateUrl: (
   url: string,
   env: { SSRF_ALLOWLIST?: string },
@@ -41,12 +25,9 @@ function skipDb<T extends unknown[], R>(fn: (...args: T) => R) {
 }
 
 vi.doMock("../../lib/url", () => ({
-  isUrlSafe: (url: string, env: { SSRF_ALLOWLIST?: string }) =>
-    mockIsUrlSafe(url, env),
-  resolveAndValidateUrl: (
-    url: string,
-    env: { SSRF_ALLOWLIST?: string },
-  ) => mockResolveAndValidateUrl(url, env),
+  isUrlSafe: (url: string, env: { SSRF_ALLOWLIST?: string }) => mockIsUrlSafe(url, env),
+  resolveAndValidateUrl: (url: string, env: { SSRF_ALLOWLIST?: string }) =>
+    mockResolveAndValidateUrl(url, env),
 }));
 
 vi.doMock("../../lib/db/projects", () => ({
@@ -64,12 +45,10 @@ const cronHandlers = await import("../../handlers/cron");
 
 const realFetch = globalThis.fetch;
 const ctx = makeMockCtx({ env: { CRON_SECRET: "test-secret" } });
-const cronTriggerHandler = (
-  input: Parameters<typeof cronHandlers.cronTriggerHandler>[0],
-) => cronHandlers.cronTriggerHandler(input, ctx);
-const cronTriggerOneHandler = (
-  input: Parameters<typeof cronHandlers.cronTriggerOneHandler>[0],
-) => cronHandlers.cronTriggerOneHandler(input, ctx);
+const cronTriggerHandler = (input: Parameters<typeof cronHandlers.cronTriggerHandler>[0]) =>
+  cronHandlers.cronTriggerHandler(input, ctx);
+const cronTriggerOneHandler = (input: Parameters<typeof cronHandlers.cronTriggerOneHandler>[0]) =>
+  cronHandlers.cronTriggerOneHandler(input, ctx);
 
 afterAll(() => {
   globalThis.fetch = realFetch;
@@ -99,16 +78,14 @@ describe("cron handlers", () => {
       });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "CRON_SECRET not configured" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "CRON_SECRET not configured" });
     });
 
     test("401 when no auth", async () => {
       const r = await cronTriggerHandler({ authorization: null });
       expect(r.status).toBe(401);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Unauthorized" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Unauthorized" });
     });
 
     test("401 when wrong token", async () => {
@@ -132,8 +109,7 @@ describe("cron handlers", () => {
       });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to query projects" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to query projects" });
     });
 
     test("200 with empty projects", async () => {
@@ -155,9 +131,7 @@ describe("cron handlers", () => {
         });
         // Defense-in-depth: assert key is missing (toEqual already
         // catches this but explicit doc helps future readers).
-        expect((r.body as Record<string, unknown>)).not.toHaveProperty(
-          "results",
-        );
+        expect(r.body as Record<string, unknown>).not.toHaveProperty("results");
       }
     });
 
@@ -317,14 +291,12 @@ describe("cron handlers", () => {
       let capturedHeaders: Headers | undefined;
       let capturedUrl: string | undefined;
       let capturedMethod: string | undefined;
-      globalThis.fetch = mockFetch(
-        async (url, init) => {
-          capturedUrl = typeof url === "string" ? url : url.toString();
-          capturedHeaders = new Headers(init?.headers);
-          capturedMethod = init?.method;
-          return new Response("ok", { status: 200 });
-        },
-      );
+      globalThis.fetch = mockFetch(async (url, init) => {
+        capturedUrl = typeof url === "string" ? url : url.toString();
+        capturedHeaders = new Headers(init?.headers);
+        capturedMethod = init?.method;
+        return new Response("ok", { status: 200 });
+      });
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
       });
@@ -368,12 +340,10 @@ describe("cron handlers", () => {
         },
       ];
       let fetchCount = 0;
-      globalThis.fetch = mockFetch(
-        async () => {
-          fetchCount++;
-          return new Response("nope", { status: 500 });
-        },
-      );
+      globalThis.fetch = mockFetch(async () => {
+        fetchCount++;
+        return new Response("nope", { status: 500 });
+      });
       const r = await cronTriggerHandler({
         authorization: "Bearer test-secret",
       });
@@ -442,8 +412,7 @@ describe("cron handlers", () => {
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to fetch project" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to fetch project" });
     });
 
     test("404 when project missing", async () => {
@@ -452,8 +421,7 @@ describe("cron handlers", () => {
       expect(r.kind).toBe("json");
       // Tightened: pin the error body so a regression that returns a
       // generic 404 page or different copy would surface.
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Project not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("400 when no webhook configured", async () => {
@@ -552,12 +520,10 @@ describe("cron handlers", () => {
         auto_backup_webhook: "https://hook.example.com",
       });
       let fetchCount = 0;
-      globalThis.fetch = mockFetch(
-        async () => {
-          fetchCount++;
-          return new Response("oops", { status: 502 });
-        },
-      );
+      globalThis.fetch = mockFetch(async () => {
+        fetchCount++;
+        return new Response("oops", { status: 502 });
+      });
       const r = await cronTriggerOneHandler({ projectId: "p1" });
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");

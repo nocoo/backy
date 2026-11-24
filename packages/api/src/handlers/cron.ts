@@ -26,17 +26,14 @@ interface FireOutcome {
   durationMs: number;
 }
 
-async function fireProjectWebhook(
-  project: AutoBackupProject,
-): Promise<FireOutcome> {
+async function fireProjectWebhook(project: AutoBackupProject): Promise<FireOutcome> {
   const start = Date.now();
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
     if (project.auto_backup_header_key && project.auto_backup_header_value) {
-      headers[project.auto_backup_header_key] =
-        project.auto_backup_header_value;
+      headers[project.auto_backup_header_key] = project.auto_backup_header_value;
     }
     const res = await fetch(project.auto_backup_webhook, {
       method: "POST",
@@ -65,13 +62,8 @@ async function fireProjectWebhook(
   }
 }
 
-function logFireAndForget(
-  db: D1Adapter,
-  entry: Parameters<typeof createCronLog>[1],
-) {
-  void createCronLog(db, entry).catch((err) =>
-    console.error("Cron log write failed:", err),
-  );
+function logFireAndForget(db: D1Adapter, entry: Parameters<typeof createCronLog>[1]) {
+  void createCronLog(db, entry).catch((err) => console.error("Cron log write failed:", err));
 }
 
 export interface CronTriggerInput {
@@ -120,16 +112,12 @@ export async function cronTriggerHandler(
       logFireAndForget(ctx.db, {
         projectId: project.id,
         status: "failed",
-        error:
-          "SSRF blocked: webhook URL targets a private/internal address",
+        error: "SSRF blocked: webhook URL targets a private/internal address",
       });
       summary.failed++;
       continue;
     }
-    const dnsCheck = await resolveAndValidateUrl(
-      project.auto_backup_webhook,
-      ctx.env,
-    );
+    const dnsCheck = await resolveAndValidateUrl(project.auto_backup_webhook, ctx.env);
     if (!dnsCheck.safe) {
       logFireAndForget(ctx.db, {
         projectId: project.id,
@@ -187,10 +175,7 @@ export async function cronTriggerOneHandler(
       error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
     });
   }
-  const dnsCheck = await resolveAndValidateUrl(
-    project.auto_backup_webhook,
-    ctx.env,
-  );
+  const dnsCheck = await resolveAndValidateUrl(project.auto_backup_webhook, ctx.env);
   if (!dnsCheck.safe) {
     logFireAndForget(ctx.db, {
       projectId: project.id,

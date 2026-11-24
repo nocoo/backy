@@ -28,9 +28,7 @@ interface DailyCronStat {
   triggered: number;
 }
 
-export async function statsTotalsHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function statsTotalsHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   try {
     const { results } = await ctx.db.query<StatsRow>(
       `SELECT
@@ -54,9 +52,7 @@ export async function statsTotalsHandler(
   }
 }
 
-export async function statsChartsHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function statsChartsHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   try {
     const [projectStatsR, dailyBackupsR, cronStatsR] = await Promise.all([
       ctx.db.query<ProjectStat>(

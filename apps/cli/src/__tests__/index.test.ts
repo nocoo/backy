@@ -15,18 +15,14 @@ describe("@backy/cli placeholder", () => {
   });
 
   test("main returns not-implemented notice without flags", () => {
-    expect(main([])).toBe(
-      "@backy/cli — not yet implemented. Coming in the next wave.",
-    );
+    expect(main([])).toBe("@backy/cli — not yet implemented. Coming in the next wave.");
   });
 
   test("main with no args reads from process.argv", () => {
     const original = process.argv;
     process.argv = ["bun", "cli"];
     try {
-      expect(main()).toBe(
-        "@backy/cli — not yet implemented. Coming in the next wave.",
-      );
+      expect(main()).toBe("@backy/cli — not yet implemented. Coming in the next wave.");
     } finally {
       process.argv = original;
     }

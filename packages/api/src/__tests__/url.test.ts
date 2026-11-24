@@ -321,9 +321,9 @@ describe("isPrivateIp", () => {
   });
 
   test("identifies TEST-NET ranges (RFC 5737)", () => {
-    expect(isPrivateIp("192.0.2.1")).toBe(true);   // TEST-NET-1
+    expect(isPrivateIp("192.0.2.1")).toBe(true); // TEST-NET-1
     expect(isPrivateIp("198.51.100.1")).toBe(true); // TEST-NET-2
-    expect(isPrivateIp("203.0.113.1")).toBe(true);  // TEST-NET-3
+    expect(isPrivateIp("203.0.113.1")).toBe(true); // TEST-NET-3
   });
 
   test("identifies reserved and broadcast", () => {
@@ -423,14 +423,10 @@ describe("resolveAndValidateUrl", () => {
   });
 
   test("allows URL with public DNS resolution (example.com)", async () => {
-    const result = await rawResolveAndValidateUrl(
-      "https://example.com/hook",
-      env,
-      {
-        resolve4: async () => ["93.184.216.34"],
-        resolve6: async () => ["2606:2800:220:1:248:1893:25c8:1946"],
-      },
-    );
+    const result = await rawResolveAndValidateUrl("https://example.com/hook", env, {
+      resolve4: async () => ["93.184.216.34"],
+      resolve6: async () => ["2606:2800:220:1:248:1893:25c8:1946"],
+    });
     expect(result.safe).toBe(true);
   });
 
@@ -456,7 +452,9 @@ describe("resolveAndValidateUrl", () => {
   });
 
   test("blocks hostname that fails DNS resolution", async () => {
-    const result = await resolveAndValidateUrl("https://this-domain-does-not-exist-xyzzy.example/hook");
+    const result = await resolveAndValidateUrl(
+      "https://this-domain-does-not-exist-xyzzy.example/hook",
+    );
     expect(result.safe).toBe(false);
     // Tightened: pin templated reason with the hostname interpolated.
     expect((result as { reason: string }).reason).toBe(
@@ -479,9 +477,7 @@ describe("resolveAndValidateUrl", () => {
   test("blocks IPv6 loopback literal directly", async () => {
     const result = await resolveAndValidateUrl("https://[::1]/hook");
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toBe(
-      "IPv6 address [::1] is in a private range",
-    );
+    expect((result as { reason: string }).reason).toBe("IPv6 address [::1] is in a private range");
   });
 
   test("blocks IPv6 link-local literal directly", async () => {
@@ -513,9 +509,7 @@ describe("resolveAndValidateUrl", () => {
     // Covers line 320 of lib/url.ts: the `return { safe: true }` after
     // an IPv6 literal that is NOT in a private range. Symmetric to
     // the IPv4 case above.
-    const result = await resolveAndValidateUrl(
-      "https://[2606:2800:220:1:248:1893:25c8:1946]/hook",
-    );
+    const result = await resolveAndValidateUrl("https://[2606:2800:220:1:248:1893:25c8:1946]/hook");
     expect(result.safe).toBe(true);
   });
 
@@ -525,14 +519,10 @@ describe("resolveAndValidateUrl", () => {
     // rejecting, which yields the 'DNS resolution failed' message).
     // Documents the differentiation between 'lookup succeeded but
     // empty' and 'lookup itself failed'.
-    const result = await rawResolveAndValidateUrl(
-      "https://no-records.example/hook",
-      env,
-      {
-        resolve4: async () => [],
-        resolve6: async () => [],
-      },
-    );
+    const result = await rawResolveAndValidateUrl("https://no-records.example/hook", env, {
+      resolve4: async () => [],
+      resolve6: async () => [],
+    });
     expect(result.safe).toBe(false);
     expect((result as { reason: string }).reason).toBe(
       "No DNS records found for no-records.example",
@@ -545,17 +535,11 @@ describe("resolveAndValidateUrl", () => {
     // resolve6 mock returns a public address; we override it to
     // return a loopback (::1) so the private-IPv6 rejection path
     // fires.
-    const result = await rawResolveAndValidateUrl(
-      "https://example.com/hook",
-      env,
-      {
-        resolve4: async () => [],
-        resolve6: async () => ["::1"],
-      },
-    );
+    const result = await rawResolveAndValidateUrl("https://example.com/hook", env, {
+      resolve4: async () => [],
+      resolve6: async () => ["::1"],
+    });
     expect(result.safe).toBe(false);
-    expect((result as { reason: string }).reason).toBe(
-      "example.com resolves to private IPv6 ::1",
-    );
+    expect((result as { reason: string }).reason).toBe("example.com resolves to private IPv6 ::1");
   });
 });

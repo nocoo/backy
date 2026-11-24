@@ -11,12 +11,7 @@ import {
   WRITABLE_STATUS_SQL,
 } from "../direct-upload";
 
-export type DirectUploadStatus =
-  | "pending"
-  | "completing"
-  | "completed"
-  | "aborted"
-  | "expired";
+export type DirectUploadStatus = "pending" | "completing" | "completed" | "aborted" | "expired";
 
 export interface DirectUploadRow {
   id: string;
@@ -181,14 +176,7 @@ export async function claimDirectUpload(
      SET status = 'completing', lease_token = ?, lease_expires_at = ?
      WHERE id = ? AND project_id = ? AND purge_after > ?
        AND (status = 'pending' OR (status = 'completing' AND lease_expires_at <= ?))`,
-    [
-      input.leaseToken,
-      input.leaseExpiresAt,
-      input.id,
-      input.projectId,
-      input.now,
-      input.now,
-    ],
+    [input.leaseToken, input.leaseExpiresAt, input.id, input.projectId, input.now, input.now],
   );
   return changesOf(result.meta) > 0;
 }
@@ -324,15 +312,9 @@ export async function updateDirectUploadGc(
     params.push(input.backupId);
   }
   params.push(input.id);
-  await db.query(
-    `UPDATE direct_uploads SET ${sets.join(", ")} WHERE id = ?`,
-    params,
-  );
+  await db.query(`UPDATE direct_uploads SET ${sets.join(", ")} WHERE id = ?`, params);
 }
 
-export async function deleteArchivedDirectUploads(
-  db: D1Adapter,
-  cutoff: number,
-): Promise<void> {
+export async function deleteArchivedDirectUploads(db: D1Adapter, cutoff: number): Promise<void> {
   await db.query("DELETE FROM direct_uploads WHERE purged_at < ?", [cutoff]);
 }

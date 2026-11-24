@@ -78,28 +78,19 @@ function StatusBadge({ status }: { status: CronLogEntry["status"] }) {
   switch (status) {
     case "success":
       return (
-        <Badge
-          tone="neutral"
-          className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
-        >
+        <Badge tone="neutral" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
           Success
         </Badge>
       );
     case "triggered":
       return (
-        <Badge
-          tone="neutral"
-          className="border-sky-500/20 bg-sky-500/10 text-sky-600"
-        >
+        <Badge tone="neutral" className="border-sky-500/20 bg-sky-500/10 text-sky-600">
           Triggered
         </Badge>
       );
     case "skipped":
       return (
-        <Badge
-          tone="neutral"
-          className="border-amber-500/20 bg-amber-500/10 text-amber-600"
-        >
+        <Badge tone="neutral" className="border-amber-500/20 bg-amber-500/10 text-amber-600">
           Skipped
         </Badge>
       );
@@ -114,53 +105,33 @@ function CronLogDetail({ log }: { log: CronLogEntry }) {
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {log.response_code !== null && (
           <div>
-            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
-              Response Code
-            </span>
-            <span className="font-mono text-xs text-basalt-foreground">
-              {log.response_code}
-            </span>
+            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">Response Code</span>
+            <span className="font-mono text-xs text-basalt-foreground">{log.response_code}</span>
           </div>
         )}
 
         {log.duration_ms !== null && (
           <div>
-            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
-              Duration
-            </span>
-            <span className="font-mono text-xs text-basalt-foreground">
-              {log.duration_ms}ms
-            </span>
+            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">Duration</span>
+            <span className="font-mono text-xs text-basalt-foreground">{log.duration_ms}ms</span>
           </div>
         )}
 
         {log.error && (
           <div className="md:col-span-2">
-            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
-              Error
-            </span>
-            <span className="break-all text-xs text-basalt-destructive">
-              {log.error}
-            </span>
+            <span className="mb-0.5 block text-xs text-basalt-muted-foreground">Error</span>
+            <span className="break-all text-xs text-basalt-destructive">{log.error}</span>
           </div>
         )}
 
         <div>
-          <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
-            Log ID
-          </span>
-          <span className="font-mono text-xs text-basalt-foreground/60">
-            {log.id}
-          </span>
+          <span className="mb-0.5 block text-xs text-basalt-muted-foreground">Log ID</span>
+          <span className="font-mono text-xs text-basalt-foreground/60">{log.id}</span>
         </div>
 
         <div>
-          <span className="mb-0.5 block text-xs text-basalt-muted-foreground">
-            Project ID
-          </span>
-          <span className="font-mono text-xs text-basalt-foreground/60">
-            {log.project_id}
-          </span>
+          <span className="mb-0.5 block text-xs text-basalt-muted-foreground">Project ID</span>
+          <span className="font-mono text-xs text-basalt-foreground/60">{log.project_id}</span>
         </div>
       </div>
     </div>
@@ -245,10 +216,7 @@ export function CronLogsPage() {
     }
     if (statusFilter !== "all") filterDesc.push(statusFilter);
 
-    const desc =
-      filterDesc.length > 0
-        ? `${filterDesc.join(", ")} cron logs`
-        : "all cron logs";
+    const desc = filterDesc.length > 0 ? `${filterDesc.join(", ")} cron logs` : "all cron logs";
 
     if (!confirm(`Delete ${desc}? This action cannot be undone.`)) return;
 
@@ -276,18 +244,28 @@ export function CronLogsPage() {
       <PageHeader
         title="Cron Logs"
         description={data ? `${data.total} log${data.total !== 1 ? "s" : ""} total` : "Loading..."}
-        actions={data && data.total > 0 ? (
-          <Button variant="outline" size="sm" onClick={() => void handleClearLogs()} disabled={deleting || loading} className="text-basalt-destructive">
-            {deleting ? <Loader2 className="mr-basalt-space-md h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />}Clear
-          </Button>
-        ) : null}
+        actions={
+          data && data.total > 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleClearLogs()}
+              disabled={deleting || loading}
+              className="text-basalt-destructive"
+            >
+              {deleting ? (
+                <Loader2 className="mr-basalt-space-md h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />
+              )}
+              Clear
+            </Button>
+          ) : null
+        }
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={projectFilter}
-          onValueChange={(v) => handleFilterChange("project", v)}
-        >
+        <Select value={projectFilter} onValueChange={(v) => handleFilterChange("project", v)}>
           <SelectTrigger className="h-9 w-[160px] text-sm">
             <SelectValue placeholder="All Projects" />
           </SelectTrigger>
@@ -301,10 +279,7 @@ export function CronLogsPage() {
           </SelectContent>
         </Select>
 
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => handleFilterChange("status", v)}
-        >
+        <Select value={statusFilter} onValueChange={(v) => handleFilterChange("status", v)}>
           <SelectTrigger className="h-9 w-[140px] text-sm">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
@@ -335,12 +310,7 @@ export function CronLogsPage() {
       ) : error && !data ? (
         <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
           <p className="text-sm text-basalt-destructive">{error}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => void fetchLogs()}
-          >
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => void fetchLogs()}>
             Retry
           </Button>
         </div>
@@ -348,9 +318,7 @@ export function CronLogsPage() {
         <div className="rounded-lg border border-basalt-border bg-basalt-background/50 p-12 text-center">
           <Timer className="mx-auto mb-3 h-10 w-10 text-basalt-muted-foreground/40" />
           <p className="text-sm font-medium text-basalt-foreground">
-            {hasFilters
-              ? "No cron logs match your filters"
-              : "No cron logs yet"}
+            {hasFilters ? "No cron logs match your filters" : "No cron logs yet"}
           </p>
           <p className="mt-1 text-sm text-basalt-muted-foreground">
             {hasFilters
@@ -358,12 +326,7 @@ export function CronLogsPage() {
               : "Cron logs will appear when auto-backup triggers run."}
           </p>
           {hasFilters && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={clearFilters}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
               Clear filters
             </Button>
           )}
@@ -391,9 +354,7 @@ export function CronLogsPage() {
                         ? "border-basalt-destructive/20 bg-basalt-destructive/5 hover:bg-basalt-destructive/10"
                         : "border-basalt-border bg-basalt-background/50 hover:bg-basalt-muted/50"
                   }`}
-                  onClick={() =>
-                    setExpandedId(expandedId === log.id ? null : log.id)
-                  }
+                  onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                 >
                   <div className="flex min-w-0 flex-1 items-start gap-3 md:items-center">
                     <div className="flex w-5 shrink-0 items-center justify-center pt-0.5 md:pt-0">
@@ -414,21 +375,13 @@ export function CronLogsPage() {
                         </div>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-basalt-muted-foreground md:hidden">
-                        <span className="font-mono">
-                          {log.response_code ?? "—"}
-                        </span>
-                        <span>
-                          {log.duration_ms !== null
-                            ? `${log.duration_ms}ms`
-                            : "—"}
-                        </span>
+                        <span className="font-mono">{log.response_code ?? "—"}</span>
+                        <span>{log.duration_ms !== null ? `${log.duration_ms}ms` : "—"}</span>
                         <span>{formatLogDate(log.triggered_at)}</span>
                       </div>
                       {log.error && (
                         <span className="mt-1 block truncate text-xs text-basalt-destructive">
-                          {log.error.length > 60
-                            ? `${log.error.slice(0, 60)}...`
-                            : log.error}
+                          {log.error.length > 60 ? `${log.error.slice(0, 60)}...` : log.error}
                         </span>
                       )}
                     </div>
@@ -442,9 +395,7 @@ export function CronLogsPage() {
 
                   <div className="hidden w-[70px] shrink-0 text-right md:block">
                     <span className="text-xs text-basalt-muted-foreground">
-                      {log.duration_ms !== null
-                        ? `${log.duration_ms}ms`
-                        : "—"}
+                      {log.duration_ms !== null ? `${log.duration_ms}ms` : "—"}
                     </span>
                   </div>
 
@@ -500,9 +451,7 @@ export function CronLogsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setPage((p) => Math.min(data.totalPages, p + 1))
-                  }
+                  onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
                   disabled={page >= data.totalPages || loading}
                 >
                   <ChevronRight className="h-3.5 w-3.5" />

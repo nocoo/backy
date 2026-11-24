@@ -1,25 +1,9 @@
 import { getProjectByToken } from "../lib/db/projects";
-import {
-  createBackup,
-  listBackups,
-  countBackups,
-  type Backup,
-} from "../lib/db/backups";
+import { createBackup, listBackups, countBackups, type Backup } from "../lib/db/backups";
 import { isIpAllowed } from "../lib/ip";
-import {
-  createWebhookLog,
-  type WebhookErrorCode,
-} from "../lib/db/webhook-logs";
-import {
-  detectFileType,
-  isPreviewable,
-  normalizeContentType,
-} from "../lib/backup/file-type";
-import {
-  generateBackupKey,
-  generatePreviewKey,
-  generateTimestamp,
-} from "../lib/backup/storage";
+import { createWebhookLog, type WebhookErrorCode } from "../lib/db/webhook-logs";
+import { detectFileType, isPreviewable, normalizeContentType } from "../lib/backup/file-type";
+import { generateBackupKey, generatePreviewKey, generateTimestamp } from "../lib/backup/storage";
 import { json, empty, type HandlerResponse } from "../http/response";
 import type { D1Adapter, RuntimeContext } from "../runtime";
 
@@ -59,10 +43,7 @@ function fireLog(db: D1Adapter, entry: LogEntry) {
   });
 }
 
-function checkIp(
-  allowedIps: string | null,
-  clientIp: string | null,
-): boolean {
+function checkIp(allowedIps: string | null, clientIp: string | null): boolean {
   if (!allowedIps) return true;
   return clientIp !== null && isIpAllowed(clientIp, allowedIps);
 }
@@ -92,44 +73,71 @@ export async function webhookHeadHandler(
     const token = bearer(input.authorization);
     if (!token) {
       fireLog(ctx.db, {
-        projectId: null, method: "HEAD", path, statusCode: 401,
+        projectId: null,
+        method: "HEAD",
+        path,
+        statusCode: 401,
         errorCode: "auth_missing",
         errorMessage: "Missing or malformed Authorization header",
-        metadata: null, startTime, ctx: reqCtx,
+        metadata: null,
+        startTime,
+        ctx: reqCtx,
       });
       return empty(401);
     }
     const project = await getProjectByToken(ctx.db, token);
     if (!project || project.id !== input.projectId) {
       fireLog(ctx.db, {
-        projectId: project?.id ?? null, method: "HEAD", path, statusCode: 403,
+        projectId: project?.id ?? null,
+        method: "HEAD",
+        path,
+        statusCode: 403,
         errorCode: "auth_invalid",
         errorMessage: "Invalid token or project mismatch",
-        metadata: null, startTime, ctx: reqCtx,
+        metadata: null,
+        startTime,
+        ctx: reqCtx,
       });
       return empty(403);
     }
     if (!checkIp(project.allowed_ips, input.clientIp)) {
       fireLog(ctx.db, {
-        projectId: project.id, method: "HEAD", path, statusCode: 403,
+        projectId: project.id,
+        method: "HEAD",
+        path,
+        statusCode: 403,
         errorCode: "ip_blocked",
         errorMessage: "IP not in project allowlist",
-        metadata: { allowed_ips: project.allowed_ips }, startTime, ctx: reqCtx,
+        metadata: { allowed_ips: project.allowed_ips },
+        startTime,
+        ctx: reqCtx,
       });
       return empty(403);
     }
     fireLog(ctx.db, {
-      projectId: project.id, method: "HEAD", path, statusCode: 200,
-      errorCode: null, errorMessage: null, metadata: null, startTime, ctx: reqCtx,
+      projectId: project.id,
+      method: "HEAD",
+      path,
+      statusCode: 200,
+      errorCode: null,
+      errorMessage: null,
+      metadata: null,
+      startTime,
+      ctx: reqCtx,
     });
     return empty(200, { "X-Project-Name": project.name });
   } catch (error) {
     console.error("Webhook HEAD error:", error);
     fireLog(ctx.db, {
-      projectId: null, method: "HEAD", path: "/api/webhook/unknown",
-      statusCode: 500, errorCode: "internal_error",
+      projectId: null,
+      method: "HEAD",
+      path: "/api/webhook/unknown",
+      statusCode: 500,
+      errorCode: "internal_error",
       errorMessage: error instanceof Error ? error.message : "Unknown error",
-      metadata: null, startTime, ctx: reqCtx,
+      metadata: null,
+      startTime,
+      ctx: reqCtx,
     });
     return empty(500);
   }
@@ -157,29 +165,44 @@ export async function webhookGetHandler(
     const token = bearer(input.authorization);
     if (!token) {
       fireLog(ctx.db, {
-        projectId: null, method: "GET", path, statusCode: 401,
+        projectId: null,
+        method: "GET",
+        path,
+        statusCode: 401,
         errorCode: "auth_missing",
         errorMessage: "Missing or invalid Authorization header",
-        metadata: null, startTime, ctx: reqCtx,
+        metadata: null,
+        startTime,
+        ctx: reqCtx,
       });
       return json(401, { error: "Missing or invalid Authorization header" });
     }
     const project = await getProjectByToken(ctx.db, token);
     if (!project || project.id !== input.projectId) {
       fireLog(ctx.db, {
-        projectId: project?.id ?? null, method: "GET", path, statusCode: 403,
+        projectId: project?.id ?? null,
+        method: "GET",
+        path,
+        statusCode: 403,
         errorCode: "auth_invalid",
         errorMessage: "Invalid token or project mismatch",
-        metadata: null, startTime, ctx: reqCtx,
+        metadata: null,
+        startTime,
+        ctx: reqCtx,
       });
       return json(403, { error: "Invalid token or project mismatch" });
     }
     if (!checkIp(project.allowed_ips, input.clientIp)) {
       fireLog(ctx.db, {
-        projectId: project.id, method: "GET", path, statusCode: 403,
+        projectId: project.id,
+        method: "GET",
+        path,
+        statusCode: 403,
         errorCode: "ip_blocked",
         errorMessage: "IP not in project allowlist",
-        metadata: { allowed_ips: project.allowed_ips }, startTime, ctx: reqCtx,
+        metadata: { allowed_ips: project.allowed_ips },
+        startTime,
+        ctx: reqCtx,
       });
       return json(403, { error: "Forbidden" });
     }
@@ -196,10 +219,15 @@ export async function webhookGetHandler(
       }),
     ]);
     fireLog(ctx.db, {
-      projectId: project.id, method: "GET", path, statusCode: 200,
-      errorCode: null, errorMessage: null,
+      projectId: project.id,
+      method: "GET",
+      path,
+      statusCode: 200,
+      errorCode: null,
+      errorMessage: null,
       metadata: { total_backups: total, environment: environment ?? null },
-      startTime, ctx: reqCtx,
+      startTime,
+      ctx: reqCtx,
     });
     return json(200, {
       project_name: project.name,
@@ -217,10 +245,15 @@ export async function webhookGetHandler(
   } catch (error) {
     console.error("Webhook GET error:", error);
     fireLog(ctx.db, {
-      projectId: null, method: "GET", path: "/api/webhook/unknown",
-      statusCode: 500, errorCode: "internal_error",
+      projectId: null,
+      method: "GET",
+      path: "/api/webhook/unknown",
+      statusCode: 500,
+      errorCode: "internal_error",
       errorMessage: error instanceof Error ? error.message : "Unknown error",
-      metadata: null, startTime, ctx: reqCtx,
+      metadata: null,
+      startTime,
+      ctx: reqCtx,
     });
     return json(500, { error: "Internal server error" });
   }
@@ -248,29 +281,44 @@ export async function webhookPostHandler(
     const token = bearer(input.authorization);
     if (!token) {
       fireLog(ctx.db, {
-        projectId: null, method: "POST", path, statusCode: 401,
+        projectId: null,
+        method: "POST",
+        path,
+        statusCode: 401,
         errorCode: "auth_missing",
         errorMessage: "Missing or invalid Authorization header",
-        metadata: null, startTime, ctx: reqCtx,
+        metadata: null,
+        startTime,
+        ctx: reqCtx,
       });
       return json(401, { error: "Missing or invalid Authorization header" });
     }
     const project = await getProjectByToken(ctx.db, token);
     if (!project || project.id !== input.projectId) {
       fireLog(ctx.db, {
-        projectId: project?.id ?? null, method: "POST", path, statusCode: 403,
+        projectId: project?.id ?? null,
+        method: "POST",
+        path,
+        statusCode: 403,
         errorCode: "auth_invalid",
         errorMessage: "Invalid token or project mismatch",
-        metadata: null, startTime, ctx: reqCtx,
+        metadata: null,
+        startTime,
+        ctx: reqCtx,
       });
       return json(403, { error: "Invalid token or project mismatch" });
     }
     if (!checkIp(project.allowed_ips, input.clientIp)) {
       fireLog(ctx.db, {
-        projectId: project.id, method: "POST", path, statusCode: 403,
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 403,
         errorCode: "ip_blocked",
         errorMessage: "IP not in project allowlist",
-        metadata: { allowed_ips: project.allowed_ips }, startTime, ctx: reqCtx,
+        metadata: { allowed_ips: project.allowed_ips },
+        startTime,
+        ctx: reqCtx,
       });
       return json(403, { error: "Forbidden" });
     }
@@ -279,28 +327,43 @@ export async function webhookPostHandler(
     const file = formData.get("file");
     if (!file || !(file instanceof File)) {
       fireLog(ctx.db, {
-        projectId: project.id, method: "POST", path, statusCode: 400,
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 400,
         errorCode: "file_missing",
         errorMessage: "Missing 'file' field in form data",
-        metadata: null, startTime, ctx: reqCtx,
+        metadata: null,
+        startTime,
+        ctx: reqCtx,
       });
       return json(400, { error: "Missing 'file' field in form data" });
     }
     if (file.size === 0) {
       fireLog(ctx.db, {
-        projectId: project.id, method: "POST", path, statusCode: 400,
-        errorCode: "file_empty", errorMessage: "File is empty",
-        metadata: { file_name: file.name }, startTime, ctx: reqCtx,
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 400,
+        errorCode: "file_empty",
+        errorMessage: "File is empty",
+        metadata: { file_name: file.name },
+        startTime,
+        ctx: reqCtx,
       });
       return json(400, { error: "File is empty" });
     }
     if (file.size > MAX_FILE_SIZE) {
       fireLog(ctx.db, {
-        projectId: project.id, method: "POST", path, statusCode: 413,
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 413,
         errorCode: "file_too_large",
         errorMessage: `File too large: ${file.size} bytes (max ${MAX_FILE_SIZE})`,
         metadata: { file_size: file.size, file_name: file.name },
-        startTime, ctx: reqCtx,
+        startTime,
+        ctx: reqCtx,
       });
       return json(413, {
         error: `File too large. Maximum: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
@@ -317,10 +380,15 @@ export async function webhookPostHandler(
       !VALID_ENVIRONMENTS.includes(environment as (typeof VALID_ENVIRONMENTS)[number])
     ) {
       fireLog(ctx.db, {
-        projectId: project.id, method: "POST", path, statusCode: 400,
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 400,
         errorCode: "env_invalid",
         errorMessage: `Invalid environment: ${environment}`,
-        metadata: { environment }, startTime, ctx: reqCtx,
+        metadata: { environment },
+        startTime,
+        ctx: reqCtx,
       });
       return json(400, {
         error: "Invalid environment. Allowed: dev, prod, staging, test",
@@ -330,12 +398,7 @@ export async function webhookPostHandler(
     const fileName = file.name || "backup";
     const fileType = detectFileType(fileName, contentType);
     const timestamp = generateTimestamp();
-    const fileKey = generateBackupKey(
-      input.projectId,
-      fileType,
-      fileName,
-      timestamp,
-    );
+    const fileKey = generateBackupKey(input.projectId, fileType, fileName, timestamp);
 
     let buffer: Uint8Array;
     try {
@@ -344,12 +407,15 @@ export async function webhookPostHandler(
     } catch (uploadError) {
       console.error("R2 upload failed:", uploadError);
       fireLog(ctx.db, {
-        projectId: project.id, method: "POST", path, statusCode: 500,
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 500,
         errorCode: "upload_failed",
-        errorMessage:
-          uploadError instanceof Error ? uploadError.message : "R2 upload failed",
+        errorMessage: uploadError instanceof Error ? uploadError.message : "R2 upload failed",
         metadata: { file_size: file.size, file_name: file.name },
-        startTime, ctx: reqCtx,
+        startTime,
+        ctx: reqCtx,
       });
       return json(500, { error: "Internal server error" });
     }
@@ -379,19 +445,26 @@ export async function webhookPostHandler(
     } catch (dbError) {
       console.error("D1 backup insert failed:", dbError);
       fireLog(ctx.db, {
-        projectId: project.id, method: "POST", path, statusCode: 500,
+        projectId: project.id,
+        method: "POST",
+        path,
+        statusCode: 500,
         errorCode: "db_failed",
-        errorMessage:
-          dbError instanceof Error ? dbError.message : "D1 insert failed",
+        errorMessage: dbError instanceof Error ? dbError.message : "D1 insert failed",
         metadata: { file_size: file.size, file_key: fileKey },
-        startTime, ctx: reqCtx,
+        startTime,
+        ctx: reqCtx,
       });
       return json(500, { error: "Internal server error" });
     }
 
     fireLog(ctx.db, {
-      projectId: project.id, method: "POST", path, statusCode: 201,
-      errorCode: null, errorMessage: null,
+      projectId: project.id,
+      method: "POST",
+      path,
+      statusCode: 201,
+      errorCode: null,
+      errorMessage: null,
       metadata: {
         backup_id: backup.id,
         file_size: file.size,
@@ -401,24 +474,27 @@ export async function webhookPostHandler(
         is_json: isPreviewable(fileType),
         file_type: fileType,
       },
-      startTime, ctx: reqCtx,
+      startTime,
+      ctx: reqCtx,
     });
-    return json(
-      201,
-      {
-        id: backup.id,
-        project_id: backup.project_id,
-        file_size: file.size,
-        created_at: backup.created_at,
-      },
-    );
+    return json(201, {
+      id: backup.id,
+      project_id: backup.project_id,
+      file_size: file.size,
+      created_at: backup.created_at,
+    });
   } catch (error) {
     console.error("Webhook error:", error);
     fireLog(ctx.db, {
-      projectId: null, method: "POST", path: "/api/webhook/unknown",
-      statusCode: 500, errorCode: "internal_error",
+      projectId: null,
+      method: "POST",
+      path: "/api/webhook/unknown",
+      statusCode: 500,
+      errorCode: "internal_error",
       errorMessage: error instanceof Error ? error.message : "Unknown error",
-      metadata: null, startTime, ctx: reqCtx,
+      metadata: null,
+      startTime,
+      ctx: reqCtx,
     });
     return json(500, { error: "Internal server error" });
   }

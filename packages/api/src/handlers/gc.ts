@@ -1,13 +1,5 @@
-import {
-  cronTriggerHandler,
-  type CronTriggerInput,
-} from "./cron";
-import {
-  ARCHIVE_AFTER_SECONDS,
-  GC_BATCH_SIZE,
-  GC_BUDGET_MS,
-  unixNow,
-} from "../lib/direct-upload";
+import { cronTriggerHandler, type CronTriggerInput } from "./cron";
+import { ARCHIVE_AFTER_SECONDS, GC_BATCH_SIZE, GC_BUDGET_MS, unixNow } from "../lib/direct-upload";
 import {
   attachCompletedBackup,
   deleteArchivedDirectUploads,
@@ -22,11 +14,7 @@ function futureGcAt(now: number, candidate: number): number {
   return Math.max(now + 1, candidate);
 }
 
-async function sweepOne(
-  ctx: RuntimeContext,
-  row: DirectUploadRow,
-  now: number,
-): Promise<void> {
+async function sweepOne(ctx: RuntimeContext, row: DirectUploadRow, now: number): Promise<void> {
   const backup = await getBackupByFileKey(ctx.db, row.file_key);
   const ownBackup = Boolean(backup && backup.project_id === row.project_id);
   const hasBackup = Boolean(backup);
@@ -62,10 +50,7 @@ async function sweepOne(
       if (row.lease_expires_at !== null && row.lease_expires_at >= now) {
         await updateDirectUploadGc(ctx.db, {
           id: row.id,
-          nextGcAt: futureGcAt(
-            now,
-            Math.min(row.purge_after, row.lease_expires_at, now + 3600),
-          ),
+          nextGcAt: futureGcAt(now, Math.min(row.purge_after, row.lease_expires_at, now + 3600)),
         });
         return;
       }
@@ -103,9 +88,7 @@ async function sweepOne(
         return;
       }
       const nextStatus =
-        row.status === "pending" || row.status === "completing"
-          ? "expired"
-          : row.status;
+        row.status === "pending" || row.status === "completing" ? "expired" : row.status;
       const purgedAt = now >= row.reap_until ? now : null;
       await updateDirectUploadGc(ctx.db, {
         id: row.id,
@@ -120,11 +103,7 @@ async function sweepOne(
       id: row.id,
       nextGcAt: futureGcAt(
         now,
-        Math.min(
-          row.purge_after,
-          row.lease_expires_at ?? row.purge_after,
-          now + 3600,
-        ),
+        Math.min(row.purge_after, row.lease_expires_at ?? row.purge_after, now + 3600),
       ),
     });
   } catch (err) {
@@ -133,10 +112,7 @@ async function sweepOne(
   }
 }
 
-export async function gcDirectUploads(
-  ctx: RuntimeContext,
-  now = unixNow(),
-): Promise<void> {
+export async function gcDirectUploads(ctx: RuntimeContext, now = unixNow()): Promise<void> {
   const started = Date.now();
   while (Date.now() - started < GC_BUDGET_MS) {
     const batch = await listGcBatch(ctx.db, now, GC_BATCH_SIZE);
@@ -158,9 +134,7 @@ export async function runHourlyJobs(
   try {
     const result = await cronTriggerHandler(cronInput, ctx);
     if (result.kind === "json" && result.status >= 400) {
-      autoBackupError = new Error(
-        `cron trigger failed: ${JSON.stringify(result.body)}`,
-      );
+      autoBackupError = new Error(`cron trigger failed: ${JSON.stringify(result.body)}`);
     }
   } catch (err) {
     autoBackupError = err;

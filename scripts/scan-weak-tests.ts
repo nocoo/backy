@@ -147,7 +147,10 @@ function* iterateCases(srcRaw: string): Generator<{
     while (i < src.length && paren > 0) {
       const c = src[i];
       if (inStr) {
-        if (c === "\\") { i += 2; continue; }
+        if (c === "\\") {
+          i += 2;
+          continue;
+        }
         if (c === inStr) inStr = null;
       } else {
         if (c === "'" || c === '"' || c === "`") inStr = c;
@@ -174,7 +177,10 @@ function* iterateCases(srcRaw: string): Generator<{
     while (bi < src.length && depth > 0) {
       const c = src[bi];
       if (bInStr) {
-        if (c === "\\") { bi += 2; continue; }
+        if (c === "\\") {
+          bi += 2;
+          continue;
+        }
         if (c === bInStr) bInStr = null;
       } else {
         if (c === "'" || c === '"' || c === "`") bInStr = c;
@@ -218,7 +224,8 @@ for (const file of files) {
       counts.noExpect++;
       total++;
       weakInFile++;
-      if (SHOW_BODIES) console.error(`noExpect in ${file}\n--- BODY ---\n${body.slice(0, 300)}\n---`);
+      if (SHOW_BODIES)
+        console.error(`noExpect in ${file}\n--- BODY ---\n${body.slice(0, 300)}\n---`);
       continue;
     }
     // Check whether *every* expect line is a trivial existence/typeof matcher
@@ -265,9 +272,7 @@ for (const file of files) {
         /should have thrown/i.test(tryBody) ||
         /expect\.fail/.test(tryBody);
       const catchHasExpect = /\bexpect\s*\(/.test(catchBody);
-      const tryHasExpectRejects = /\bawait\s+expect\s*\([^)]*\)\s*\.rejects/.test(
-        tryBody,
-      );
+      const tryHasExpectRejects = /\bawait\s+expect\s*\([^)]*\)\s*\.rejects/.test(tryBody);
       if (catchHasExpect && !tryHasGuard && !tryHasExpectRejects) {
         counts.vacuousTryCatch++;
         total++;
@@ -280,8 +285,7 @@ for (const file of files) {
     // impl drifts to a different kind. Flag if the body contains such an
     // `if`, the if-controlled region has expects, and there's no preceding
     // `expect(<same>.kind)` assertion outside the if.
-    const kindIfRe =
-      /\bif\s*\(\s*([\w$.]+)\.kind\s*===\s*["'][^"']+["']\s*\)/g;
+    const kindIfRe = /\bif\s*\(\s*([\w$.]+)\.kind\s*===\s*["'][^"']+["']\s*\)/g;
     let kindMatch: RegExpExecArray | null = kindIfRe.exec(body);
     let foundVacuousKind = false;
     while (kindMatch !== null) {

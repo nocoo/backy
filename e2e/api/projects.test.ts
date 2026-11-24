@@ -11,7 +11,7 @@
  *   GET    /api/projects/:id/prompt
  */
 
-import { describe, expect, test, } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { url, jsonRequest } from "./config";
 
 describe("L2: API /api/projects", () => {
@@ -65,10 +65,7 @@ describe("L2: API /api/projects", () => {
   test("POST /api/projects/:id/token regenerates webhook token", async () => {
     expect(createdProjectId).toBeTruthy();
 
-    const res = await jsonRequest(
-      "POST",
-      `/api/projects/${createdProjectId}/token`,
-    );
+    const res = await jsonRequest("POST", `/api/projects/${createdProjectId}/token`);
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as { webhook_token: string };
@@ -89,10 +86,7 @@ describe("L2: API /api/projects", () => {
   test("DELETE /api/projects/:id deletes project", async () => {
     expect(createdProjectId).toBeTruthy();
 
-    const res = await jsonRequest(
-      "DELETE",
-      `/api/projects/${createdProjectId}`,
-    );
+    const res = await jsonRequest("DELETE", `/api/projects/${createdProjectId}`);
     expect(res.status).toBe(200);
 
     // Verify deletion

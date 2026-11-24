@@ -1,10 +1,5 @@
 import { describe, expect, test, beforeEach, vi } from "vitest";
-import {
-  PROJECT_STUBS,
-  BACKUP_STUBS,
-  makeMockCtx,
-  makeMockR2,
-} from "../helpers";
+import { PROJECT_STUBS, BACKUP_STUBS, makeMockCtx, makeMockR2 } from "../helpers";
 
 let mockListBackups: (...args: any[]) => Promise<any> = async () => ({
   rows: [],
@@ -57,8 +52,7 @@ vi.doMock("../../lib/db/projects", () => ({
 const backupsHandlers = await import("../../handlers/backups");
 const ctx = makeMockCtx({
   r2: makeMockR2({
-    put: async (key, body, opts) =>
-      mockUploadToR2(key, body, opts?.contentType),
+    put: async (key, body, opts) => mockUploadToR2(key, body, opts?.contentType),
     delete: async (key) => mockDeleteFromR2(key),
     get: async (key) => mockDownloadFromR2(key),
     presignDownload: async (key, ttl) => mockCreatePresignedDownloadUrl(key, ttl),
@@ -71,21 +65,17 @@ const batchDeleteBackupsHandler = (
 ) => backupsHandlers.batchDeleteBackupsHandler(input, ctx);
 const getBackupHandler = (input: Parameters<typeof backupsHandlers.getBackupHandler>[0]) =>
   backupsHandlers.getBackupHandler(input, ctx);
-const deleteBackupHandler = (
-  input: Parameters<typeof backupsHandlers.deleteBackupHandler>[0],
-) => backupsHandlers.deleteBackupHandler(input, ctx);
-const uploadBackupHandler = (
-  input: Parameters<typeof backupsHandlers.uploadBackupHandler>[0],
-) => backupsHandlers.uploadBackupHandler(input, ctx);
+const deleteBackupHandler = (input: Parameters<typeof backupsHandlers.deleteBackupHandler>[0]) =>
+  backupsHandlers.deleteBackupHandler(input, ctx);
+const uploadBackupHandler = (input: Parameters<typeof backupsHandlers.uploadBackupHandler>[0]) =>
+  backupsHandlers.uploadBackupHandler(input, ctx);
 const downloadBackupHandler = (
   input: Parameters<typeof backupsHandlers.downloadBackupHandler>[0],
 ) => backupsHandlers.downloadBackupHandler(input, ctx);
-const previewBackupHandler = (
-  input: Parameters<typeof backupsHandlers.previewBackupHandler>[0],
-) => backupsHandlers.previewBackupHandler(input, ctx);
-const extractBackupHandler = (
-  input: Parameters<typeof backupsHandlers.extractBackupHandler>[0],
-) => backupsHandlers.extractBackupHandler(input, ctx);
+const previewBackupHandler = (input: Parameters<typeof backupsHandlers.previewBackupHandler>[0]) =>
+  backupsHandlers.previewBackupHandler(input, ctx);
+const extractBackupHandler = (input: Parameters<typeof backupsHandlers.extractBackupHandler>[0]) =>
+  backupsHandlers.extractBackupHandler(input, ctx);
 const restoreCommandHandler = (
   input: Parameters<typeof backupsHandlers.restoreCommandHandler>[0],
 ) => backupsHandlers.restoreCommandHandler(input, ctx);
@@ -112,8 +102,7 @@ describe("backups handlers", () => {
       contentType: undefined,
       contentLength: undefined,
     });
-    mockCreatePresignedDownloadUrl = async () =>
-      "https://example.com/presigned";
+    mockCreatePresignedDownloadUrl = async () => "https://example.com/presigned";
     mockUpdateBackup = async () => ({});
   });
 
@@ -185,8 +174,7 @@ describe("backups handlers", () => {
       const r = await listBackupsHandler({});
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to list backups" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to list backups" });
     });
   });
 
@@ -281,8 +269,7 @@ describe("backups handlers", () => {
       const r = await batchDeleteBackupsHandler({ body: { ids: ["a"] } });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to batch delete backups" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to batch delete backups" });
     });
   });
 
@@ -313,8 +300,7 @@ describe("backups handlers", () => {
       const r = await getBackupHandler({ id: "x" });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to get backup" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to get backup" });
     });
   });
 
@@ -376,8 +362,7 @@ describe("backups handlers", () => {
       const r = await deleteBackupHandler({ id: "x" });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to delete backup" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to delete backup" });
     });
   });
 
@@ -392,8 +377,7 @@ describe("backups handlers", () => {
       const r = await uploadBackupHandler({ formData: fd({}) });
       expect(r.status).toBe(400);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "projectId is required" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "projectId is required" });
     });
 
     test("404 when project missing", async () => {
@@ -415,8 +399,7 @@ describe("backups handlers", () => {
       });
       expect(r.status).toBe(400);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Missing 'file' field in form data" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Missing 'file' field in form data" });
     });
 
     test("400 empty file", async () => {
@@ -428,16 +411,13 @@ describe("backups handlers", () => {
       });
       expect(r.status).toBe(400);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "File is empty" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "File is empty" });
     });
 
     test("413 file too large", async () => {
-      const big = new File(
-        [new Uint8Array(51 * 1024 * 1024)],
-        "x.bin",
-        { type: "application/octet-stream" },
-      );
+      const big = new File([new Uint8Array(51 * 1024 * 1024)], "x.bin", {
+        type: "application/octet-stream",
+      });
       const r = await uploadBackupHandler({
         formData: fd({ projectId: "p1", file: big }),
       });
@@ -583,8 +563,7 @@ describe("backups handlers", () => {
       const r = await downloadBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Backup not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("500 on db error", async () => {
@@ -594,8 +573,7 @@ describe("backups handlers", () => {
       const r = await downloadBackupHandler({ id: "x" });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to generate download URL" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to generate download URL" });
     });
 
     test("500 on presign error", async () => {
@@ -627,8 +605,7 @@ describe("backups handlers", () => {
       const r = await previewBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Backup not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("404 when no json_key", async () => {
@@ -680,8 +657,7 @@ describe("backups handlers", () => {
         // 413 surfaces the 'use download endpoint instead' hint so a CLI
         // that pins the size-limit branch can route to /download.
         expect(r.body).toEqual({
-          error:
-            "JSON file too large for inline preview. Use the download endpoint instead.",
+          error: "JSON file too large for inline preview. Use the download endpoint instead.",
         });
     });
 
@@ -732,8 +708,7 @@ describe("backups handlers", () => {
       const r = await previewBackupHandler({ id: "b1" });
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to load preview" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to load preview" });
     });
   });
 
@@ -746,8 +721,7 @@ describe("backups handlers", () => {
       const r = await extractBackupHandler({ id: "x" });
       expect(r.status).toBe(404);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Backup not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("200 when json_key already set", async () => {
@@ -840,8 +814,7 @@ describe("backups handlers", () => {
         // input size (60.0MB) and the limit (50MB) so operators can
         // diagnose without consulting the source.
         expect(r.body).toEqual({
-          error:
-            "Archive too large for extraction (60.0MB exceeds 50MB limit)",
+          error: "Archive too large for extraction (60.0MB exceeds 50MB limit)",
         });
     });
 
@@ -937,8 +910,7 @@ describe("backups handlers", () => {
       const r = await restoreCommandHandler({ id: "x", baseUrl });
       expect(r.status).toBe(404);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Backup not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Backup not found" });
     });
 
     test("404 when project missing", async () => {

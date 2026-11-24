@@ -43,10 +43,7 @@ export const json = (
   ...(headers && { headers }),
 });
 
-export const empty = (
-  status: number,
-  headers?: Record<string, string>,
-): HandlerResponse => ({
+export const empty = (status: number, headers?: Record<string, string>): HandlerResponse => ({
   kind: "empty",
   status,
   ...(headers && { headers }),

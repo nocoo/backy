@@ -21,14 +21,10 @@ app.get("/:id", async (c) =>
 );
 app.put("/:id", async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  return toResponse(
-    await updateCategoryHandler({ id: c.req.param("id"), body }, c.get("ctx")),
-  );
+  return toResponse(await updateCategoryHandler({ id: c.req.param("id"), body }, c.get("ctx")));
 });
 app.delete("/:id", async (c) =>
-  toResponse(
-    await deleteCategoryHandler({ id: c.req.param("id") }, c.get("ctx")),
-  ),
+  toResponse(await deleteCategoryHandler({ id: c.req.param("id") }, c.get("ctx"))),
 );
 
 export { app as categoriesRoutes };

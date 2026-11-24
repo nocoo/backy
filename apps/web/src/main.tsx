@@ -22,7 +22,11 @@ const RouterLinkAdapter: ComponentType<{
       </a>
     );
   }
-  return <RouterLink to={href} className={className}>{children}</RouterLink>;
+  return (
+    <RouterLink to={href} className={className}>
+      {children}
+    </RouterLink>
+  );
 };
 
 const rootEl = document.getElementById("root");

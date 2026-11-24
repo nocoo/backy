@@ -83,21 +83,21 @@ change but L2 is still run as a regression check — see wave-1 acceptance.)
 
 Move these files **with `git mv`** (preserve rename detection):
 
-| From `apps/web/src/lib/` | To `packages/api/src/lib/` |
-|---|---|
-| `db/{d1-client,projects,backups,categories,cron-logs,webhook-logs,schema}.ts` | `db/...` |
-| `r2/client.ts` | `r2/client.ts` |
-| `backup/{file-type,storage,extractors}.ts` | `backup/...` |
-| `id.ts`, `hosts.ts`, `ip.ts`, `sanitize.ts`, `url.ts`, `test-project.ts` | (root of `lib/`) |
+| From `apps/web/src/lib/`                                                      | To `packages/api/src/lib/` |
+| ----------------------------------------------------------------------------- | -------------------------- |
+| `db/{d1-client,projects,backups,categories,cron-logs,webhook-logs,schema}.ts` | `db/...`                   |
+| `r2/client.ts`                                                                | `r2/client.ts`             |
+| `backup/{file-type,storage,extractors}.ts`                                    | `backup/...`               |
+| `id.ts`, `hosts.ts`, `ip.ts`, `sanitize.ts`, `url.ts`, `test-project.ts`      | (root of `lib/`)           |
 
 Move associated tests **with `git mv`** to `packages/api/src/__tests__/`:
 
-| Test file | Notes |
-|---|---|
-| `id.test.ts`, `hosts.test.ts`, `ip.test.ts`, `sanitize.test.ts`, `url.test.ts` | pure |
-| `d1-client.test.ts` | pure |
-| `categories.test.ts`, `cron-logs.test.ts`, `webhook-logs.test.ts` | DB modules |
-| `file-type.test.ts`, `storage.test.ts`, `extractors.test.ts` | backup modules |
+| Test file                                                                      | Notes          |
+| ------------------------------------------------------------------------------ | -------------- |
+| `id.test.ts`, `hosts.test.ts`, `ip.test.ts`, `sanitize.test.ts`, `url.test.ts` | pure           |
+| `d1-client.test.ts`                                                            | pure           |
+| `categories.test.ts`, `cron-logs.test.ts`, `webhook-logs.test.ts`              | DB modules     |
+| `file-type.test.ts`, `storage.test.ts`, `extractors.test.ts`                   | backup modules |
 
 Tests that exercise route handlers (`*-route.test.ts`, `webhook.test.ts`,
 `upload.test.ts`, `cron-trigger.test.ts`, `manual-trigger.test.ts`,
@@ -108,6 +108,7 @@ wave 1 — they still import the route. Their `@/lib/*` imports flip to
 `@backy/api/...` in this commit.
 
 UI-only modules **stay in `apps/web/src/lib/`**:
+
 - `utils.ts` — `cn()` (clsx + tailwind-merge)
 - `category-icons.ts` — lucide-react components
 - `version.ts` — reads `apps/web/package.json`
@@ -120,28 +121,30 @@ commit** as the relocation; the commit stays green only if all are present.
 1. **Declare `@backy/api` as an `apps/web` dependency.** Without this, Bun's
    workspace resolution doesn't create the symlink and imports resolve
    nowhere. Add to `apps/web/package.json`:
+
    ```json
    "dependencies": {
      "@backy/api": "workspace:*",
      ...existing
    }
    ```
+
    Re-run `bun install` after the edit so `apps/web/node_modules/@backy/api`
    symlinks into `packages/api`.
 
-2. **Rewrite `@/lib/*` imports *inside* the relocated files** (they move
+2. **Rewrite `@/lib/*` imports _inside_ the relocated files** (they move
    into `packages/api`, so `@/*` no longer resolves there). Convert them
    to relative imports within `packages/api/src/lib/`:
 
-   | File | Import to rewrite |
-   |---|---|
-   | `lib/sanitize.ts` | `@/lib/db/projects` → `./db/projects` |
-   | `lib/db/projects.ts` | `@/lib/id` → `../id` |
-   | `lib/db/backups.ts` | `@/lib/id` → `../id` |
-   | `lib/db/categories.ts` | `@/lib/id` → `../id` |
-   | `lib/db/cron-logs.ts` | `@/lib/id` → `../id` |
-   | `lib/db/webhook-logs.ts` | `@/lib/id` → `../id` |
-   | `lib/url.ts` | `@/lib/ip` → `./ip` |
+   | File                     | Import to rewrite                     |
+   | ------------------------ | ------------------------------------- |
+   | `lib/sanitize.ts`        | `@/lib/db/projects` → `./db/projects` |
+   | `lib/db/projects.ts`     | `@/lib/id` → `../id`                  |
+   | `lib/db/backups.ts`      | `@/lib/id` → `../id`                  |
+   | `lib/db/categories.ts`   | `@/lib/id` → `../id`                  |
+   | `lib/db/cron-logs.ts`    | `@/lib/id` → `../id`                  |
+   | `lib/db/webhook-logs.ts` | `@/lib/id` → `../id`                  |
+   | `lib/url.ts`             | `@/lib/ip` → `./ip`                   |
 
    (Run `grep -n "@/lib/" packages/api/src` after the move; must be empty.)
 
@@ -149,7 +152,6 @@ commit** as the relocation; the commit stays green only if all are present.
    is imported by both pure-lib tests (`sanitize.test.ts`,
    `extractors.test.ts`, `d1-client.test.ts`, …) that move to
    `packages/api`, and by route tests that stay in `apps/web`. Plan:
-
    - Split it: keep web-specific helpers (route/Request builders, NextAuth
      stubs) in `apps/web/src/__tests__/helpers.ts`; move the pure-lib
      helpers (fetch mock, D1 success/error builders, nanoid stubs) into
@@ -179,47 +181,47 @@ manifest a second time and keeps G2 scan surface stable across waves.
   "private": true,
   "type": "module",
   "exports": {
-    ".":               "./src/index.ts",
-    "./db/d1-client":  "./src/lib/db/d1-client.ts",
-    "./db/projects":   "./src/lib/db/projects.ts",
-    "./db/backups":    "./src/lib/db/backups.ts",
+    ".": "./src/index.ts",
+    "./db/d1-client": "./src/lib/db/d1-client.ts",
+    "./db/projects": "./src/lib/db/projects.ts",
+    "./db/backups": "./src/lib/db/backups.ts",
     "./db/categories": "./src/lib/db/categories.ts",
-    "./db/cron-logs":  "./src/lib/db/cron-logs.ts",
+    "./db/cron-logs": "./src/lib/db/cron-logs.ts",
     "./db/webhook-logs": "./src/lib/db/webhook-logs.ts",
-    "./db/schema":     "./src/lib/db/schema.ts",
-    "./r2":            "./src/lib/r2/client.ts",
+    "./db/schema": "./src/lib/db/schema.ts",
+    "./r2": "./src/lib/r2/client.ts",
     "./backup/file-type": "./src/lib/backup/file-type.ts",
-    "./backup/storage":   "./src/lib/backup/storage.ts",
-    "./backup/extractors":"./src/lib/backup/extractors.ts",
-    "./id":            "./src/lib/id.ts",
-    "./hosts":         "./src/lib/hosts.ts",
-    "./ip":            "./src/lib/ip.ts",
-    "./sanitize":      "./src/lib/sanitize.ts",
-    "./url":           "./src/lib/url.ts",
-    "./test-project":  "./src/lib/test-project.ts"
+    "./backup/storage": "./src/lib/backup/storage.ts",
+    "./backup/extractors": "./src/lib/backup/extractors.ts",
+    "./id": "./src/lib/id.ts",
+    "./hosts": "./src/lib/hosts.ts",
+    "./ip": "./src/lib/ip.ts",
+    "./sanitize": "./src/lib/sanitize.ts",
+    "./url": "./src/lib/url.ts",
+    "./test-project": "./src/lib/test-project.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3":          "^3.1014.0",
-    "@aws-sdk/s3-request-presigner":"^3.1014.0",
-    "jszip":                        "^3.10.1",
-    "nanoid":                       "^5.1.7",
-    "tar-stream":                   "^3.1.8",
-    "zod":                          "^4.3.6"
+    "@aws-sdk/client-s3": "^3.1014.0",
+    "@aws-sdk/s3-request-presigner": "^3.1014.0",
+    "jszip": "^3.10.1",
+    "nanoid": "^5.1.7",
+    "tar-stream": "^3.1.8",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/bun":         "^1.3.11",
-    "@types/tar-stream":  "^3.1.4",
-    "eslint":             "^9.39.4",
-    "lint-staged":        "^16.4.0",
-    "typescript":         "^5.9.3",
-    "typescript-eslint":  "8.56.0"
+    "@types/bun": "^1.3.11",
+    "@types/tar-stream": "^3.1.4",
+    "eslint": "^9.39.4",
+    "lint-staged": "^16.4.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "8.56.0"
   },
   "scripts": {
-    "lint":          "eslint --max-warnings=0 src",
-    "lint:staged":   "lint-staged",
-    "test":          "bun test src/__tests__/",
+    "lint": "eslint --max-warnings=0 src",
+    "lint:staged": "lint-staged",
+    "test": "bun test src/__tests__/",
     "test:coverage": "bun run scripts/check-coverage.ts",
-    "typecheck":     "tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
     "*.ts": "eslint --max-warnings=0"
@@ -252,6 +254,7 @@ state: root scripts and husky hooks only exercise `apps/web`.
    config (see the JSON above — that JSON is the source of truth, this
    step is just the reminder that those entries land via wave 1).
 3. Root `package.json` fans out:
+
    ```json
    "lint":          "bun --cwd apps/web lint && bun --cwd packages/api lint",
    "lint:staged":   "bun --cwd apps/web lint:staged && bun --cwd packages/api lint:staged",
@@ -259,10 +262,10 @@ state: root scripts and husky hooks only exercise `apps/web`.
    "test":          "bun --cwd apps/web test && bun --cwd packages/api test && bun --cwd apps/cli test",
    "test:coverage": "bun --cwd packages/api test:coverage && bun --cwd apps/web test:coverage"
    ```
-5. `.husky/pre-commit` stays unchanged (calls root `typecheck` +
+4. `.husky/pre-commit` stays unchanged (calls root `typecheck` +
    `lint:staged` + `test:coverage`); after step 3 it transparently covers
    the new workspace.
-6. Confirm: `bun run lint`, `bun run typecheck`, `bun run test:coverage`
+5. Confirm: `bun run lint`, `bun run typecheck`, `bun run test:coverage`
    all exercise `packages/api` and pass.
 
 `packages/api/eslint.config.mjs` is a slimmed-down flat config: tseslint
@@ -274,11 +277,11 @@ non-null assertions.
 Across `apps/web/src/`, every `@/lib/<x>` import becomes `@backy/api/<x>`
 **only for the relocated modules**. UI modules keep `@/lib/*`:
 
-| Stays `@/lib/*` | Becomes `@backy/api/*` |
-|---|---|
-| `@/lib/utils` | `@/lib/db/projects` → `@backy/api/db/projects` |
-| `@/lib/category-icons` | `@/lib/r2/client` → `@backy/api/r2` |
-| `@/lib/version` | `@/lib/id` → `@backy/api/id`, etc. |
+| Stays `@/lib/*`        | Becomes `@backy/api/*`                         |
+| ---------------------- | ---------------------------------------------- |
+| `@/lib/utils`          | `@/lib/db/projects` → `@backy/api/db/projects` |
+| `@/lib/category-icons` | `@/lib/r2/client` → `@backy/api/r2`            |
+| `@/lib/version`        | `@/lib/id` → `@backy/api/id`, etc.             |
 
 `apps/web/tsconfig.json` keeps `"@/*": ["./src/*"]` (still needed for
 remaining UI libs and components). No path-alias change needed.
@@ -335,18 +338,46 @@ extracted into a corresponding handler in `packages/api/src/handlers/`.
 
 ```ts
 export type HandlerResponse =
-  | { kind: "json";  status: number; body: unknown;   headers?: Record<string, string> }
-  | { kind: "bytes"; status: number; bytes: Uint8Array; contentType: string; headers?: Record<string, string> }
+  | { kind: "json"; status: number; body: unknown; headers?: Record<string, string> }
+  | {
+      kind: "bytes";
+      status: number;
+      bytes: Uint8Array;
+      contentType: string;
+      headers?: Record<string, string>;
+    }
   | { kind: "empty"; status: number; headers?: Record<string, string> }
-  | { kind: "text";  status: number; text: string;    contentType?: string; headers?: Record<string, string> };
+  | {
+      kind: "text";
+      status: number;
+      text: string;
+      contentType?: string;
+      headers?: Record<string, string>;
+    };
 
 // Constructors for ergonomic use in handlers:
-export const json  = (status: number, body: unknown, headers?: Record<string, string>): HandlerResponse =>
-  ({ kind: "json", status, body, ...(headers && { headers }) });
-export const empty = (status: number, headers?: Record<string, string>): HandlerResponse =>
-  ({ kind: "empty", status, ...(headers && { headers }) });
-export const bytes = (status: number, data: Uint8Array, contentType: string, headers?: Record<string, string>): HandlerResponse =>
-  ({ kind: "bytes", status, bytes: data, contentType, ...(headers && { headers }) });
+export const json = (
+  status: number,
+  body: unknown,
+  headers?: Record<string, string>,
+): HandlerResponse => ({ kind: "json", status, body, ...(headers && { headers }) });
+export const empty = (status: number, headers?: Record<string, string>): HandlerResponse => ({
+  kind: "empty",
+  status,
+  ...(headers && { headers }),
+});
+export const bytes = (
+  status: number,
+  data: Uint8Array,
+  contentType: string,
+  headers?: Record<string, string>,
+): HandlerResponse => ({
+  kind: "bytes",
+  status,
+  bytes: data,
+  contentType,
+  ...(headers && { headers }),
+});
 ```
 
 The `"empty"` branch covers the HEAD `/api/webhook/[projectId]` case (200
@@ -354,27 +385,25 @@ with only `X-Project-Name`, no body — `apps/web/src/app/api/webhook/[projectId
 and the 204 responses from `DELETE /api/cron/logs` and `DELETE /api/logs`.
 
 **Example shapes**
+
 ```ts
 // Example shapes
 export async function listProjectsHandler(): Promise<HandlerResponse>;
 
-export async function createProjectHandler(input: {
-  body: unknown;
-}): Promise<HandlerResponse>;
+export async function createProjectHandler(input: { body: unknown }): Promise<HandlerResponse>;
 
-export async function uploadBackupHandler(input: {
-  formData: FormData;
-}): Promise<HandlerResponse>;
+export async function uploadBackupHandler(input: { formData: FormData }): Promise<HandlerResponse>;
 
 export async function webhookPostHandler(input: {
   projectId: string;
   authHeader: string | null;
   formData: FormData;
-  clientIp: string;          // x-forwarded-for resolution stays in adapter
+  clientIp: string; // x-forwarded-for resolution stays in adapter
 }): Promise<HandlerResponse>;
 ```
 
 **Rules**:
+
 - No `NextResponse`, no `next/server`, no `Request` web type in handler
   signatures (only as a transport for bytes if absolutely necessary —
   prefer extracting `formData`, headers, query in the adapter).
@@ -391,45 +420,45 @@ export async function webhookPostHandler(input: {
 Verified against the current repo with
 `grep -nE '^export (async )?function (GET|POST|PUT|DELETE|HEAD|PATCH)' apps/web/src/app/api/**/route.ts`.
 
-| Route | Handler |
-|---|---|
-| `GET    /api/projects`              | `handlers/projects.list` |
-| `POST   /api/projects`              | `handlers/projects.create` |
-| `GET    /api/projects/[id]`         | `handlers/projects.get` |
-| `PUT    /api/projects/[id]`         | `handlers/projects.update` |
-| `DELETE /api/projects/[id]`         | `handlers/projects.remove` |
-| `POST   /api/projects/[id]/token`   | `handlers/projects.regenerateToken` |
-| `GET    /api/projects/[id]/prompt`  | `handlers/projects.prompt` |
-| `GET    /api/backups`               | `handlers/backups.list` |
-| `DELETE /api/backups`               | `handlers/backups.batchDelete` |
-| `GET    /api/backups/[id]`          | `handlers/backups.get` |
-| `DELETE /api/backups/[id]`          | `handlers/backups.remove` |
-| `POST   /api/backups/upload`        | `handlers/backups.upload` |
-| `GET    /api/backups/[id]/download` | `handlers/backups.download` |
-| `GET    /api/backups/[id]/preview`  | `handlers/backups.preview` |
-| **`POST**  `/api/backups/[id]/extract`** | `handlers/backups.extract` |
-| `GET    /api/backups/[id]/restore-command` | `handlers/backups.restoreCommand` |
-| `GET    /api/categories`            | `handlers/categories.list` |
-| `POST   /api/categories`            | `handlers/categories.create` |
-| **`GET    /api/categories/[id]`**   | `handlers/categories.get` |
-| `PUT    /api/categories/[id]`       | `handlers/categories.update` |
-| `DELETE /api/categories/[id]`       | `handlers/categories.remove` |
-| `POST   /api/cron/trigger`          | `handlers/cron.trigger` |
-| `POST   /api/cron/trigger/[projectId]` | `handlers/cron.triggerProject` |
-| `GET    /api/cron/logs`             | `handlers/cron.listLogs` |
-| **`DELETE /api/cron/logs`**         | `handlers/cron.deleteLogs` |
-| `GET    /api/logs`                  | `handlers/logs.list` |
-| `DELETE /api/logs`                  | `handlers/logs.remove` |
-| `HEAD   /api/webhook/[projectId]`   | `handlers/webhook.verify` |
-| `GET    /api/webhook/[projectId]`   | `handlers/webhook.status` |
-| `POST   /api/webhook/[projectId]`   | `handlers/webhook.ingest` |
-| `GET    /api/restore/[id]`          | `handlers/restore.get` |
-| `GET    /api/stats`                 | `handlers/stats.totals` |
-| `GET    /api/stats/charts`          | `handlers/stats.charts` |
-| `GET    /api/live`                  | `handlers/live.check` |
-| `GET    /api/ip-info`               | `handlers/ipInfo.lookup` |
-| `POST   /api/db/init`               | `handlers/db.init` |
-| `POST   /api/db/seed-test-project`  | `handlers/db.seedTestProject` |
+| Route                                      | Handler                             |
+| ------------------------------------------ | ----------------------------------- |
+| `GET    /api/projects`                     | `handlers/projects.list`            |
+| `POST   /api/projects`                     | `handlers/projects.create`          |
+| `GET    /api/projects/[id]`                | `handlers/projects.get`             |
+| `PUT    /api/projects/[id]`                | `handlers/projects.update`          |
+| `DELETE /api/projects/[id]`                | `handlers/projects.remove`          |
+| `POST   /api/projects/[id]/token`          | `handlers/projects.regenerateToken` |
+| `GET    /api/projects/[id]/prompt`         | `handlers/projects.prompt`          |
+| `GET    /api/backups`                      | `handlers/backups.list`             |
+| `DELETE /api/backups`                      | `handlers/backups.batchDelete`      |
+| `GET    /api/backups/[id]`                 | `handlers/backups.get`              |
+| `DELETE /api/backups/[id]`                 | `handlers/backups.remove`           |
+| `POST   /api/backups/upload`               | `handlers/backups.upload`           |
+| `GET    /api/backups/[id]/download`        | `handlers/backups.download`         |
+| `GET    /api/backups/[id]/preview`         | `handlers/backups.preview`          |
+| **`POST**  `/api/backups/[id]/extract`**   | `handlers/backups.extract`          |
+| `GET    /api/backups/[id]/restore-command` | `handlers/backups.restoreCommand`   |
+| `GET    /api/categories`                   | `handlers/categories.list`          |
+| `POST   /api/categories`                   | `handlers/categories.create`        |
+| **`GET    /api/categories/[id]`**          | `handlers/categories.get`           |
+| `PUT    /api/categories/[id]`              | `handlers/categories.update`        |
+| `DELETE /api/categories/[id]`              | `handlers/categories.remove`        |
+| `POST   /api/cron/trigger`                 | `handlers/cron.trigger`             |
+| `POST   /api/cron/trigger/[projectId]`     | `handlers/cron.triggerProject`      |
+| `GET    /api/cron/logs`                    | `handlers/cron.listLogs`            |
+| **`DELETE /api/cron/logs`**                | `handlers/cron.deleteLogs`          |
+| `GET    /api/logs`                         | `handlers/logs.list`                |
+| `DELETE /api/logs`                         | `handlers/logs.remove`              |
+| `HEAD   /api/webhook/[projectId]`          | `handlers/webhook.verify`           |
+| `GET    /api/webhook/[projectId]`          | `handlers/webhook.status`           |
+| `POST   /api/webhook/[projectId]`          | `handlers/webhook.ingest`           |
+| `GET    /api/restore/[id]`                 | `handlers/restore.get`              |
+| `GET    /api/stats`                        | `handlers/stats.totals`             |
+| `GET    /api/stats/charts`                 | `handlers/stats.charts`             |
+| `GET    /api/live`                         | `handlers/live.check`               |
+| `GET    /api/ip-info`                      | `handlers/ipInfo.lookup`            |
+| `POST   /api/db/init`                      | `handlers/db.init`                  |
+| `POST   /api/db/seed-test-project`         | `handlers/db.seedTestProject`       |
 
 Bold rows = corrections from the earlier draft (missing / wrong method).
 
@@ -439,6 +468,7 @@ decision D1 — see "Decisions (locked)" below.
 ### Test relocation in wave 2
 
 For each handler extracted, the existing `*-route.test.ts` is split:
+
 - **Pure handler tests** move to `packages/api/src/__tests__/handlers/`
   and test the handler directly (no Request wrapping).
 - **Adapter glue tests** stay in `apps/web/src/__tests__/` and test that
@@ -467,6 +497,7 @@ Each sub-commit independently green (G1 + L1 + L2).
 ### Status: 🟡
 
 **Wave 2a complete (2026-04-23):**
+
 - Extracted 12 handlers (projects×7, categories×5, db×2, ip-info, live, stats×2)
 - Added `packages/api/src/http/response.ts` (`HandlerResponse` discriminated union + constructors)
 - Added `apps/web/src/lib/http.ts` adapter (`toResponse`)
@@ -477,18 +508,21 @@ Each sub-commit independently green (G1 + L1 + L2).
 - `apps/web/e2e/api/config.ts` switched to `@backy/api/test-project` import
 
 **Wave 2b complete (2026-04-23):**
+
 - Extracted 5 handlers (listBackups, batchDeleteBackups, getBackup, deleteBackup, uploadBackup)
 - 3 routes rewritten as adapters (`/api/backups`, `/api/backups/[id]`, `/api/backups/upload`)
 - New tests: 28 cases in `packages/api/src/__tests__/handlers/backups.test.ts`
 - Verification: packages/api 384 tests / 95.66% funcs / 96.39% lines · apps/web 268 tests / 92.18% funcs / 95.74% lines · L2 e2e 146/146 · typecheck/lint clean
 
 **Wave 2c complete (2026-04-23):**
+
 - Extracted 4 handlers (downloadBackup, previewBackup, extractBackup, restoreCommand) appended to `packages/api/src/handlers/backups.ts`
 - 4 routes rewritten as adapters (`/api/backups/[id]/{download,preview,extract,restore-command}`)
 - New tests: 24 cases in `backups.test.ts` (downloads ×4, preview ×7, extract ×9, restore-command ×4); mocks extended to inject `downloadFromR2`/`createPresignedDownloadUrl`/`updateBackup`
 - Verification: packages/api 408 tests / 95.66% funcs / 96.39% lines · apps/web 268 tests / 92.18% funcs / 96.02% lines · L2 e2e 146/146 · typecheck clean
 
 **Wave 2d.2 complete (2026-04-23):**
+
 - Extracted `cronTriggerHandler` + `cronTriggerOneHandler` into `packages/api/src/handlers/cron.ts` (148 LOC); shared `fireProjectWebhook` + `logFireAndForget` between the two
 - 2 routes rewritten as adapters (`/api/cron/trigger`, `/api/cron/trigger/[projectId]`)
 - New tests: 20 cases in `cron.test.ts` covering auth, SSRF static + DNS blocks, fetch outcomes (success/non-2xx/throw)
@@ -496,12 +530,14 @@ Each sub-commit independently green (G1 + L1 + L2).
 - Verification: packages/api 443 tests / 95.19% funcs / 96.54% lines · apps/web 268 tests / 97.18% funcs / 96.90% lines · L2 e2e 146/146 · typecheck + lint clean
 
 **Wave 2d.3 complete (2026-04-23):**
+
 - Extracted `restoreHandler` into `packages/api/src/handlers/restore.ts` (54 LOC); IP enforcement folded into the handler with `clientIp` passed in (no `Request` dependency)
 - 1 route rewritten as adapter (`/api/restore/[id]`); adapter calls `getClientIp(request)` and forwards `authorization` + `clientIp` as primitives
 - New tests: 10 cases in `restore.test.ts` covering missing/invalid auth, missing backup/project, token mismatch, IP CIDR allow + deny + null-with-restriction, success, db error
 - Verification: packages/api 453 tests / 95.36% funcs / 96.67% lines · apps/web 268 tests / 97.18% funcs / 97.32% lines · L2 e2e 146/146 · typecheck + lint clean
 
 **Wave 2d.4 complete (2026-04-23):**
+
 - Extracted `webhookHeadHandler` + `webhookGetHandler` + `webhookPostHandler` into `packages/api/src/handlers/webhook.ts` (~390 LOC); shared `fireLog`/`checkIp`/`bearer` helpers; handlers receive `clientIp` + `userAgent` + `formData` as primitives (no `Request` dependency)
 - 1 route rewritten as a thin adapter for HEAD/GET/POST (`/api/webhook/[projectId]`); adapter extracts headers + `getClientIp(request)` + `formData` and forwards via `toResponse`
 - New tests: 27 cases in `packages/api/src/__tests__/handlers/webhook.test.ts` covering HEAD (401/403 ×3 / 200 / 500), GET (401/403 ×2 / 200 with sanitized recent_backups / env forwarding / 500), POST (auth, IP block, file missing/empty/too-large, env_invalid, JSON+preview success, ZIP no-preview path, senderIp fallback, R2/DB throw, getProject throw)
@@ -561,7 +597,7 @@ Routes collapse to:
 import { listProjectsHandler, createProjectHandler } from "@backy/api";
 import { withErrors } from "@/lib/http";
 
-export const GET  = withErrors(() => listProjectsHandler(), "projects.list");
+export const GET = withErrors(() => listProjectsHandler(), "projects.list");
 export const POST = withErrors(
   async (req: Request) => createProjectHandler({ body: await req.json() }),
   "projects.create",
@@ -579,6 +615,7 @@ export const POST = withErrors(
 ### Status: ✅
 
 **Wave 3 complete (2026-04-23):**
+
 - `apps/web/src/lib/http.ts` already exists from Wave 2a (added when the first batch of routes was rewritten); covers all four `HandlerResponse.kind` cases (empty/bytes/text/json) and feeds Next.js
 - `grep -rn "NextResponse\|next/server" apps/web/src/app/api` returns nothing — every API route is now a thin adapter
 - Route LOC: most routes are 17–27 lines; multi-method files (`webhook[projectId]/route.ts` 50, `projects/[id]/route.ts` 40, `categories/[id]/route.ts` 40, `backups/route.ts` 37) exceed the 10-line target because each method needs its own param parsing + ctx wiring, but each individual handler call is ≤3 lines as intended
@@ -588,14 +625,14 @@ export const POST = withErrors(
 
 ## Out of scope (future waves)
 
-| Future wave | Description |
-|---|---|
-| W4 | NextAuth abstraction — define `AuthContext`, push session resolution into adapter |
-| W5 | `apps/cli` real implementation — consumes `@backy/api` directly (no HTTP) |
-| W6 | `apps/worker` (Hono on Cloudflare) — alternative HTTP adapter |
-| W7 | `apps/web` migration to Vite + react-router (kills Next.js) |
-| W8 | Remove `@aws-sdk/*`, `jszip`, `tar-stream`, `nanoid` from `apps/web/package.json` |
-| W9 | `apps/web/scripts/release.ts` PROJECT_ROOT fix to point at git root |
+| Future wave | Description                                                                       |
+| ----------- | --------------------------------------------------------------------------------- |
+| W4          | NextAuth abstraction — define `AuthContext`, push session resolution into adapter |
+| W5          | `apps/cli` real implementation — consumes `@backy/api` directly (no HTTP)         |
+| W6          | `apps/worker` (Hono on Cloudflare) — alternative HTTP adapter                     |
+| W7          | `apps/web` migration to Vite + react-router (kills Next.js)                       |
+| W8          | Remove `@aws-sdk/*`, `jszip`, `tar-stream`, `nanoid` from `apps/web/package.json` |
+| W9          | `apps/web/scripts/release.ts` PROJECT_ROOT fix to point at git root               |
 
 ---
 

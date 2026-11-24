@@ -28,9 +28,7 @@ let jwksCacheTeamDomain: string | null = null;
 
 function getJWKS(teamDomain: string) {
   if (jwksCache && jwksCacheTeamDomain === teamDomain) return jwksCache;
-  jwksCache = createRemoteJWKSet(
-    new URL(`https://${teamDomain}/cdn-cgi/access/certs`),
-  );
+  jwksCache = createRemoteJWKSet(new URL(`https://${teamDomain}/cdn-cgi/access/certs`));
   jwksCacheTeamDomain = teamDomain;
   return jwksCache;
 }
@@ -43,9 +41,7 @@ export function __resetJwksCacheForTests(): void {
 
 const NANOID = "[A-Za-z0-9_-]{21}";
 const DIRECT_INIT = new RegExp(`^/api/webhook/${NANOID}/uploads$`);
-const DIRECT_COMPLETE = new RegExp(
-  `^/api/webhook/${NANOID}/uploads/${NANOID}/complete$`,
-);
+const DIRECT_COMPLETE = new RegExp(`^/api/webhook/${NANOID}/uploads/${NANOID}/complete$`);
 const DIRECT_ABORT = new RegExp(`^/api/webhook/${NANOID}/uploads/${NANOID}$`);
 
 function isPublicPath(method: string, path: string): boolean {

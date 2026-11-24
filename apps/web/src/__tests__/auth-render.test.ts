@@ -27,8 +27,7 @@ beforeAll(() => {
     });
   }) as typeof fetch;
   // Bun's typeof fetch carries `preconnect` — stub it via unknown cast.
-  (stub as unknown as { preconnect: (url: string) => void }).preconnect =
-    () => {};
+  (stub as unknown as { preconnect: (url: string) => void }).preconnect = () => {};
   globalThis.fetch = stub;
 });
 
@@ -86,11 +85,7 @@ describe("RequireAuth", () => {
     }));
     const { RequireAuth: RA } = await import("../lib/RequireAuth");
     const html = renderToStaticMarkup(
-      React.createElement(
-        RA,
-        null,
-        React.createElement("div", null, "secret"),
-      ),
+      React.createElement(RA, null, React.createElement("div", null, "secret")),
     );
     expect(html).toContain("Loading…");
     // Tightened: also confirm children are NOT rendered during loading.
@@ -101,9 +96,7 @@ describe("RequireAuth", () => {
   });
 
   test("CF Access logout URL is the canonical one", () => {
-    expect(CF_ACCESS_LOGOUT_URL).toBe(
-      "https://nocoo.cloudflareaccess.com/cdn-cgi/access/logout",
-    );
+    expect(CF_ACCESS_LOGOUT_URL).toBe("https://nocoo.cloudflareaccess.com/cdn-cgi/access/logout");
   });
 
   test("ApiError carries status/body and is throwable", () => {
@@ -181,11 +174,7 @@ describe("RequireAuth", () => {
     }));
     const { RequireAuth: RA } = await import("../lib/RequireAuth");
     const html = renderToStaticMarkup(
-      React.createElement(
-        RA,
-        null,
-        React.createElement("div", null, "secret-payload"),
-      ),
+      React.createElement(RA, null, React.createElement("div", null, "secret-payload")),
     );
     expect(html).toContain("secret-payload");
     // Tightened: when email is present, RequireAuth must render ONLY

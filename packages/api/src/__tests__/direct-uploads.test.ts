@@ -108,8 +108,6 @@ describe("direct-uploads db", () => {
     await updateDirectUploadGc(db, { id: "u1", nextGcAt: 100 });
     await purgeUnissuedDirectUpload(db, "u1", 50);
     await deleteArchivedDirectUploads(db, 1);
-    expect(db.calls.some((c) => c.sql.includes("DELETE FROM direct_uploads"))).toBe(
-      true,
-    );
+    expect(db.calls.some((c) => c.sql.includes("DELETE FROM direct_uploads"))).toBe(true);
   });
 });

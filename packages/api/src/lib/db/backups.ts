@@ -47,11 +47,7 @@ export interface PaginatedBackups {
   totalPages: number;
 }
 
-async function q<T>(
-  db: D1Adapter,
-  sql: string,
-  params: unknown[] = [],
-): Promise<T[]> {
+async function q<T>(db: D1Adapter, sql: string, params: unknown[] = []): Promise<T[]> {
   const { results } = await db.query<T>(sql, params);
   return results;
 }
@@ -169,18 +165,11 @@ export async function getBackupByFileKey(
   db: D1Adapter,
   fileKey: string,
 ): Promise<Backup | undefined> {
-  const rows = await q<Backup>(
-    db,
-    "SELECT * FROM backups WHERE file_key = ?",
-    [fileKey],
-  );
+  const rows = await q<Backup>(db, "SELECT * FROM backups WHERE file_key = ?", [fileKey]);
   return rows[0];
 }
 
-export async function getBackup(
-  db: D1Adapter,
-  id: string,
-): Promise<BackupWithProject | undefined> {
+export async function getBackup(db: D1Adapter, id: string): Promise<BackupWithProject | undefined> {
   const rows = await q<BackupWithProject>(
     db,
     `SELECT b.*, p.name as project_name
@@ -298,11 +287,7 @@ export async function deleteBackup(
   db: D1Adapter,
   id: string,
 ): Promise<{ fileKey: string; jsonKey: string | null } | undefined> {
-  const rows = await q<Backup>(
-    db,
-    "SELECT file_key, json_key FROM backups WHERE id = ?",
-    [id],
-  );
+  const rows = await q<Backup>(db, "SELECT file_key, json_key FROM backups WHERE id = ?", [id]);
   const backup = rows[0];
   if (!backup) return undefined;
 
@@ -313,10 +298,7 @@ export async function deleteBackup(
 /**
  * Count backups for a project.
  */
-export async function countBackups(
-  db: D1Adapter,
-  projectId?: string,
-): Promise<number> {
+export async function countBackups(db: D1Adapter, projectId?: string): Promise<number> {
   if (projectId) {
     const rows = await q<{ count: number }>(
       db,
@@ -326,9 +308,6 @@ export async function countBackups(
     return rows[0]?.count ?? 0;
   }
 
-  const rows = await q<{ count: number }>(
-    db,
-    "SELECT COUNT(*) as count FROM backups",
-  );
+  const rows = await q<{ count: number }>(db, "SELECT COUNT(*) as count FROM backups");
   return rows[0]?.count ?? 0;
 }

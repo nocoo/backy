@@ -187,9 +187,7 @@ export function BackupDetailPage() {
     async function fetchIpInfo() {
       try {
         setIpInfoLoading(true);
-        const res = await apiFetch(
-          `/api/ip-info?ip=${encodeURIComponent(senderIp)}`,
-        );
+        const res = await apiFetch(`/api/ip-info?ip=${encodeURIComponent(senderIp)}`);
         const data = (await res.json()) as IpInfo;
         setIpInfo(data);
       } catch {
@@ -266,12 +264,7 @@ export function BackupDetailPage() {
     return (
       <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
         <p className="text-sm text-basalt-destructive">{error}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={() => navigate("/backups")}
-        >
+        <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/backups")}>
           Back to Backups
         </Button>
       </div>
@@ -282,8 +275,7 @@ export function BackupDetailPage() {
 
   const fileType = backup.file_type || "unknown";
   const isJson = fileType === "json";
-  const isExtractableType =
-    fileType === "zip" || fileType === "gz" || fileType === "tgz";
+  const isExtractableType = fileType === "zip" || fileType === "gz" || fileType === "tgz";
   const isUnknown = !isJson && !isExtractableType;
   const hasPreview = !!backup.json_key;
   const canExtract = isExtractableType && !hasPreview;
@@ -296,21 +288,45 @@ export function BackupDetailPage() {
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => navigate("/backups")}>
-              <ArrowLeft className="mr-basalt-space-md h-3.5 w-3.5" />Back
+              <ArrowLeft className="mr-basalt-space-md h-3.5 w-3.5" />
+              Back
             </Button>
             <Button variant="outline" size="sm" onClick={() => void handleDownload()}>
-              <Download className="mr-basalt-space-md h-3.5 w-3.5" />Download
+              <Download className="mr-basalt-space-md h-3.5 w-3.5" />
+              Download
             </Button>
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
               <DialogTrigger asChild>
-                <Button variant="destructive" size="sm"><Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />Delete</Button>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="mr-basalt-space-md h-3.5 w-3.5" />
+                  Delete
+                </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Delete this backup?</DialogTitle><DialogDescription>This action cannot be undone. The backup file will be permanently deleted from storage.</DialogDescription></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>Delete this backup?</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. The backup file will be permanently deleted from
+                    storage.
+                  </DialogDescription>
+                </DialogHeader>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
-                  <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting}>
-                    {deleting ? <Loader2 className="mr-basalt-space-md h-4 w-4 animate-spin" /> : null}Delete
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteOpen(false)}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => void handleDelete()}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <Loader2 className="mr-basalt-space-md h-4 w-4 animate-spin" />
+                    ) : null}
+                    Delete
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -323,9 +339,7 @@ export function BackupDetailPage() {
         <div className="lg:col-span-8 flex flex-col gap-6">
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-basalt-foreground">
-                JSON Preview
-              </h2>
+              <h2 className="text-base font-semibold text-basalt-foreground">JSON Preview</h2>
               {canExtract && (
                 <Button
                   variant="outline"
@@ -360,8 +374,8 @@ export function BackupDetailPage() {
               <div className="rounded-lg border bg-basalt-secondary p-6 text-center">
                 <FileArchive className="h-8 w-8 text-basalt-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-basalt-muted-foreground">
-                  This is a {FILE_TYPE_LABELS[fileType] ?? "archive"} file.
-                  Click &ldquo;{EXTRACT_LABELS[fileType] ?? "Extract JSON"}
+                  This is a {FILE_TYPE_LABELS[fileType] ?? "archive"} file. Click &ldquo;
+                  {EXTRACT_LABELS[fileType] ?? "Extract JSON"}
                   &rdquo; to preview the JSON content.
                 </p>
               </div>
@@ -383,9 +397,7 @@ export function BackupDetailPage() {
 
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-basalt-foreground">
-                Restore URL
-              </h2>
+              <h2 className="text-base font-semibold text-basalt-foreground">Restore URL</h2>
               <Button
                 variant="outline"
                 size="sm"
@@ -414,18 +426,13 @@ export function BackupDetailPage() {
                     onClick={() => void handleCopyRestoreUrl()}
                     className="shrink-0"
                   >
-                    {copied ? (
-                      <Check className="h-3.5 w-3.5" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
                 <div className="text-xs text-basalt-muted-foreground">
                   <p>
-                    This command uses the project&apos;s webhook token via the
-                    Authorization header. The presigned download link returned
-                    expires after <strong>15 minutes</strong>.
+                    This command uses the project&apos;s webhook token via the Authorization header.
+                    The presigned download link returned expires after <strong>15 minutes</strong>.
                   </p>
                 </div>
               </div>
@@ -433,8 +440,7 @@ export function BackupDetailPage() {
               <div className="rounded-lg border bg-basalt-secondary p-6 text-center">
                 <Link2 className="h-8 w-8 text-basalt-muted-foreground/40 mx-auto mb-2" />
                 <p className="text-sm text-basalt-muted-foreground">
-                  Generate a restore URL for your AI agent to download this
-                  backup.
+                  Generate a restore URL for your AI agent to download this backup.
                 </p>
               </div>
             )}
@@ -475,17 +481,11 @@ export function BackupDetailPage() {
               </div>
             ) : ipInfo?.location ? (
               <div className="flex flex-col gap-1.5 pt-1 border-t border-basalt-border">
-                {(ipInfo.location.city ||
-                  ipInfo.location.province ||
-                  ipInfo.location.country) && (
+                {(ipInfo.location.city || ipInfo.location.province || ipInfo.location.country) && (
                   <div className="flex items-center gap-1.5">
                     <MapPin className="h-3 w-3 text-basalt-muted-foreground shrink-0" />
                     <span className="text-xs text-basalt-muted-foreground">
-                      {[
-                        ipInfo.location.city,
-                        ipInfo.location.province,
-                        ipInfo.location.country,
-                      ]
+                      {[ipInfo.location.city, ipInfo.location.province, ipInfo.location.country]
                         .filter((s) => s && s !== "0")
                         .join(", ")}
                     </span>
@@ -514,11 +514,7 @@ export function BackupDetailPage() {
             />
           )}
           {backup.tag && (
-            <MetadataItem
-              icon={<Tag className="h-4 w-4" />}
-              label="Tag"
-              value={backup.tag}
-            />
+            <MetadataItem icon={<Tag className="h-4 w-4" />} label="Tag" value={backup.tag} />
           )}
 
           <div className="rounded-basalt-widget bg-basalt-secondary p-3 flex flex-col gap-2">
@@ -527,10 +523,7 @@ export function BackupDetailPage() {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-basalt-muted-foreground text-xs">Type:</span>
-              <Badge
-                tone={isJson ? "info" : "neutral"}
-                className="text-xs"
-              >
+              <Badge tone={isJson ? "info" : "neutral"} className="text-xs">
                 {FILE_TYPE_LABELS[fileType] ?? fileType.toUpperCase()}
               </Badge>
             </div>
@@ -582,9 +575,7 @@ function MetadataItem({
         {icon}
         <span className="text-xs">{label}</span>
       </div>
-      <div className="text-sm font-medium text-basalt-foreground truncate">
-        {value}
-      </div>
+      <div className="text-sm font-medium text-basalt-foreground truncate">{value}</div>
     </div>
   );
 

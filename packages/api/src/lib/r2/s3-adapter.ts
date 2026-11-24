@@ -26,11 +26,7 @@ type R2EnvKeys =
   | "R2_S3_ENDPOINT"
   | "R2_S3_SIGN_ENDPOINT";
 
-const SIGNABLE_UPLOAD_HEADERS = new Set([
-  "content-type",
-  "content-length",
-  "if-none-match",
-]);
+const SIGNABLE_UPLOAD_HEADERS = new Set(["content-type", "content-length", "if-none-match"]);
 
 function readConfig(env: Pick<BackyEnv, R2EnvKeys>) {
   const accessKeyId = env.R2_ACCESS_KEY_ID;
@@ -43,8 +39,7 @@ function readConfig(env: Pick<BackyEnv, R2EnvKeys>) {
       "Missing R2 configuration. Required: R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET_NAME",
     );
   }
-  const endpoint =
-    env.R2_S3_ENDPOINT ?? `https://${accountId}.r2.cloudflarestorage.com`;
+  const endpoint = env.R2_S3_ENDPOINT ?? `https://${accountId}.r2.cloudflarestorage.com`;
   const signEndpoint = env.R2_S3_SIGN_ENDPOINT ?? endpoint;
   return {
     accessKeyId,
@@ -59,11 +54,7 @@ function readConfig(env: Pick<BackyEnv, R2EnvKeys>) {
 function isNotFound(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
-  return (
-    e.name === "NotFound" ||
-    e.name === "NoSuchKey" ||
-    e.$metadata?.httpStatusCode === 404
-  );
+  return e.name === "NotFound" || e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404;
 }
 
 function rewriteSignedOrigin(
@@ -185,9 +176,7 @@ export function createS3R2Adapter(env: Pick<BackyEnv, R2EnvKeys>): R2Adapter {
     },
     async get(key) {
       const { bucket } = readConfig(env);
-      const response = await client().send(
-        new GetObjectCommand({ Bucket: bucket, Key: key }),
-      );
+      const response = await client().send(new GetObjectCommand({ Bucket: bucket, Key: key }));
       const sdkBody = response.Body as SdkBody | undefined;
       const result: R2GetResult = {
         body: (response.Body as ReadableStream<Uint8Array> | null) ?? null,
@@ -209,9 +198,7 @@ export function createS3R2Adapter(env: Pick<BackyEnv, R2EnvKeys>): R2Adapter {
     async head(key) {
       const { bucket } = readConfig(env);
       try {
-        const response = await client().send(
-          new HeadObjectCommand({ Bucket: bucket, Key: key }),
-        );
+        const response = await client().send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
         return {
           contentLength: response.ContentLength ?? 0,
           ...(response.ContentType !== undefined && {
@@ -225,9 +212,7 @@ export function createS3R2Adapter(env: Pick<BackyEnv, R2EnvKeys>): R2Adapter {
     },
     async delete(key) {
       const { bucket } = readConfig(env);
-      await client().send(
-        new DeleteObjectCommand({ Bucket: bucket, Key: key }),
-      );
+      await client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
     async copy(sourceKey, destKey) {
       const { bucket } = readConfig(env);

@@ -37,9 +37,7 @@ const UpdateProjectSchema = z.object({
   auto_backup_header_value: z.string().max(2000).nullable().optional(),
 });
 
-export async function listProjectsHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function listProjectsHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   try {
     const projects = await listProjects(ctx.db);
     return json(200, projects.map(sanitizeProject));
@@ -61,11 +59,7 @@ export async function createProjectHandler(
         details: parsed.error.flatten(),
       });
     }
-    const project = await createProject(
-      ctx.db,
-      parsed.data.name,
-      parsed.data.description,
-    );
+    const project = await createProject(ctx.db, parsed.data.name, parsed.data.description);
     return json(201, project);
   } catch (error) {
     console.error("Failed to create project:", error);
@@ -110,10 +104,7 @@ export async function updateProjectHandler(
     }
 
     if (parsed.data.allowed_ips !== undefined) {
-      if (
-        parsed.data.allowed_ips === null ||
-        parsed.data.allowed_ips.trim() === ""
-      ) {
+      if (parsed.data.allowed_ips === null || parsed.data.allowed_ips.trim() === "") {
         updateData.allowed_ips = null;
       } else {
         const validation = validateAllowedIps(parsed.data.allowed_ips);
@@ -139,8 +130,7 @@ export async function updateProjectHandler(
         !isUrlSafe(parsed.data.auto_backup_webhook, ctx.env)
       ) {
         return json(400, {
-          error:
-            "Webhook URL is not allowed (must be HTTPS, public hostname)",
+          error: "Webhook URL is not allowed (must be HTTPS, public hostname)",
         });
       }
       updateData.auto_backup_webhook = parsed.data.auto_backup_webhook;
@@ -149,8 +139,7 @@ export async function updateProjectHandler(
       updateData.auto_backup_header_key = parsed.data.auto_backup_header_key;
     }
     if (parsed.data.auto_backup_header_value !== undefined) {
-      updateData.auto_backup_header_value =
-        parsed.data.auto_backup_header_value;
+      updateData.auto_backup_header_value = parsed.data.auto_backup_header_value;
     }
 
     const project = await updateProject(ctx.db, input.id, updateData);

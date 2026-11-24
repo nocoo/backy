@@ -1,13 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import {
-  Trash2,
-  Loader2,
-  Eye,
-  EyeOff,
-  Timer,
-  Play,
-} from "@nocoo/basalt/icons";
+import { Trash2, Loader2, Eye, EyeOff, Timer, Play } from "@nocoo/basalt/icons";
 import { toast } from "@nocoo/basalt/components/toast";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatBytes, formatDate } from "@/lib/format";
@@ -119,9 +112,7 @@ export function ProjectDetailPage() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [tokenVisible, setTokenVisible] = useState(false);
-  const [copied, setCopied] = useState<
-    "token" | "webhook" | "prompt" | null
-  >(null);
+  const [copied, setCopied] = useState<"token" | "webhook" | "prompt" | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -199,18 +190,13 @@ export function ProjectDetailPage() {
   useEffect(() => {
     if (!project) return;
     const nameChanged = name.trim() !== project.name;
-    const descChanged =
-      (description.trim() || null) !== (project.description ?? null);
-    const ipsChanged =
-      (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
+    const descChanged = (description.trim() || null) !== (project.description ?? null);
+    const ipsChanged = (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
     const catChanged = categoryId !== project.category_id;
-    const abEnabledChanged =
-      autoBackupEnabled !== project.auto_backup_enabled;
-    const abIntervalChanged =
-      autoBackupInterval !== project.auto_backup_interval;
+    const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
+    const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
     const abWebhookChanged =
-      (autoBackupWebhook.trim() || null) !==
-      (project.auto_backup_webhook ?? null);
+      (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
     setDirty(
       nameChanged ||
         descChanged ||
@@ -241,18 +227,13 @@ export function ProjectDetailPage() {
 
       const payload: Record<string, unknown> = {};
       const nameChanged = name.trim() !== project.name;
-      const descChanged =
-        (description.trim() || null) !== (project.description ?? null);
-      const ipsChanged =
-        (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
+      const descChanged = (description.trim() || null) !== (project.description ?? null);
+      const ipsChanged = (allowedIps.trim() || null) !== (project.allowed_ips ?? null);
       const catChanged = categoryId !== project.category_id;
-      const abEnabledChanged =
-        autoBackupEnabled !== project.auto_backup_enabled;
-      const abIntervalChanged =
-        autoBackupInterval !== project.auto_backup_interval;
+      const abEnabledChanged = autoBackupEnabled !== project.auto_backup_enabled;
+      const abIntervalChanged = autoBackupInterval !== project.auto_backup_interval;
       const abWebhookChanged =
-        (autoBackupWebhook.trim() || null) !==
-        (project.auto_backup_webhook ?? null);
+        (autoBackupWebhook.trim() || null) !== (project.auto_backup_webhook ?? null);
 
       if (nameChanged) payload.name = name.trim();
       if (descChanged) payload.description = description.trim() || null;
@@ -260,13 +241,11 @@ export function ProjectDetailPage() {
       if (catChanged) payload.category_id = categoryId;
       if (abEnabledChanged) payload.auto_backup_enabled = autoBackupEnabled;
       if (abIntervalChanged) payload.auto_backup_interval = autoBackupInterval;
-      if (abWebhookChanged)
-        payload.auto_backup_webhook = autoBackupWebhook.trim() || null;
+      if (abWebhookChanged) payload.auto_backup_webhook = autoBackupWebhook.trim() || null;
 
       if (userHasModifiedHeaders) {
         payload.auto_backup_header_key = autoBackupHeaderKey.trim() || null;
-        payload.auto_backup_header_value =
-          autoBackupHeaderValue.trim() || null;
+        payload.auto_backup_header_value = autoBackupHeaderValue.trim() || null;
       }
 
       const res = await apiFetch(`/api/projects/${id}`, {
@@ -289,9 +268,7 @@ export function ProjectDetailPage() {
       toast.success("Project settings saved");
     } catch (err) {
       if (err instanceof ApiError) {
-        const body = err.body as
-          | { error?: string; invalid?: string[] }
-          | null;
+        const body = err.body as { error?: string; invalid?: string[] } | null;
         if (body?.invalid) {
           setIpError(`Invalid CIDR: ${body.invalid.join(", ")}`);
           return;
@@ -332,10 +309,7 @@ export function ProjectDetailPage() {
     }
   }
 
-  async function handleCopy(
-    text: string,
-    type: "token" | "webhook" | "prompt",
-  ) {
+  async function handleCopy(text: string, type: "token" | "webhook" | "prompt") {
     await navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
@@ -396,13 +370,9 @@ export function ProjectDetailPage() {
       };
 
       if (data.status === "success") {
-        toast.success(
-          `Trigger successful (${data.responseCode}, ${data.durationMs}ms)`,
-        );
+        toast.success(`Trigger successful (${data.responseCode}, ${data.durationMs}ms)`);
       } else {
-        toast.danger(
-          `Trigger failed: ${data.error ?? `HTTP ${data.responseCode}`}`,
-        );
+        toast.danger(`Trigger failed: ${data.error ?? `HTTP ${data.responseCode}`}`);
       }
     } catch (err) {
       toast.danger(errorMessage(err, "Failed to trigger backup"));
@@ -419,12 +389,7 @@ export function ProjectDetailPage() {
     return (
       <div className="rounded-lg border border-basalt-destructive/30 bg-basalt-destructive/5 p-6 text-center">
         <p className="text-sm text-basalt-destructive">{error}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={() => navigate("/projects")}
-        >
+        <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/projects")}>
           Back to Projects
         </Button>
       </div>
@@ -442,8 +407,22 @@ export function ProjectDetailPage() {
         description="Configure your project and manage its webhook integration."
         actions={
           <div className="flex flex-wrap items-center gap-basalt-layout text-basalt-xs text-basalt-muted-foreground">
-            <span>Created {new Date(project.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
-            <span>Updated {new Date(project.updated_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+            <span>
+              Created{" "}
+              {new Date(project.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+            <span>
+              Updated{" "}
+              {new Date(project.updated_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
             <span className="font-mono">{project.id}</span>
           </div>
         }
@@ -451,9 +430,7 @@ export function ProjectDetailPage() {
 
       {dirty && (
         <div className="flex items-center gap-3 rounded-lg border border-basalt-primary/20 bg-basalt-primary/5 px-4 py-3">
-          <p className="text-sm text-basalt-muted-foreground flex-1">
-            You have unsaved changes.
-          </p>
+          <p className="text-sm text-basalt-muted-foreground flex-1">You have unsaved changes.</p>
           <Button
             size="sm"
             variant="outline"
@@ -474,11 +451,7 @@ export function ProjectDetailPage() {
           >
             Reset
           </Button>
-          <Button
-            size="sm"
-            onClick={() => void handleSave()}
-            disabled={saving || !name.trim()}
-          >
+          <Button size="sm" onClick={() => void handleSave()} disabled={saving || !name.trim()}>
             {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
             Save Changes
           </Button>
@@ -511,9 +484,7 @@ export function ProjectDetailPage() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="description">
                   Description{" "}
-                  <span className="text-basalt-muted-foreground font-normal">
-                    (optional)
-                  </span>
+                  <span className="text-basalt-muted-foreground font-normal">(optional)</span>
                 </Label>
                 <Textarea
                   id="description"
@@ -528,15 +499,11 @@ export function ProjectDetailPage() {
               <div className="flex flex-col gap-2">
                 <Label>
                   Category{" "}
-                  <span className="text-basalt-muted-foreground font-normal">
-                    (optional)
-                  </span>
+                  <span className="text-basalt-muted-foreground font-normal">(optional)</span>
                 </Label>
                 <Select
                   value={categoryId ?? "__none__"}
-                  onValueChange={(v) =>
-                    setCategoryId(v === "__none__" ? null : v)
-                  }
+                  onValueChange={(v) => setCategoryId(v === "__none__" ? null : v)}
                   disabled={saving}
                 >
                   <SelectTrigger className="w-full">
@@ -549,10 +516,7 @@ export function ProjectDetailPage() {
                       return (
                         <SelectItem key={cat.id} value={cat.id}>
                           <span className="flex items-center gap-2">
-                            <Icon
-                              className="h-3.5 w-3.5"
-                              style={{ color: cat.color }}
-                            />
+                            <Icon className="h-3.5 w-3.5" style={{ color: cat.color }} />
                             {cat.name}
                           </span>
                         </SelectItem>
@@ -565,9 +529,7 @@ export function ProjectDetailPage() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="allowed-ips">
                   Allowed IP Ranges{" "}
-                  <span className="text-basalt-muted-foreground font-normal">
-                    (optional)
-                  </span>
+                  <span className="text-basalt-muted-foreground font-normal">(optional)</span>
                 </Label>
                 <Textarea
                   id="allowed-ips"
@@ -581,12 +543,10 @@ export function ProjectDetailPage() {
                   disabled={saving}
                 />
                 <p className="text-xs text-basalt-muted-foreground">
-                  Comma-separated list of IP or CIDR ranges allowed to send
-                  backups via webhook. Leave empty to allow all.
+                  Comma-separated list of IP or CIDR ranges allowed to send backups via webhook.
+                  Leave empty to allow all.
                 </p>
-                {ipError && (
-                  <p className="text-xs text-basalt-destructive">{ipError}</p>
-                )}
+                {ipError && <p className="text-xs text-basalt-destructive">{ipError}</p>}
               </div>
             </LayerCard.Body>
           </LayerCard>
@@ -599,8 +559,7 @@ export function ProjectDetailPage() {
                   Auto Backup
                 </h2>
                 <p className="text-basalt-sm text-basalt-muted-foreground">
-                  Automatically trigger backups on a schedule by calling an
-                  external webhook.
+                  Automatically trigger backups on a schedule by calling an external webhook.
                 </p>
               </div>
             </LayerCard.Header>
@@ -655,17 +614,14 @@ export function ProjectDetailPage() {
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="ab-header-key">
                       Auth Header Name{" "}
-                      <span className="text-basalt-muted-foreground font-normal">
-                        (optional)
-                      </span>
+                      <span className="text-basalt-muted-foreground font-normal">(optional)</span>
                     </Label>
                     <Input
                       id="ab-header-key"
                       value={autoBackupHeaderKey}
                       onChange={(e) => {
                         setAutoBackupHeaderKey(e.target.value);
-                        if (!userHasModifiedHeaders)
-                          setUserHasModifiedHeaders(true);
+                        if (!userHasModifiedHeaders) setUserHasModifiedHeaders(true);
                       }}
                       placeholder="e.g. X-Api-Key, Authorization"
                       disabled={saving}
@@ -675,9 +631,7 @@ export function ProjectDetailPage() {
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="ab-header-value">
                       Auth Header Value{" "}
-                      <span className="text-basalt-muted-foreground font-normal">
-                        (optional)
-                      </span>
+                      <span className="text-basalt-muted-foreground font-normal">(optional)</span>
                     </Label>
                     <div className="flex items-center gap-2">
                       <Input
@@ -686,8 +640,7 @@ export function ProjectDetailPage() {
                         value={autoBackupHeaderValue}
                         onChange={(e) => {
                           setAutoBackupHeaderValue(e.target.value);
-                          if (!userHasModifiedHeaders)
-                            setUserHasModifiedHeaders(true);
+                          if (!userHasModifiedHeaders) setUserHasModifiedHeaders(true);
                         }}
                         placeholder="Your API key or token"
                         disabled={saving}
@@ -697,13 +650,9 @@ export function ProjectDetailPage() {
                         variant="outline"
                         size="sm"
                         aria-label={
-                          headerValueVisible
-                            ? "Hide auth header value"
-                            : "Show auth header value"
+                          headerValueVisible ? "Hide auth header value" : "Show auth header value"
                         }
-                        onClick={() =>
-                          setHeaderValueVisible(!headerValueVisible)
-                        }
+                        onClick={() => setHeaderValueVisible(!headerValueVisible)}
                         className="shrink-0"
                       >
                         {headerValueVisible ? (
@@ -715,34 +664,29 @@ export function ProjectDetailPage() {
                     </div>
                   </div>
 
-                  {project.auto_backup_enabled === 1 &&
-                    project.auto_backup_webhook &&
-                    !dirty && (
-                      <div className="flex items-center gap-3 rounded-lg border border-basalt-border bg-basalt-muted/30 px-4 py-3">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-basalt-foreground">
-                            Test Trigger
-                          </p>
-                          <p className="text-xs text-basalt-muted-foreground">
-                            Manually fire the webhook once. The result will
-                            appear in Cron Logs.
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void handleTestTrigger()}
-                          disabled={testingTrigger}
-                        >
-                          {testingTrigger ? (
-                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                          ) : (
-                            <Play className="h-3.5 w-3.5 mr-1.5" />
-                          )}
-                          {testingTrigger ? "Triggering..." : "Test Now"}
-                        </Button>
+                  {project.auto_backup_enabled === 1 && project.auto_backup_webhook && !dirty && (
+                    <div className="flex items-center gap-3 rounded-lg border border-basalt-border bg-basalt-muted/30 px-4 py-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-basalt-foreground">Test Trigger</p>
+                        <p className="text-xs text-basalt-muted-foreground">
+                          Manually fire the webhook once. The result will appear in Cron Logs.
+                        </p>
                       </div>
-                    )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleTestTrigger()}
+                        disabled={testingTrigger}
+                      >
+                        {testingTrigger ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Play className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        {testingTrigger ? "Triggering..." : "Test Now"}
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </LayerCard.Body>
@@ -796,20 +740,14 @@ export function ProjectDetailPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>
-                  Delete &ldquo;{project.name}&rdquo;?
-                </DialogTitle>
+                <DialogTitle>Delete &ldquo;{project.name}&rdquo;?</DialogTitle>
                 <DialogDescription>
-                  This action cannot be undone. All backups associated with
-                  this project will be permanently deleted from storage.
+                  This action cannot be undone. All backups associated with this project will be
+                  permanently deleted from storage.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteOpen(false)}
-                  disabled={deleting}
-                >
+                <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
                   Cancel
                 </Button>
                 <Button
@@ -817,9 +755,7 @@ export function ProjectDetailPage() {
                   onClick={() => void handleDelete()}
                   disabled={deleting}
                 >
-                  {deleting && (
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  )}
+                  {deleting && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
                   Delete
                 </Button>
               </DialogFooter>

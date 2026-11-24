@@ -8,10 +8,10 @@
 
 Backy currently uses a **single set of Cloudflare D1 + R2** for both production and all E2E tests:
 
-| Resource | Current Name | UUID |
-|---|---|---|
-| D1 database | `backy` | `<old-uuid>` (superseded) |
-| R2 bucket | `backy` | — |
+| Resource    | Current Name | UUID                      |
+| ----------- | ------------ | ------------------------- |
+| D1 database | `backy`      | `<old-uuid>` (superseded) |
+| R2 bucket   | `backy`      | —                         |
 
 E2E tests (L2 API E2E + L3 Playwright BDD) start a dedicated Next.js dev server with `...process.env`, inheriting production D1/R2 credentials. The only protection is logical isolation — a dedicated `backy-test` project with cleanup routines. If a test bug skips cleanup or targets the wrong project, production data is at risk.
 
@@ -26,10 +26,10 @@ e2e/bdd/runner.ts  → dev server :27017 → SAME D1 + R2 as production
 
 ## Target Naming Convention
 
-| Resource | Current | Production (renamed) | Test (new) |
-|---|---|---|---|
-| D1 database | `backy` | `backy-db` | `backy-db-test` |
-| R2 bucket | `backy` | `backy` (already correct) | `backy-test` |
+| Resource    | Current | Production (renamed)      | Test (new)      |
+| ----------- | ------- | ------------------------- | --------------- |
+| D1 database | `backy` | `backy-db`                | `backy-db-test` |
+| R2 bucket   | `backy` | `backy` (already correct) | `backy-test`    |
 
 Pattern: `<product>-db` / `<product>-db-test` for D1, `<product>` / `<product>-test` for R2.
 
@@ -52,11 +52,13 @@ backy-db (new, uuid <new>)
 ```
 
 **What references the D1 UUID:**
+
 - `.env` → `D1_DATABASE_ID=<uuid>` — local dev + E2E source of truth
 - Railway env vars → `D1_DATABASE_ID=<uuid>` — production deployment
 - The cron worker (`worker/wrangler.toml`) does NOT reference D1 directly — it calls the HTTP API
 
 **Migration is safe because:**
+
 1. The codebase uses `D1_DATABASE_ID` (UUID), never the human-readable name
 2. Swapping the UUID in `.env` and Railway is the only change needed
 3. D1 export produces a complete SQL dump (schema + data)
@@ -88,41 +90,41 @@ Dev server (port 7017)           E2E servers (port 17017, 27017)
 
 5. **R2 S3Client singleton** — `src/lib/r2/client.ts` caches the S3Client in a module-level `_client` variable. Since E2E servers are fresh child processes (spawned by runners), the singleton initializes with the overridden env — no code change needed in `client.ts`.
 
-5. **Schema initialization** — The test D1 database starts empty. The existing `initializeSchema()` is called via `/api/db/init`. We add an explicit schema init call in the E2E runner startup sequence to ensure the test database is ready.
+6. **Schema initialization** — The test D1 database starts empty. The existing `initializeSchema()` is called via `/api/db/init`. We add an explicit schema init call in the E2E runner startup sequence to ensure the test database is ready.
 
-6. **`backy-test` project seed via narrow endpoint with full baseline reset and pre-run cleanup** — The hardcoded `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`, token: `wDzglaK3i-...`) currently exists in the production D1. After isolation, it must be seeded in the test D1. The `POST /api/projects` endpoint does NOT accept `id` or `webhookToken` — `createProject()` generates them internally. Therefore, we add a purpose-built `POST /api/db/seed-test-project` endpoint that imports constants from a shared `src/lib/test-project.ts` module (single source of truth). It creates if missing, verifies if all fields match baseline, or performs a **full reset** of ALL mutable fields (name, description, token, allowed_ips, category_id, auto_backup_*) to prevent dirty leftover state from prior runs. Additionally, it **deletes all orphaned backups** (D1 rows + R2 objects) belonging to the test project from prior crashed runs, preventing stale data from polluting BDD specs. Gated by `E2E_SKIP_AUTH=true`. Both L2 and L3 runners call this after schema init.
+7. **`backy-test` project seed via narrow endpoint with full baseline reset and pre-run cleanup** — The hardcoded `backy-test` project (ID: `mnp039joh6yiala5UY0Hh`, token: `wDzglaK3i-...`) currently exists in the production D1. After isolation, it must be seeded in the test D1. The `POST /api/projects` endpoint does NOT accept `id` or `webhookToken` — `createProject()` generates them internally. Therefore, we add a purpose-built `POST /api/db/seed-test-project` endpoint that imports constants from a shared `src/lib/test-project.ts` module (single source of truth). It creates if missing, verifies if all fields match baseline, or performs a **full reset** of ALL mutable fields (name, description, token, allowed_ips, category_id, auto_backup_*) to prevent dirty leftover state from prior runs. Additionally, it **deletes all orphaned backups** (D1 rows + R2 objects) belonging to the test project from prior crashed runs, preventing stale data from polluting BDD specs. Gated by `E2E_SKIP_AUTH=true`. Both L2 and L3 runners call this after schema init.
 
 ## Gap Analysis
 
-| Item | Current | Target | Action |
-|---|---|---|---|
-| D1 prod name | `backy` (no suffix) | `backy-db` | Export → create → import → swap |
-| D1 test database | ❌ None | `backy-db-test` | `wrangler d1 create backy-db-test` |
-| R2 test bucket | ❌ None | `backy-test` | `wrangler r2 bucket create backy-test` |
-| `.env.test` | ❌ None | Override file with test D1/R2 | New file |
-| `.env.example` | No test section | Document `.env.test` convention | Update |
-| E2E runner (L2) | Inherits prod env | Loads `.env.test` overrides | Modify `scripts/run-e2e.ts` |
-| E2E runner (L3) | Inherits prod env | Loads `.env.test` overrides | Modify `e2e/bdd/runner.ts` |
-| E2E seed data | Hardcoded project in prod D1 | Self-bootstrapping seed in test D1 | Add seed step to E2E runner |
-| `.gitignore` | `.env*` glob | Already covers `.env.test` | No change needed |
-| Railway env | Points to old D1 UUID | Points to new `backy-db` UUID | Manual update |
-| CLAUDE.md | No test isolation docs | Document test resource isolation | Update |
+| Item             | Current                      | Target                             | Action                                 |
+| ---------------- | ---------------------------- | ---------------------------------- | -------------------------------------- |
+| D1 prod name     | `backy` (no suffix)          | `backy-db`                         | Export → create → import → swap        |
+| D1 test database | ❌ None                      | `backy-db-test`                    | `wrangler d1 create backy-db-test`     |
+| R2 test bucket   | ❌ None                      | `backy-test`                       | `wrangler r2 bucket create backy-test` |
+| `.env.test`      | ❌ None                      | Override file with test D1/R2      | New file                               |
+| `.env.example`   | No test section              | Document `.env.test` convention    | Update                                 |
+| E2E runner (L2)  | Inherits prod env            | Loads `.env.test` overrides        | Modify `scripts/run-e2e.ts`            |
+| E2E runner (L3)  | Inherits prod env            | Loads `.env.test` overrides        | Modify `e2e/bdd/runner.ts`             |
+| E2E seed data    | Hardcoded project in prod D1 | Self-bootstrapping seed in test D1 | Add seed step to E2E runner            |
+| `.gitignore`     | `.env*` glob                 | Already covers `.env.test`         | No change needed                       |
+| Railway env      | Points to old D1 UUID        | Points to new `backy-db` UUID      | Manual update                          |
+| CLAUDE.md        | No test isolation docs       | Document test resource isolation   | Update                                 |
 
 ## File Modification Map
 
-| File | Change | Reason |
-|---|---|---|
-| `.env` | Update `D1_DATABASE_ID` to new `backy-db` UUID | D1 rename |
-| `.env.test` | **New file** | Test D1/R2 overrides |
-| `.env.example` | Add `.env.test` section | Document convention |
-| `scripts/load-env-test.ts` | **New file** | Shared `.env.test` loader with three-layer safety |
-| `scripts/run-e2e.ts` | Load `.env.test`, merge into child env, seed test project | Test isolation for L2 |
-| `e2e/bdd/runner.ts` | Load `.env.test`, merge into child env, seed test project | Test isolation for L3 |
-| `e2e/api/config.ts` | Re-export from `test-project.ts`, add `seedTestProject()` | Single source of truth + deterministic seed |
-| `src/lib/test-project.ts` | **New file** | Shared test project constants (ID, name, token) |
-| `src/app/api/db/seed-test-project/route.ts` | **New file** | Narrow seed endpoint: create/verify/reset + pre-run backup cleanup, gated by `E2E_SKIP_AUTH` |
-| `CLAUDE.md` | Document test resource naming, isolation, and seed mechanism | Knowledge preservation |
-| `README.md` | Update E2E description to mention test D1/R2 isolation | Sync documentation |
+| File                                        | Change                                                       | Reason                                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `.env`                                      | Update `D1_DATABASE_ID` to new `backy-db` UUID               | D1 rename                                                                                    |
+| `.env.test`                                 | **New file**                                                 | Test D1/R2 overrides                                                                         |
+| `.env.example`                              | Add `.env.test` section                                      | Document convention                                                                          |
+| `scripts/load-env-test.ts`                  | **New file**                                                 | Shared `.env.test` loader with three-layer safety                                            |
+| `scripts/run-e2e.ts`                        | Load `.env.test`, merge into child env, seed test project    | Test isolation for L2                                                                        |
+| `e2e/bdd/runner.ts`                         | Load `.env.test`, merge into child env, seed test project    | Test isolation for L3                                                                        |
+| `e2e/api/config.ts`                         | Re-export from `test-project.ts`, add `seedTestProject()`    | Single source of truth + deterministic seed                                                  |
+| `src/lib/test-project.ts`                   | **New file**                                                 | Shared test project constants (ID, name, token)                                              |
+| `src/app/api/db/seed-test-project/route.ts` | **New file**                                                 | Narrow seed endpoint: create/verify/reset + pre-run backup cleanup, gated by `E2E_SKIP_AUTH` |
+| `CLAUDE.md`                                 | Document test resource naming, isolation, and seed mechanism | Knowledge preservation                                                                       |
+| `README.md`                                 | Update E2E description to mention test D1/R2 isolation       | Sync documentation                                                                           |
 
 ## Atomic Commits
 
@@ -150,9 +152,11 @@ wrangler d1 execute backy --command "SELECT 'projects' AS t, count(*) AS n FROM 
 ```
 
 **Files:**
+
 - `.env` — update `D1_DATABASE_ID` to the new `backy-db` UUID
 
 **Post-commit manual steps:**
+
 ```bash
 # 5. Update Railway production environment variable
 railway variables set D1_DATABASE_ID=<new-backy-db-uuid>
@@ -170,6 +174,7 @@ bun dev
 ```
 
 **Verification:**
+
 - Local dev server reads data from `backy-db`
 - Production deployment reads data from `backy-db` (after Railway env update)
 - Row counts match between old and new database
@@ -193,7 +198,9 @@ wrangler r2 bucket create backy-test
 ```
 
 **Files:**
+
 - `.env.test` — new file:
+
   ```bash
   # Test resource overrides — loaded by E2E runners
   # These override the production values from .env
@@ -201,6 +208,7 @@ wrangler r2 bucket create backy-test
   R2_BUCKET_NAME=backy-test
   ```
 - `.env.example` — add test section at bottom:
+
   ```bash
   # -------------------------------------------
   # Test Resource Overrides (.env.test)
@@ -219,7 +227,9 @@ wrangler r2 bucket create backy-test
 ### Commit 3: `feat: add env.test loader utility for E2E runners`
 
 **Files:**
+
 - `scripts/load-env-test.ts` — **new file**: utility that reads `.env.test`, validates overrides, and returns a merged env:
+
   ```typescript
   /**
    * Load .env.test overrides for E2E test isolation.
@@ -334,12 +344,14 @@ wrangler r2 bucket create backy-test
   ```
 
 **Design decisions:**
+
 - **Three-layer safety** — (1) file exists, (2) required keys present, (3) values differ from production. Any failure aborts with a clear message. This eliminates the "misconfigured `.env.test` silently hits production" scenario.
 - **Simple parser** — No dependency needed for a 2-variable file. Handles comments and blank lines.
 - **Shared utility** — Both L2 and L3 runners import this instead of duplicating logic.
 - **Comparison uses explicit `.env` parsing** — Layer 3 reads production values by parsing `.env` from disk via `parseDotenv()`, not from `process.env`. This makes the safety check self-contained and independent of runtime auto-loading behavior.
 
 **Verification:**
+
 - `bun -e "import { loadTestEnv } from './scripts/load-env-test'; console.log(loadTestEnv().D1_DATABASE_ID)"` prints the test UUID.
 - Negative test — D1: copy production `D1_DATABASE_ID` into `.env.test` → runner aborts with "identical to production value" error.
 - Negative test — R2: set `R2_BUCKET_NAME=backy` in `.env.test` (same as production) → runner aborts with "identical to production value" error.
@@ -349,8 +361,10 @@ wrangler r2 bucket create backy-test
 ### Commit 4: `feat: wire L2 E2E runner to use test resources`
 
 **Files:**
+
 - `scripts/run-e2e.ts` — two changes:
   1. Import `loadTestEnv` and use it instead of `...process.env`:
+
      ```typescript
      import { loadTestEnv } from "./load-env-test";
      // ...
@@ -365,6 +379,7 @@ wrangler r2 bucket create backy-test
      });
      ```
   2. Add schema init + test project seed after server ready:
+
      ```typescript
      // Initialize test database schema
      console.log("🗄️  Initializing test database schema...");
@@ -376,6 +391,7 @@ wrangler r2 bucket create backy-test
      ```
 
 - `e2e/api/config.ts` — add deterministic seed function and export shared test project constants:
+
   ```typescript
   // === Test project constants — re-exported from single source of truth ===
   // Uses relative path because e2e/ is excluded from tsconfig.json,
@@ -419,6 +435,7 @@ wrangler r2 bucket create backy-test
   - Since both sides import from the same module, there is no drift risk and no need for runtime cross-checks.
 
 - `src/lib/test-project.ts` — **new file**: shared constants importable by both app code and e2e:
+
   ```typescript
   /**
    * E2E test project constants — single source of truth.
@@ -436,6 +453,7 @@ wrangler r2 bucket create backy-test
   ```
 
 - `src/app/api/db/seed-test-project/route.ts` — **new file**: narrow, purpose-built seed endpoint:
+
   ```typescript
   /**
    * POST /api/db/seed-test-project — Ensure the E2E test project exists
@@ -579,6 +597,7 @@ wrangler r2 bucket create backy-test
   ```
 
 **Design decisions:**
+
 - **Pre-run cleanup of orphaned backups** — Prior crashed E2E runs may leave backup rows in D1 and objects in R2. Without cleanup, BDD specs that click "first backup" would see stale data instead of freshly uploaded data, and L2 cleanup suite (which only tracks `state.createdBackupIds` from the current run) would miss them. The seed endpoint deletes ALL backups for the test project before proceeding. R2 deletion uses `Promise.allSettled` (best-effort) — a missing R2 object is harmless, but a stale D1 row causes visible test pollution.
 - **Full baseline reset, not partial repair** — The previous version only checked name + token. But E2E suites depend on the project being in a clean default state: `allowed_ips: null` (webhook must accept any IP), `auto_backup_enabled: 0`, etc. A leftover `allowed_ips` from a prior test run would cause webhook POST to return 403, killing the entire suite. The seed now resets ALL mutable columns.
 - **Narrow endpoint, zero user input** — All values come from the shared `TEST_PROJECT` constant. No SQL injection surface.
@@ -587,6 +606,7 @@ wrangler r2 bucket create backy-test
 - **Gated by `E2E_SKIP_AUTH=true`** — Returns 403 in production. Also unreachable via proxy (307 redirect to /login).
 
 **Verification:**
+
 1. `bun run test:e2e:api` — all 146 tests pass against test D1 + R2
 2. `wrangler d1 execute backy-db-test --command "SELECT id, name, webhook_token, allowed_ips FROM projects"` — shows baseline state
 3. Production D1 unaffected — `wrangler d1 execute backy-db --command "SELECT count(*) FROM projects"` shows unchanged count
@@ -599,7 +619,9 @@ wrangler r2 bucket create backy-test
 ### Commit 5: `feat: wire L3 BDD E2E runner to use test resources`
 
 **Files:**
+
 - `e2e/bdd/runner.ts` — same pattern as L2:
+
   ```typescript
   import { loadTestEnv } from "../../scripts/load-env-test";
   import { seedTestProject } from "../api/config";
@@ -610,7 +632,9 @@ wrangler r2 bucket create backy-test
     stdio: ["ignore", "pipe", "pipe"],
   });
   ```
+
   Add schema init + seed after server ready (BDD specs depend on `backy-test` project existing):
+
   ```typescript
   // Initialize test database schema
   console.log("🗄️  Initializing test database schema...");
@@ -633,6 +657,7 @@ BDD specs (e.g. `02-projects.spec.ts`) navigate to `/projects` and assert `page.
 ### Commit 6: `docs: update CLAUDE.md and README.md for test resource isolation`
 
 **Files:**
+
 - `CLAUDE.md` — add section after "Port Convention":
 
   ```markdown
@@ -655,10 +680,13 @@ BDD specs (e.g. `02-projects.spec.ts`) navigate to `/projects` and assert `page.
 - `README.md` — update the E2E description paragraph (line ~280):
 
   Replace:
+
   ```
   E2E 测试使用 `backy-test` 项目自举：上传真实数据 → 验证完整流程 → 清理。通过 `E2E_SKIP_AUTH=true` 在本地绕过 OAuth。
   ```
+
   With:
+
   ```
   E2E 测试使用独立的测试 D1 (`backy-db-test`) 和 R2 (`backy-test`)，通过 `.env.test` 覆盖生产凭据，确保测试不影响生产数据。测试项目 `backy-test` 由 seed 端点自动创建和维护。通过 `E2E_SKIP_AUTH=true` 在本地绕过 OAuth。
   ```
@@ -684,19 +712,23 @@ rm backy-export.sql
 ## Rollback Plan
 
 ### Phase A rollback (D1 rename):
+
 - Revert `.env` to old UUID (`a5bdd8e1-1a2d-41e0-bc7c-ff533fb5e49c`)
 - Revert Railway env var to old UUID
 - Old `backy` database is kept for 48h as safety net
 
 ### Phase B rollback (test isolation):
+
 - Revert commits 2-5 — runners go back to `...process.env` (tests hit production again, unsafe but functional)
 - Delete test resources:
+
   ```bash
   wrangler d1 delete backy-db-test
   wrangler r2 bucket delete backy-test
   ```
 
 ### Phase C rollback:
+
 - Documentation only, no runtime impact
 
 ## Verification Checklist

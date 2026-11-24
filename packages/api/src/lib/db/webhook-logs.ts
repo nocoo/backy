@@ -63,11 +63,7 @@ export interface CreateWebhookLogInput {
   metadata: Record<string, unknown> | null;
 }
 
-async function q<T>(
-  db: D1Adapter,
-  sql: string,
-  params: unknown[] = [],
-): Promise<T[]> {
+async function q<T>(db: D1Adapter, sql: string, params: unknown[] = []): Promise<T[]> {
   const { results } = await db.query<T>(sql, params);
   return results;
 }
@@ -78,10 +74,7 @@ async function q<T>(
  * Fire-and-forget: callers should NOT await this — log failures
  * must never block or break the webhook response.
  */
-export async function createWebhookLog(
-  db: D1Adapter,
-  input: CreateWebhookLogInput,
-): Promise<void> {
+export async function createWebhookLog(db: D1Adapter, input: CreateWebhookLogInput): Promise<void> {
   try {
     const id = generateId();
     const now = new Date().toISOString();
@@ -162,16 +155,12 @@ export async function listWebhookLogs(
   }
   if (excludeProjectIds && excludeProjectIds.length > 0) {
     const placeholders = excludeProjectIds.map(() => "?").join(", ");
-    conditions.push(
-      `(l.project_id IS NULL OR l.project_id NOT IN (${placeholders}))`,
-    );
+    conditions.push(`(l.project_id IS NULL OR l.project_id NOT IN (${placeholders}))`);
     params.push(...excludeProjectIds);
   }
   if (excludeClientIps && excludeClientIps.length > 0) {
     const placeholders = excludeClientIps.map(() => "?").join(", ");
-    conditions.push(
-      `(l.client_ip IS NULL OR l.client_ip NOT IN (${placeholders}))`,
-    );
+    conditions.push(`(l.client_ip IS NULL OR l.client_ip NOT IN (${placeholders}))`);
     params.push(...excludeClientIps);
   }
   if (method) {
@@ -192,8 +181,7 @@ export async function listWebhookLogs(
     conditions.push("l.status_code >= 400");
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const countRows = await q<{ count: number }>(
     db,
@@ -257,8 +245,7 @@ export async function deleteWebhookLogs(
     conditions.push("status_code >= 400");
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   await q(db, `DELETE FROM webhook_logs ${whereClause}`, params);
 }

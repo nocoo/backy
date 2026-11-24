@@ -129,14 +129,14 @@ function gunzipWithLimit(input: Buffer, maxBytes: number): Promise<Buffer> {
  * Dispatches to the correct strategy based on file type.
  * Returns a discriminated union so callers can pattern-match on `success`.
  */
-export async function extractJson(
-  buffer: Uint8Array,
-  fileType: FileType,
-): Promise<ExtractOutcome> {
+export async function extractJson(buffer: Uint8Array, fileType: FileType): Promise<ExtractOutcome> {
   switch (fileType) {
-    case "zip": return extractFromZip(buffer);
-    case "gz": return extractFromGz(buffer);
-    case "tgz": return extractFromTgz(buffer);
+    case "zip":
+      return extractFromZip(buffer);
+    case "gz":
+      return extractFromGz(buffer);
+    case "tgz":
+      return extractFromTgz(buffer);
     case "json":
       return { success: false, reason: "File is already JSON, no extraction needed" };
     case "unknown":
@@ -180,7 +180,8 @@ export async function extractFromZip(buffer: Uint8Array): Promise<ExtractOutcome
   }
 
   // Check metadata-declared uncompressed size before decompressing (decompression bomb defense)
-  const declaredSize = (zipEntry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
+  const declaredSize = (zipEntry as unknown as { _data?: { uncompressedSize?: number } })._data
+    ?.uncompressedSize;
   if (declaredSize !== undefined && declaredSize > MAX_DECOMPRESSED_SIZE) {
     return {
       success: false,

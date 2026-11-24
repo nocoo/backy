@@ -4,17 +4,12 @@ import { fakeD1, fakeR2, makeEnv, type EnvOverrides } from "./helpers";
 import type { Bindings } from "../lib/types";
 import type { D1Binding } from "@backy/api/db/d1-binding-adapter";
 
-function fetchWith(
-  url: string,
-  init?: RequestInit,
-  env?: EnvOverrides,
-) {
+function fetchWith(url: string, init?: RequestInit, env?: EnvOverrides) {
   const merged = makeEnv(env);
-  return worker.fetch(
-    new Request(`http://localhost${url}`, init),
-    merged,
-    { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as ExecutionContext,
-  );
+  return worker.fetch(new Request(`http://localhost${url}`, init), merged, {
+    waitUntil: () => {},
+    passThroughOnException: () => {},
+  } as unknown as ExecutionContext);
 }
 
 describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
@@ -83,9 +78,7 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     // (lines 24-26): when projectId/search/environment are defined,
     // they spread into the handler input. Without query-param tests,
     // these branches were uncovered.
-    const res = await fetchWith(
-      "/api/backups?projectId=p1&search=foo&environment=prod",
-    );
+    const res = await fetchWith("/api/backups?projectId=p1&search=foo&environment=prod");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       items: [],
@@ -192,8 +185,7 @@ describe("worker routes — happy paths via E2E_SKIP_AUTH", () => {
     const res = await fetchWith("/api/restore/some-id");
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({
-      error:
-        "Missing authentication. Provide Authorization: Bearer header or ?token= query param.",
+      error: "Missing authentication. Provide Authorization: Bearer header or ?token= query param.",
     });
   });
 

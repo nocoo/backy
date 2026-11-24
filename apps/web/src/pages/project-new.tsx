@@ -42,10 +42,7 @@ export function ProjectNewPage() {
         id: string;
         webhook_token: string;
       };
-      sessionStorage.setItem(
-        `project_token_${project.id}`,
-        project.webhook_token,
-      );
+      sessionStorage.setItem(`project_token_${project.id}`, project.webhook_token);
       navigate(`/projects/${project.id}`);
     } catch (err) {
       let message = "Unknown error";
@@ -67,58 +64,48 @@ export function ProjectNewPage() {
         description="Create a project to generate a webhook endpoint for your AI agent."
       />
       <LayerCard>
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="flex flex-col gap-basalt-layout"
-      >
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            placeholder="My SaaS App"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={100}
-            autoFocus
-            disabled={saving}
-          />
-        </div>
+        <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-basalt-layout">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              placeholder="My SaaS App"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={100}
+              autoFocus
+              disabled={saving}
+            />
+          </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="description">
-            Description{" "}
-            <span className="text-basalt-muted-foreground font-normal">
-              (optional)
-            </span>
-          </Label>
-          <Textarea
-            id="description"
-            placeholder="Brief description of what this project backs up..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={500}
-            rows={3}
-            disabled={saving}
-          />
-        </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="description">
+              Description{" "}
+              <span className="text-basalt-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="description"
+              placeholder="Brief description of what this project backs up..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={500}
+              rows={3}
+              disabled={saving}
+            />
+          </div>
 
-        {error && <p className="text-sm text-basalt-destructive">{error}</p>}
+          {error && <p className="text-sm text-basalt-destructive">{error}</p>}
 
-        <div className="flex items-center gap-3 pt-1">
-          <Button type="submit" disabled={saving || !name.trim()}>
-            {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-            Create Project
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(-1)}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
-        </div>
-      </form>
+          <div className="flex items-center gap-3 pt-1">
+            <Button type="submit" disabled={saving || !name.trim()}>
+              {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Create Project
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={saving}>
+              Cancel
+            </Button>
+          </div>
+        </form>
       </LayerCard>
     </div>
   );

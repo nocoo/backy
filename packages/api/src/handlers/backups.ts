@@ -16,11 +16,7 @@ import {
   isExtractable,
   type FileType,
 } from "../lib/backup/file-type";
-import {
-  generateBackupKey,
-  generatePreviewKey,
-  generateTimestamp,
-} from "../lib/backup/storage";
+import { generateBackupKey, generatePreviewKey, generateTimestamp } from "../lib/backup/storage";
 import { extractJson, MAX_DECOMPRESSED_SIZE } from "../lib/backup/extractors";
 import { json, type HandlerResponse } from "../http/response";
 import type { RuntimeContext } from "../runtime";
@@ -47,7 +43,10 @@ async function readR2Bytes(result: {
   if (typeof result.bytes === "function") {
     return result.bytes();
   }
-  const body = result.body as { transformToByteArray?: () => Promise<Uint8Array> } | null | undefined;
+  const body = result.body as
+    | { transformToByteArray?: () => Promise<Uint8Array> }
+    | null
+    | undefined;
   if (body?.transformToByteArray) {
     return body.transformToByteArray();
   }
@@ -87,10 +86,7 @@ export async function listBackupsHandler(
     const sortBy = parseSortBy(input.sortBy);
     const sortOrder = parseSortOrder(input.sortOrder);
     const page = Math.max(1, parseInt(input.page ?? "1", 10) || 1);
-    const pageSize = Math.min(
-      100,
-      Math.max(1, parseInt(input.pageSize ?? "20", 10) || 20),
-    );
+    const pageSize = Math.min(100, Math.max(1, parseInt(input.pageSize ?? "20", 10) || 20));
     const [result, environments, projects] = await Promise.all([
       listBackups(ctx.db, {
         ...(input.projectId && { projectId: input.projectId }),
@@ -123,11 +119,7 @@ export async function batchDeleteBackupsHandler(
   try {
     const body = input.body as { ids?: unknown };
     const ids = body.ids;
-    if (
-      !Array.isArray(ids) ||
-      ids.length === 0 ||
-      ids.some((id) => typeof id !== "string")
-    ) {
+    if (!Array.isArray(ids) || ids.length === 0 || ids.some((id) => typeof id !== "string")) {
       return json(400, {
         error: "ids must be a non-empty array of strings",
       });
@@ -213,10 +205,7 @@ export async function uploadBackupHandler(
         error: `File too large. Maximum: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
       });
 
-    if (
-      environment &&
-      !["dev", "prod", "staging", "test"].includes(environment)
-    )
+    if (environment && !["dev", "prod", "staging", "test"].includes(environment))
       return json(400, {
         error: "Invalid environment. Allowed: dev, prod, staging, test",
       });
@@ -264,15 +253,12 @@ export async function uploadBackupHandler(
       fileType,
     });
 
-    return json(
-      201,
-      {
-        id: backup.id,
-        project_id: backup.project_id,
-        file_size: fileSize,
-        created_at: backup.created_at,
-      },
-    );
+    return json(201, {
+      id: backup.id,
+      project_id: backup.project_id,
+      file_size: fileSize,
+      created_at: backup.created_at,
+    });
   } catch (error) {
     console.error("Manual upload error:", error);
     return json(500, { error: "Internal server error" });
@@ -286,10 +272,7 @@ export async function downloadBackupHandler(
   try {
     const backup = await getBackup(ctx.db, input.id);
     if (!backup) return json(404, { error: "Backup not found" });
-    const url = await ctx.r2.presignDownload(
-      backup.file_key,
-      PRESIGN_EXPIRES_IN,
-    );
+    const url = await ctx.r2.presignDownload(backup.file_key, PRESIGN_EXPIRES_IN);
     return json(200, {
       url,
       file_key: backup.file_key,
@@ -329,8 +312,7 @@ export async function previewBackupHandler(
 
     if (bodyBytes.byteLength > MAX_PREVIEW_SIZE) {
       return json(413, {
-        error:
-          "JSON file too large for inline preview. Use the download endpoint instead.",
+        error: "JSON file too large for inline preview. Use the download endpoint instead.",
       });
     }
 
@@ -390,10 +372,7 @@ export async function extractBackupHandler(
       });
     }
 
-    if (
-      r2Response.contentLength &&
-      r2Response.contentLength > MAX_DECOMPRESSED_SIZE
-    ) {
+    if (r2Response.contentLength && r2Response.contentLength > MAX_DECOMPRESSED_SIZE) {
       return json(400, {
         error: `Archive too large for extraction (${(r2Response.contentLength / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_DECOMPRESSED_SIZE / 1024 / 1024}MB limit)`,
       });

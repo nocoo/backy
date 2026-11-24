@@ -1,9 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import {
-  CopyObjectCommand,
-  HeadObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { CopyObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createS3R2Adapter, isS3R2Configured } from "../lib/r2/s3-adapter";
 
 const env = {
@@ -61,15 +57,14 @@ describe("createS3R2Adapter", () => {
       contentType: "application/octet-stream",
       contentLength: 1,
     });
-    expect(url).toContain(
-      "http://127.0.0.1:17018/cdn-cgi/local/r2/s3/bucket/k.bin",
-    );
+    expect(url).toContain("http://127.0.0.1:17018/cdn-cgi/local/r2/s3/bucket/k.bin");
     expect(url).not.toContain("backy.hexly.ai");
   });
 
   test("head returns null on 404 and metadata on success", async () => {
-    const send = vi.spyOn(S3Client.prototype, "send").mockImplementation(
-      async (command: unknown) => {
+    const send = vi
+      .spyOn(S3Client.prototype, "send")
+      .mockImplementation(async (command: unknown) => {
         if (command instanceof HeadObjectCommand) {
           if (command.input.Key === "missing") {
             throw Object.assign(new Error("missing"), {
@@ -94,8 +89,7 @@ describe("createS3R2Adapter", () => {
           return { ContentLength: 12, ContentType: "application/gzip" };
         }
         throw new Error("unexpected");
-      },
-    );
+      });
     try {
       const adapter = createS3R2Adapter(env);
       expect(await adapter.head("missing")).toBeNull();
@@ -155,10 +149,10 @@ describe("createS3R2Adapter", () => {
   });
 
   test("put/get/delete/ping/presignDownload talk to S3", async () => {
-    const send = vi.spyOn(S3Client.prototype, "send").mockImplementation(
-      async (command: unknown) => {
-        const name = (command as { constructor: { name: string } }).constructor
-          .name;
+    const send = vi
+      .spyOn(S3Client.prototype, "send")
+      .mockImplementation(async (command: unknown) => {
+        const name = (command as { constructor: { name: string } }).constructor.name;
         if (name === "GetObjectCommand") {
           return {
             Body: { transformToByteArray: async () => new Uint8Array([1, 2]) },
@@ -167,8 +161,7 @@ describe("createS3R2Adapter", () => {
           };
         }
         return {};
-      },
-    );
+      });
     try {
       const adapter = createS3R2Adapter(env);
       await adapter.put("k", new ArrayBuffer(2), { contentType: "text/plain" });

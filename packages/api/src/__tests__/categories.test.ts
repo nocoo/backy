@@ -29,8 +29,24 @@ describe("categories", () => {
   describe("listCategories", () => {
     test("returns all categories ordered by sort_order and name", async () => {
       const mockData = [
-        { id: "cat-1", name: "Backend", color: "#3b82f6", icon: "server", sort_order: 0, created_at: "2026-01-01T00:00:00.000Z", updated_at: "2026-01-01T00:00:00.000Z" },
-        { id: "cat-2", name: "Frontend", color: "#ef4444", icon: "layout", sort_order: 1, created_at: "2026-01-02T00:00:00.000Z", updated_at: "2026-01-02T00:00:00.000Z" },
+        {
+          id: "cat-1",
+          name: "Backend",
+          color: "#3b82f6",
+          icon: "server",
+          sort_order: 0,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          id: "cat-2",
+          name: "Frontend",
+          color: "#ef4444",
+          icon: "layout",
+          sort_order: 1,
+          created_at: "2026-01-02T00:00:00.000Z",
+          updated_at: "2026-01-02T00:00:00.000Z",
+        },
       ];
 
       let capturedBody = "";
@@ -49,9 +65,7 @@ describe("categories", () => {
       // Tightened: pin exact SQL string (no trailing whitespace, no
       // extra ORDER BY clauses). The single-arg listCategories takes
       // no params.
-      expect(body.sql).toBe(
-        "SELECT * FROM categories ORDER BY sort_order ASC, name ASC",
-      );
+      expect(body.sql).toBe("SELECT * FROM categories ORDER BY sort_order ASC, name ASC");
       expect(body.params).toEqual([]);
     });
 

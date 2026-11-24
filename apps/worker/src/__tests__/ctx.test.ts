@@ -23,11 +23,7 @@ function probe() {
 describe("ctxMiddleware", () => {
   test("builds RuntimeContext from bindings", async () => {
     const env = makeEnv({ ECHO_API_URL: "https://echo.example" });
-    const res = await probe().request(
-      "/probe",
-      undefined,
-      env as unknown as AppEnv["Bindings"],
-    );
+    const res = await probe().request("/probe", undefined, env as unknown as AppEnv["Bindings"]);
     const body = (await res.json()) as {
       hasDb: boolean;
       hasR2: boolean;
@@ -43,11 +39,7 @@ describe("ctxMiddleware", () => {
     // ctx.env). makeEnv() default + the ECHO_API_URL override yields
     // exactly these 3 keys, sorted. A regression that forwards a binding
     // (e.g. DB) or drops one of these would surface here.
-    expect(body.env).toEqual([
-      "CRON_SECRET",
-      "E2E_SKIP_AUTH",
-      "ECHO_API_URL",
-    ]);
+    expect(body.env).toEqual(["CRON_SECRET", "E2E_SKIP_AUTH", "ECHO_API_URL"]);
   });
 
   test("forwards NEXT_PUBLIC_APP_VERSION when set", async () => {
@@ -58,11 +50,7 @@ describe("ctxMiddleware", () => {
     // the live-check handler can read it (its body includes
     // `version: ctx.env.NEXT_PUBLIC_APP_VERSION ?? 'unknown'`).
     const env = makeEnv({ NEXT_PUBLIC_APP_VERSION: "9.9.9" });
-    const res = await probe().request(
-      "/probe",
-      undefined,
-      env as unknown as AppEnv["Bindings"],
-    );
+    const res = await probe().request("/probe", undefined, env as unknown as AppEnv["Bindings"]);
     const body = (await res.json()) as { env: string[] };
     expect(body.env).toContain("NEXT_PUBLIC_APP_VERSION");
   });
@@ -84,11 +72,7 @@ describe("ctxMiddleware", () => {
       R2_S3_SIGN_ENDPOINT: "http://backy.hexly.ai/cdn-cgi/local/r2/s3",
       NEXT_PUBLIC_APP_VERSION: "1.2.3",
     });
-    const res = await probe().request(
-      "/probe",
-      undefined,
-      env as unknown as AppEnv["Bindings"],
-    );
+    const res = await probe().request("/probe", undefined, env as unknown as AppEnv["Bindings"]);
     const body = (await res.json()) as { env: string[] };
     expect(body.env).toEqual([
       "ALLOWED_HOSTS",
@@ -118,14 +102,10 @@ describe("ctxMiddleware", () => {
         return c.json({ error: (e as Error).message }, 500);
       }
     });
-    const res = await app.request(
-      "/sign",
-      undefined,
-      {
-        DB: fakeD1() as unknown as D1Database,
-        R2: fakeR2() as unknown as R2Bucket,
-      } as unknown as AppEnv["Bindings"],
-    );
+    const res = await app.request("/sign", undefined, {
+      DB: fakeD1() as unknown as D1Database,
+      R2: fakeR2() as unknown as R2Bucket,
+    } as unknown as AppEnv["Bindings"]);
     expect(res.status).toBe(500);
   });
 
@@ -136,18 +116,14 @@ describe("ctxMiddleware", () => {
       const url = await c.get("ctx").r2.presignDownload("k", 60);
       return c.json({ url });
     });
-    const res = await app.request(
-      "/sign",
-      undefined,
-      {
-        DB: fakeD1() as unknown as D1Database,
-        R2: fakeR2() as unknown as R2Bucket,
-        R2_ACCESS_KEY_ID: "id",
-        R2_SECRET_ACCESS_KEY: "secret",
-        R2_ACCOUNT_ID: "acct",
-        R2_BUCKET_NAME: "bucket",
-      } as unknown as AppEnv["Bindings"],
-    );
+    const res = await app.request("/sign", undefined, {
+      DB: fakeD1() as unknown as D1Database,
+      R2: fakeR2() as unknown as R2Bucket,
+      R2_ACCESS_KEY_ID: "id",
+      R2_SECRET_ACCESS_KEY: "secret",
+      R2_ACCOUNT_ID: "acct",
+      R2_BUCKET_NAME: "bucket",
+    } as unknown as AppEnv["Bindings"]);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { url: string };
     // Tightened: pin the full URL shape via regex. Only X-Amz-Date and
@@ -171,18 +147,14 @@ describe("ctxMiddleware", () => {
       });
       return c.json({ url });
     });
-    const res = await app.request(
-      "/sign",
-      undefined,
-      {
-        DB: fakeD1() as unknown as D1Database,
-        R2: fakeR2() as unknown as R2Bucket,
-        R2_ACCESS_KEY_ID: "id",
-        R2_SECRET_ACCESS_KEY: "secret",
-        R2_ACCOUNT_ID: "acct",
-        R2_BUCKET_NAME: "bucket",
-      } as unknown as AppEnv["Bindings"],
-    );
+    const res = await app.request("/sign", undefined, {
+      DB: fakeD1() as unknown as D1Database,
+      R2: fakeR2() as unknown as R2Bucket,
+      R2_ACCESS_KEY_ID: "id",
+      R2_SECRET_ACCESS_KEY: "secret",
+      R2_ACCOUNT_ID: "acct",
+      R2_BUCKET_NAME: "bucket",
+    } as unknown as AppEnv["Bindings"]);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { url: string };
     const signed = new URL(body.url).searchParams.get("X-Amz-SignedHeaders") ?? "";
@@ -205,18 +177,14 @@ describe("ctxMiddleware", () => {
           return c.json({ error: (e as Error).message }, 500);
         }
       });
-      const res = await app.request(
-        "/copy",
-        { method: "POST" },
-        {
-          DB: fakeD1() as unknown as D1Database,
-          R2: fakeR2() as unknown as R2Bucket,
-          R2_ACCESS_KEY_ID: "id",
-          R2_SECRET_ACCESS_KEY: "secret",
-          R2_ACCOUNT_ID: "acct",
-          R2_BUCKET_NAME: "bucket",
-        } as unknown as AppEnv["Bindings"],
-      );
+      const res = await app.request("/copy", { method: "POST" }, {
+        DB: fakeD1() as unknown as D1Database,
+        R2: fakeR2() as unknown as R2Bucket,
+        R2_ACCESS_KEY_ID: "id",
+        R2_SECRET_ACCESS_KEY: "secret",
+        R2_ACCOUNT_ID: "acct",
+        R2_BUCKET_NAME: "bucket",
+      } as unknown as AppEnv["Bindings"]);
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ ok: true });
       expect(send).toHaveBeenCalledTimes(1);

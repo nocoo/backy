@@ -58,5 +58,4 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-export const CF_ACCESS_LOGOUT_URL =
-  "https://nocoo.cloudflareaccess.com/cdn-cgi/access/logout";
+export const CF_ACCESS_LOGOUT_URL = "https://nocoo.cloudflareaccess.com/cdn-cgi/access/logout";

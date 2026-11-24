@@ -4,7 +4,7 @@ Most of the original backlog is DONE (auth-render fragility fixed, surface
 tests swept, generatePageNumbers de-duplicated, scanner extended). What's
 left is genuinely deeper work that wasn't tackled this round:
 
-- **api/handlers/* test boilerplate** (~2900 lines across 11 files) uses
+- _*api/handlers/* test boilerplate_* (~2900 lines across 11 files) uses
   the same `let mockX = async () => ...` + `vi.doMock` pattern. Extract a
   shared `makeStubbedDb<T>()` helper that auto-wires every db function to
   a re-assignable mock. Maintainability win, not perf.

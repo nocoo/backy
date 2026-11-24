@@ -62,9 +62,7 @@ async function checkPortFree(): Promise<void> {
       signal: AbortSignal.timeout(1000),
     });
     if (res.ok) {
-      console.error(
-        `FATAL: Port ${E2E_PORT} is already in use. Kill the existing server first.`,
-      );
+      console.error(`FATAL: Port ${E2E_PORT} is already in use. Kill the existing server first.`);
       process.exit(1);
     }
   } catch {
@@ -120,7 +118,9 @@ async function waitForServer(server: Subprocess): Promise<void> {
 
   // Track early exit
   let serverExited = false;
-  void server.exited.then(() => { serverExited = true; });
+  void server.exited.then(() => {
+    serverExited = true;
+  });
 
   while (Date.now() - start < MAX_WAIT_MS) {
     if (serverExited) {
@@ -208,13 +208,7 @@ async function runPlaywright(): Promise<number> {
   console.log("\nStep 6: Running Playwright BDD tests...\n");
 
   const proc = Bun.spawn(
-    [
-      "npx",
-      "playwright",
-      "test",
-      "--config",
-      "e2e/bdd/playwright.config.ts",
-    ],
+    ["npx", "playwright", "test", "--config", "e2e/bdd/playwright.config.ts"],
     {
       cwd: ROOT,
       env: {

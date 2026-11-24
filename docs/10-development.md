@@ -16,15 +16,15 @@ Bun 管理整个 workspace，根目录 `bun install --frozen-lockfile` 会安装
 
 当前仓库没有 `.dev.vars.example`。本地服务端秘密配置放在 `apps/worker/.dev.vars`；部署后用 Worker secrets 设置对应字段。不要在前端环境变量中放 R2 凭据。
 
-| 位置 / 字段 | 用途 |
-| --- | --- |
-| `apps/worker/wrangler.toml` 的 `DB` / `R2` | 自己的数据库与存储桶；名称和 ID 需要匹配 |
-| `[vars]` 的 `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` | Cloudflare Access 团队域和应用 audience |
-| `R2_ACCOUNT_ID` / `R2_BUCKET_NAME` | S3 接口使用的账号与存储桶，需与 binding 指向相同桶 |
-| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | 下载 / 上传签名与完成直传时的 CopyObject |
-| `CRON_SECRET` | 自动备份触发认证；定时事件调用同一 handler，也需要它 |
-| `ALLOWED_HOSTS` / `SSRF_ALLOWLIST` | 自定义反向代理主机和回调目标限制，按当前校验逻辑配置 |
-| `ECHO_API_URL` / `ECHO_API_KEY` | 可选的 IP 信息查询服务 |
+| 位置 / 字段                                           | 用途                                                 |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| `apps/worker/wrangler.toml` 的 `DB` / `R2`            | 自己的数据库与存储桶；名称和 ID 需要匹配             |
+| `[vars]` 的 `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` | Cloudflare Access 团队域和应用 audience              |
+| `R2_ACCOUNT_ID` / `R2_BUCKET_NAME`                    | S3 接口使用的账号与存储桶，需与 binding 指向相同桶   |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`           | 下载 / 上传签名与完成直传时的 CopyObject             |
+| `CRON_SECRET`                                         | 自动备份触发认证；定时事件调用同一 handler，也需要它 |
+| `ALLOWED_HOSTS` / `SSRF_ALLOWLIST`                    | 自定义反向代理主机和回调目标限制，按当前校验逻辑配置 |
+| `ECHO_API_URL` / `ECHO_API_KEY`                       | 可选的 IP 信息查询服务                               |
 
 R2 binding 可以保存、读取和删除对象，但不能单独生成 S3 签名；只有绑定而没有签名凭据时，普通上传可用，下载签名和直传仍不可用。API 测试 runner 会覆盖凭据和 S3 endpoint，使用本地 R2 S3 模拟接口；生产不要使用这些测试端点。
 
@@ -32,27 +32,27 @@ R2 binding 可以保存、读取和删除对象，但不能单独生成 S3 签�
 
 仪表盘、项目 / 备份管理和单项目手动触发由 Access 保护。外部应用使用项目 token 访问以下路径；还需让边缘 Access 策略允许这些具体集成路径抵达 Worker。Worker 内部豁免不会改变边缘策略。
 
-| 方法与路径 | 行为 |
-| --- | --- |
-| `HEAD /api/webhook/:projectId` | 校验 Bearer token、项目匹配与 IP 允许名单 |
-| `GET /api/webhook/:projectId` | 项目总备份数与最近记录；environment 仅过滤最近记录 |
-| `POST /api/webhook/:projectId` | multipart `file`，可选 `environment` 和 `tag` |
-| `POST /api/webhook/:projectId/uploads` | 申请 R2 直传 |
-| `POST /api/webhook/:projectId/uploads/:uploadId/complete` | 验证临时对象、复制到最终位置并记录备份 |
-| `DELETE /api/webhook/:projectId/uploads/:uploadId` | 中止尚可中止的上传 |
-| `GET /api/restore/:backupId` | 用项目 token 生成原文件签名下载 URL |
-| `POST /api/cron/trigger` | 以 `CRON_SECRET` Bearer 触发到期项目；不是管理端单项目触发入口 |
+| 方法与路径                                                | 行为                                                           |
+| --------------------------------------------------------- | -------------------------------------------------------------- |
+| `HEAD /api/webhook/:projectId`                            | 校验 Bearer token、项目匹配与 IP 允许名单                      |
+| `GET /api/webhook/:projectId`                             | 项目总备份数与最近记录；environment 仅过滤最近记录             |
+| `POST /api/webhook/:projectId`                            | multipart `file`，可选 `environment` 和 `tag`                  |
+| `POST /api/webhook/:projectId/uploads`                    | 申请 R2 直传                                                   |
+| `POST /api/webhook/:projectId/uploads/:uploadId/complete` | 验证临时对象、复制到最终位置并记录备份                         |
+| `DELETE /api/webhook/:projectId/uploads/:uploadId`        | 中止尚可中止的上传                                             |
+| `GET /api/restore/:backupId`                              | 用项目 token 生成原文件签名下载 URL                            |
+| `POST /api/cron/trigger`                                  | 以 `CRON_SECRET` Bearer 触发到期项目；不是管理端单项目触发入口 |
 
 恢复接口也接受 `?token=`，示例优先使用 Authorization header。返回值是 JSON，其中 `url` 有效 900 秒；应用还需下载、验证并执行自己的导入流程。
 
 ## 文件限制与直传
 
-| 操作 | 当前限制 |
-| --- | --- |
-| 网页 / webhook 普通上传 | 50 MiB |
-| R2 单次直传 | 5,000,000,000 字节 |
-| JSON 在线预览 | 5 MiB |
-| 压缩包提取 | 原压缩包及解压处理有 50 MiB 限制；提取 JSON 有 10 MiB 限制，预览仍受 5 MiB 限制 |
+| 操作                    | 当前限制                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| 网页 / webhook 普通上传 | 50 MiB                                                                          |
+| R2 单次直传             | 5,000,000,000 字节                                                              |
+| JSON 在线预览           | 5 MiB                                                                           |
+| 压缩包提取              | 原压缩包及解压处理有 50 MiB 限制；提取 JSON 有 10 MiB 限制，预览仍受 5 MiB 限制 |
 
 原文件按格式保存，支持识别 JSON、ZIP、gzip、tar.gz / tgz，也可保存其他二进制文件。压缩包提取只选择一个 JSON 文件，具体格式处理见 `packages/api/src/lib/backup/extractors.ts`，并非完整的压缩包文件浏览器。
 

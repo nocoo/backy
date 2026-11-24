@@ -6,12 +6,12 @@
 
 Comparing backy vs dove quality systems reveals gaps in:
 
-| Gap | backy (current) | dove (target) |
-|-----|-----------------|---------------|
-| L2 API E2E | 1 file, CI disabled | Full coverage, CI enabled, gate:routes |
-| L3 BDD E2E | None, CI disabled | Full coverage, CI enabled, gate:pages |
-| Coverage thresholds | 85-95% | 99% lines, 96% branches |
-| CD verification | HTTP 200 only | /api/live version match |
+| Gap                 | backy (current)     | dove (target)                          |
+| ------------------- | ------------------- | -------------------------------------- |
+| L2 API E2E          | 1 file, CI disabled | Full coverage, CI enabled, gate:routes |
+| L3 BDD E2E          | None, CI disabled   | Full coverage, CI enabled, gate:pages  |
+| Coverage thresholds | 85-95%              | 99% lines, 96% branches                |
+| CD verification     | HTTP 200 only       | /api/live version match                |
 
 ## Goals
 
@@ -29,91 +29,103 @@ Comparing backy vs dove quality systems reveals gaps in:
 Extracted from `apps/worker/src/index.ts` + `apps/worker/src/routes/*.ts`:
 
 ### /api/projects
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/projects` | listProjectsHandler |
-| POST | `/api/projects` | createProjectHandler |
-| GET | `/api/projects/:id` | getProjectHandler |
-| PUT | `/api/projects/:id` | updateProjectHandler |
-| DELETE | `/api/projects/:id` | deleteProjectHandler |
-| POST | `/api/projects/:id/token` | regenerateTokenHandler |
-| GET | `/api/projects/:id/prompt` | projectPromptHandler |
+
+| Method | Path                       | Handler                |
+| ------ | -------------------------- | ---------------------- |
+| GET    | `/api/projects`            | listProjectsHandler    |
+| POST   | `/api/projects`            | createProjectHandler   |
+| GET    | `/api/projects/:id`        | getProjectHandler      |
+| PUT    | `/api/projects/:id`        | updateProjectHandler   |
+| DELETE | `/api/projects/:id`        | deleteProjectHandler   |
+| POST   | `/api/projects/:id/token`  | regenerateTokenHandler |
+| GET    | `/api/projects/:id/prompt` | projectPromptHandler   |
 
 ### /api/categories
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/categories` | listCategoriesHandler |
-| POST | `/api/categories` | createCategoryHandler |
-| GET | `/api/categories/:id` | getCategoryHandler |
-| PUT | `/api/categories/:id` | updateCategoryHandler |
+
+| Method | Path                  | Handler               |
+| ------ | --------------------- | --------------------- |
+| GET    | `/api/categories`     | listCategoriesHandler |
+| POST   | `/api/categories`     | createCategoryHandler |
+| GET    | `/api/categories/:id` | getCategoryHandler    |
+| PUT    | `/api/categories/:id` | updateCategoryHandler |
 | DELETE | `/api/categories/:id` | deleteCategoryHandler |
 
 ### /api/backups
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/backups` | listBackupsHandler |
-| POST | `/api/backups/upload` | uploadBackupHandler |
-| DELETE | `/api/backups` | batchDeleteBackupsHandler |
-| GET | `/api/backups/:id` | getBackupHandler |
-| DELETE | `/api/backups/:id` | deleteBackupHandler |
-| GET | `/api/backups/:id/download` | downloadBackupHandler |
-| GET | `/api/backups/:id/preview` | previewBackupHandler |
-| POST | `/api/backups/:id/extract` | extractBackupHandler |
-| GET | `/api/backups/:id/restore-command` | restoreCommandHandler |
+
+| Method | Path                               | Handler                   |
+| ------ | ---------------------------------- | ------------------------- |
+| GET    | `/api/backups`                     | listBackupsHandler        |
+| POST   | `/api/backups/upload`              | uploadBackupHandler       |
+| DELETE | `/api/backups`                     | batchDeleteBackupsHandler |
+| GET    | `/api/backups/:id`                 | getBackupHandler          |
+| DELETE | `/api/backups/:id`                 | deleteBackupHandler       |
+| GET    | `/api/backups/:id/download`        | downloadBackupHandler     |
+| GET    | `/api/backups/:id/preview`         | previewBackupHandler      |
+| POST   | `/api/backups/:id/extract`         | extractBackupHandler      |
+| GET    | `/api/backups/:id/restore-command` | restoreCommandHandler     |
 
 ### /api/cron
-| Method | Path | Handler |
-|--------|------|---------|
-| POST | `/api/cron/trigger` | cronTriggerHandler |
-| POST | `/api/cron/trigger/:projectId` | cronTriggerOneHandler |
+
+| Method | Path                           | Handler               |
+| ------ | ------------------------------ | --------------------- |
+| POST   | `/api/cron/trigger`            | cronTriggerHandler    |
+| POST   | `/api/cron/trigger/:projectId` | cronTriggerOneHandler |
 
 ### /api/logs
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/logs/webhook` | listWebhookLogsHandler |
+
+| Method | Path                | Handler                  |
+| ------ | ------------------- | ------------------------ |
+| GET    | `/api/logs/webhook` | listWebhookLogsHandler   |
 | DELETE | `/api/logs/webhook` | deleteWebhookLogsHandler |
-| GET | `/api/logs/cron` | listCronLogsHandler |
-| DELETE | `/api/logs/cron` | deleteCronLogsHandler |
+| GET    | `/api/logs/cron`    | listCronLogsHandler      |
+| DELETE | `/api/logs/cron`    | deleteCronLogsHandler    |
 
 ### /api/stats
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/stats/totals` | statsTotalsHandler |
-| GET | `/api/stats/charts` | statsChartsHandler |
+
+| Method | Path                | Handler            |
+| ------ | ------------------- | ------------------ |
+| GET    | `/api/stats/totals` | statsTotalsHandler |
+| GET    | `/api/stats/charts` | statsChartsHandler |
 
 ### /api/live
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/live` | liveCheckHandler |
+
+| Method | Path        | Handler          |
+| ------ | ----------- | ---------------- |
+| GET    | `/api/live` | liveCheckHandler |
 
 ### /api/ip-info
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/ip-info` | ipInfoHandler |
+
+| Method | Path           | Handler       |
+| ------ | -------------- | ------------- |
+| GET    | `/api/ip-info` | ipInfoHandler |
 
 ### /api/db (E2E-only)
-| Method | Path | Handler |
-|--------|------|---------|
-| POST | `/api/db/init` | dbInitHandler |
-| GET | `/api/db/init/marker` | getTestMarkerHandler |
-| POST | `/api/db/seed-test-project` | seedTestProjectHandler |
+
+| Method | Path                        | Handler                |
+| ------ | --------------------------- | ---------------------- |
+| POST   | `/api/db/init`              | dbInitHandler          |
+| GET    | `/api/db/init/marker`       | getTestMarkerHandler   |
+| POST   | `/api/db/seed-test-project` | seedTestProjectHandler |
 
 ### /api/restore
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/restore/:id` | restoreHandler |
+
+| Method | Path               | Handler        |
+| ------ | ------------------ | -------------- |
+| GET    | `/api/restore/:id` | restoreHandler |
 
 ### /api/webhook
-| Method | Path | Handler |
-|--------|------|---------|
-| HEAD | `/api/webhook/:projectId` | webhookHeadHandler |
-| GET | `/api/webhook/:projectId` | webhookGetHandler |
-| POST | `/api/webhook/:projectId` | webhookPostHandler |
+
+| Method | Path                      | Handler            |
+| ------ | ------------------------- | ------------------ |
+| HEAD   | `/api/webhook/:projectId` | webhookHeadHandler |
+| GET    | `/api/webhook/:projectId` | webhookGetHandler  |
+| POST   | `/api/webhook/:projectId` | webhookPostHandler |
 
 ### /api/me
-| Method | Path | Handler |
-|--------|------|---------|
-| GET | `/api/me` | (inline: returns accessEmail) |
+
+| Method | Path      | Handler                       |
+| ------ | --------- | ----------------------------- |
+| GET    | `/api/me` | (inline: returns accessEmail) |
 
 **Total: 39 routes**
 
@@ -123,16 +135,16 @@ Extracted from `apps/worker/src/index.ts` + `apps/worker/src/routes/*.ts`:
 
 Extracted from `apps/web/src/App.tsx`:
 
-| Path | Component |
-|------|-----------|
-| `/` | DashboardPage |
-| `/projects` | ProjectsPage |
-| `/projects/new` | ProjectNewPage |
+| Path            | Component         |
+| --------------- | ----------------- |
+| `/`             | DashboardPage     |
+| `/projects`     | ProjectsPage      |
+| `/projects/new` | ProjectNewPage    |
 | `/projects/:id` | ProjectDetailPage |
-| `/backups` | BackupsPage |
-| `/backups/:id` | BackupDetailPage |
-| `/logs` | LogsPage |
-| `/cron-logs` | CronLogsPage |
+| `/backups`      | BackupsPage       |
+| `/backups/:id`  | BackupDetailPage  |
+| `/logs`         | LogsPage          |
+| `/cron-logs`    | CronLogsPage      |
 
 **Total: 8 pages**
 
@@ -140,20 +152,20 @@ Extracted from `apps/web/src/App.tsx`:
 
 ## File Modification Map
 
-| File | Change | Phase |
-|------|--------|-------|
-| `e2e/api/*.ts` | Add missing API E2E tests | Wave A |
-| `scripts/check-route-coverage.ts` | **New**: Static L2 coverage gate | Wave A |
-| `package.json` | Add `gate:routes` script | Wave A |
-| `e2e/bdd/*.spec.ts` | **New**: Playwright BDD specs | Wave B |
-| `e2e/bdd/playwright.config.ts` | **New**: Playwright config | Wave B |
-| `scripts/check-page-coverage.ts` | **New**: Static L3 coverage gate | Wave B |
-| `scripts/run-e2e-bdd.ts` | **New**: BDD runner (starts worker, runs Playwright) | Wave B |
-| `package.json` | Add `gate:pages`, `test:e2e:bdd` scripts | Wave B |
-| `.husky/pre-commit` | Add gate:routes, gate:pages checks | Wave B |
-| `.github/workflows/ci.yml` | Enable `enable-l2: true`, `enable-l3: true` | Wave B |
-| `.github/workflows/release.yml` | Add version verification step | Wave C |
-| `*/vitest.config.ts` | Raise thresholds to 95%+ | Wave D |
+| File                              | Change                                               | Phase  |
+| --------------------------------- | ---------------------------------------------------- | ------ |
+| `e2e/api/*.ts`                    | Add missing API E2E tests                            | Wave A |
+| `scripts/check-route-coverage.ts` | **New**: Static L2 coverage gate                     | Wave A |
+| `package.json`                    | Add `gate:routes` script                             | Wave A |
+| `e2e/bdd/*.spec.ts`               | **New**: Playwright BDD specs                        | Wave B |
+| `e2e/bdd/playwright.config.ts`    | **New**: Playwright config                           | Wave B |
+| `scripts/check-page-coverage.ts`  | **New**: Static L3 coverage gate                     | Wave B |
+| `scripts/run-e2e-bdd.ts`          | **New**: BDD runner (starts worker, runs Playwright) | Wave B |
+| `package.json`                    | Add `gate:pages`, `test:e2e:bdd` scripts             | Wave B |
+| `.husky/pre-commit`               | Add gate:routes, gate:pages checks                   | Wave B |
+| `.github/workflows/ci.yml`        | Enable `enable-l2: true`, `enable-l3: true`          | Wave B |
+| `.github/workflows/release.yml`   | Add version verification step                        | Wave C |
+| `*/vitest.config.ts`              | Raise thresholds to 95%+                             | Wave D |
 
 ---
 
@@ -191,6 +203,7 @@ Port from dove, adapted for backy monorepo structure:
 ```
 
 Add to `package.json`:
+
 ```json
 "gate:routes": "bun run scripts/check-route-coverage.ts"
 ```
@@ -232,6 +245,7 @@ e2e/bdd/
 ```
 
 Dynamic route strategy:
+
 - `/projects/:id` and `/backups/:id` use the seeded test project
 - Test data created via `/api/db/seed-test-project` before BDD run
 
@@ -247,6 +261,7 @@ Dynamic route strategy:
 ```
 
 Add to root `package.json`:
+
 ```json
 "test:e2e:bdd": "bun run scripts/run-e2e-bdd.ts"
 ```
@@ -263,6 +278,7 @@ Port from dove, adapted for backy:
 ```
 
 Add to `package.json`:
+
 ```json
 "gate:pages": "bun run scripts/check-page-coverage.ts"
 ```
@@ -270,6 +286,7 @@ Add to `package.json`:
 ### B.4 Wire to Pre-commit
 
 Update `.husky/pre-commit` to add (append to existing chain):
+
 ```bash
 bun run typecheck \
   && bun run lint:staged \
@@ -282,6 +299,7 @@ bun run typecheck \
 ### B.5 Enable L2/L3 in CI
 
 Update `.github/workflows/ci.yml`:
+
 ```yaml
 with:
   enable-l2: "true"
@@ -325,12 +343,14 @@ The env var is set via `wrangler.toml` or deploy-time config.
 **Build-time injection via wrangler.toml** (chosen approach):
 
 Add to `apps/worker/wrangler.toml`:
+
 ```toml
 [vars]
 NEXT_PUBLIC_APP_VERSION = "1.8.0"  # Updated by release script
 ```
 
 Update `scripts/release.ts` to:
+
 1. Bump `package.json` version
 2. Update `apps/worker/wrangler.toml` `NEXT_PUBLIC_APP_VERSION`
 3. Commit both files
@@ -338,6 +358,7 @@ Update `scripts/release.ts` to:
 **Alternative (not used): CI-time injection**
 
 For reference, version can also be passed at deploy-time:
+
 ```yaml
 - name: Deploy Worker
   uses: cloudflare/wrangler-action@v3
@@ -390,21 +411,21 @@ Add version read step and verification:
 
 ### D.1 Current Thresholds
 
-| Package | lines | funcs | branches |
-|---------|-------|-------|----------|
-| packages/api | 90% | 90% | 80% |
-| apps/worker | 90% | 85% | 80% |
-| apps/web | 95% | 95% | 90% |
-| apps/cli | (TBD) | (TBD) | (TBD) |
+| Package      | lines | funcs | branches |
+| ------------ | ----- | ----- | -------- |
+| packages/api | 90%   | 90%   | 80%      |
+| apps/worker  | 90%   | 85%   | 80%      |
+| apps/web     | 95%   | 95%   | 90%      |
+| apps/cli     | (TBD) | (TBD) | (TBD)    |
 
 ### D.2 Target Thresholds
 
-| Package | lines | funcs | branches |
-|---------|-------|-------|----------|
-| packages/api | **95%** | **95%** | **90%** |
-| apps/worker | **95%** | **95%** | **90%** |
-| apps/web | **98%** | **98%** | **95%** |
-| apps/cli | 90% | 90% | 85% |
+| Package      | lines   | funcs   | branches |
+| ------------ | ------- | ------- | -------- |
+| packages/api | **95%** | **95%** | **90%**  |
+| apps/worker  | **95%** | **95%** | **90%**  |
+| apps/web     | **98%** | **98%** | **95%**  |
+| apps/cli     | 90%     | 90%     | 85%      |
 
 ### D.3 Ratchet Strategy
 
@@ -423,12 +444,12 @@ Add version read step and verification:
 
 ### D.5 Final Thresholds (2026-04-30)
 
-| Package | stmts | lines | funcs | branches | Actual |
-|---------|-------|-------|-------|----------|--------|
-| packages/api | 95% | 95% | 95% | 90% | 95.63 / 96.71 / 95.32 / 91.66 |
-| apps/worker | 95% | 95% | 95% | 90% | 96.55 / 97.5 / 96.55 / 97.26 |
-| apps/web | 98% | 98% | 98% | 95% | 100 / 100 / 100 / 97.22 |
-| apps/cli | 90% | 90% | 90% | 80% | 100 / 100 / 100 / 100 |
+| Package      | stmts | lines | funcs | branches | Actual                        |
+| ------------ | ----- | ----- | ----- | -------- | ----------------------------- |
+| packages/api | 95%   | 95%   | 95%   | 90%      | 95.63 / 96.71 / 95.32 / 91.66 |
+| apps/worker  | 95%   | 95%   | 95%   | 90%      | 96.55 / 97.5 / 96.55 / 97.26  |
+| apps/web     | 98%   | 98%   | 98%   | 95%      | 100 / 100 / 100 / 97.22       |
+| apps/cli     | 90%   | 90%   | 90%   | 80%      | 100 / 100 / 100 / 100         |
 
 D.2 target thresholds met: 95%+ for statements/lines/functions across all
 packages; branch thresholds per-package (api 90%, worker 90%, web 95%,

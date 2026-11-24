@@ -45,10 +45,14 @@ export function detectFileType(fileName: string, contentType: string): FileType 
  */
 export function getStorageExtension(fileType: FileType, fileName: string): string {
   switch (fileType) {
-    case "json": return ".json";
-    case "zip": return ".zip";
-    case "gz": return ".gz";
-    case "tgz": return ".tar.gz";
+    case "json":
+      return ".json";
+    case "zip":
+      return ".zip";
+    case "gz":
+      return ".gz";
+    case "tgz":
+      return ".tar.gz";
     case "unknown": {
       const lastDot = fileName.lastIndexOf(".");
       return lastDot > 0 ? fileName.slice(lastDot) : "";

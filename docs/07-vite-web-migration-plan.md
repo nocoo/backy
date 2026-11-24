@@ -86,15 +86,15 @@ packages/
 
 ## 关键差异 vs 现状
 
-| 维度 | 现状（Next.js） | 新方案（Vite + Worker） |
-|---|---|---|
-| 渲染 | Next.js App Router（SSR/RSC） | Vite SPA（纯 CSR） |
-| API | `apps/web/src/app/api/**/route.ts` | `apps/worker/src/routes/*` |
-| Auth | NextAuth v5 + Google OAuth + 邮箱白名单 | **CF Access**（团队 `nocoo`，aud 见下） |
-| 部署 | Railway + Docker，端口 7017 | Cloudflare Workers（自定义域名 + `[assets]`） |
-| 持久化 | D1（REST API）+ R2（S3 SDK） | D1（**workers binding**）+ R2（**workers binding**） |
-| Cron | Cloudflare Worker → POST `/api/cron/trigger` | Worker `[triggers].crons` 直接调 handler |
-| Env 注入 | `process.env` 读 `.env` | `c.env.*` 读 `wrangler.toml` `[vars]` + secrets |
+| 维度     | 现状（Next.js）                              | 新方案（Vite + Worker）                              |
+| -------- | -------------------------------------------- | ---------------------------------------------------- |
+| 渲染     | Next.js App Router（SSR/RSC）                | Vite SPA（纯 CSR）                                   |
+| API      | `apps/web/src/app/api/**/route.ts`           | `apps/worker/src/routes/*`                           |
+| Auth     | NextAuth v5 + Google OAuth + 邮箱白名单      | **CF Access**（团队 `nocoo`，aud 见下）              |
+| 部署     | Railway + Docker，端口 7017                  | Cloudflare Workers（自定义域名 + `[assets]`）        |
+| 持久化   | D1（REST API）+ R2（S3 SDK）                 | D1（**workers binding**）+ R2（**workers binding**） |
+| Cron     | Cloudflare Worker → POST `/api/cron/trigger` | Worker `[triggers].crons` 直接调 handler             |
+| Env 注入 | `process.env` 读 `.env`                      | `c.env.*` 读 `wrangler.toml` `[vars]` + secrets      |
 
 ### 运行时抽象（不止 D1/R2）
 
@@ -102,14 +102,14 @@ packages/
 adapter 就能进 Worker**。需要把以下整组依赖一次性归到一个 `RuntimeContext`
 注入：
 
-| 耦合点 | 现位置 | 注入接口 |
-|---|---|---|
-| D1（HTTP REST + Bearer） | `packages/api/src/lib/db/d1-client.ts` | `D1Adapter` |
-| R2（`@aws-sdk/client-s3` + 预签名） | `packages/api/src/lib/r2/client.ts`，被 `handlers/backups.ts:12` 直接 import | `R2Adapter`（`put` / `get` / `delete` / `presignDownload`） |
-| `process.env.*`（CRON_SECRET、CLOUDFLARE_*、R2_*、ECHO_API_URL、…） | `handlers/cron.ts:79`、`handlers/live.ts:6`、`handlers/ipInfo.ts`、`lib/r2/client.ts` 等 | `Env`（强类型 record，由 worker `c.env` 或 legacy `process.env` 填） |
-| `process.uptime()` / `process.memoryUsage()` | `handlers/live.ts:89` | `RuntimeInfo`（`uptimeMs()`、`memory()`，Worker 实现返回 `null`/常量） |
-| `Date.now()` 之外的时间敏感行为（cron 触发） | `handlers/cron.ts` | `Clock.now()`（可选，仅为测试可控；不强制） |
-| 日志 | 各 handler 直接 `console.error` | 暂保留 `console`，但记录在边界文档里，未来可换 `logger` |
+| 耦合点                                                              | 现位置                                                                                   | 注入接口                                                               |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| D1（HTTP REST + Bearer）                                            | `packages/api/src/lib/db/d1-client.ts`                                                   | `D1Adapter`                                                            |
+| R2（`@aws-sdk/client-s3` + 预签名）                                 | `packages/api/src/lib/r2/client.ts`，被 `handlers/backups.ts:12` 直接 import             | `R2Adapter`（`put` / `get` / `delete` / `presignDownload`）            |
+| `process.env.*`（CRON_SECRET、CLOUDFLARE_*、R2_*、ECHO_API_URL、…） | `handlers/cron.ts:79`、`handlers/live.ts:6`、`handlers/ipInfo.ts`、`lib/r2/client.ts` 等 | `Env`（强类型 record，由 worker `c.env` 或 legacy `process.env` 填）   |
+| `process.uptime()` / `process.memoryUsage()`                        | `handlers/live.ts:89`                                                                    | `RuntimeInfo`（`uptimeMs()`、`memory()`，Worker 实现返回 `null`/常量） |
+| `Date.now()` 之外的时间敏感行为（cron 触发）                        | `handlers/cron.ts`                                                                       | `Clock.now()`（可选，仅为测试可控；不强制）                            |
+| 日志                                                                | 各 handler 直接 `console.error`                                                          | 暂保留 `console`，但记录在边界文档里，未来可换 `logger`                |
 
 **强约束**：handler 顶层不再读 `process.*`，所有"环境/运行时事实"必须从入参拿。
 做法是在 handler 入参里追加 `ctx: RuntimeContext`，或对一组相关 handler 用
@@ -122,12 +122,13 @@ adapter 就能进 Worker**。需要把以下整组依赖一次性归到一个 `R
 export interface RuntimeContext {
   db: D1Adapter;
   r2: R2Adapter;
-  env: BackyEnv;        // 强类型环境变量
-  info: RuntimeInfo;    // uptime/memory，Worker 下退化
+  env: BackyEnv; // 强类型环境变量
+  info: RuntimeInfo; // uptime/memory，Worker 下退化
 }
 ```
 
 调用方：
+
 - `apps/web_legacy` 在每个 route adapter 里构造 `ctx`（REST D1 + S3 R2 + `process.env` + Node `process`）
 - `apps/worker` 在 Hono middleware 里构造 `ctx`（D1/R2 binding + `c.env` + Worker 退化版 info）
 
@@ -138,13 +139,13 @@ export interface RuntimeContext {
 
 ## CF Access 配置
 
-| 项 | 值 |
-|---|---|
-| Team | `nocoo` (`nocoo.cloudflareaccess.com`) |
-| AUD  | `a920d3430b1e5a636590cd5d4f04dc657f89f9939c76a6870140015c0381d9b3` |
-| 受保护路径 | `/`、`/api/*` 中除下方"公开路径"明列项外的全部 |
-| 公开路径 | `POST/GET/HEAD /api/webhook/[projectId]`（自带 token）<br>`POST /api/webhook/[nanoid]/uploads` + complete/abort（docs/09）<br>`GET /api/restore/[id]`（自带 token）<br>`GET /api/live`（健康检查）<br>`POST /api/cron/trigger`（**且仅此一条** —— 自带 `CRON_SECRET` Bearer 校验） |
-| 明确受保护（cron 子路径，易误公开） | `POST /api/cron/trigger/[projectId]` 必须继续走 Access。它本身**不**校验 CRON_SECRET（依赖上层认证保护，见 `apps/web_legacy/src/app/api/cron/trigger/[projectId]/route.ts`），公开等于无认证手动触发任意项目 |
+| 项                                  | 值                                                                                                                                                                                                                                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Team                                | `nocoo` (`nocoo.cloudflareaccess.com`)                                                                                                                                                                                                                                             |
+| AUD                                 | `a920d3430b1e5a636590cd5d4f04dc657f89f9939c76a6870140015c0381d9b3`                                                                                                                                                                                                                 |
+| 受保护路径                          | `/`、`/api/*` 中除下方"公开路径"明列项外的全部                                                                                                                                                                                                                                     |
+| 公开路径                            | `POST/GET/HEAD /api/webhook/[projectId]`（自带 token）<br>`POST /api/webhook/[nanoid]/uploads` + complete/abort（docs/09）<br>`GET /api/restore/[id]`（自带 token）<br>`GET /api/live`（健康检查）<br>`POST /api/cron/trigger`（**且仅此一条** —— 自带 `CRON_SECRET` Bearer 校验） |
+| 明确受保护（cron 子路径，易误公开） | `POST /api/cron/trigger/[projectId]` 必须继续走 Access。它本身**不**校验 CRON_SECRET（依赖上层认证保护，见 `apps/web_legacy/src/app/api/cron/trigger/[projectId]/route.ts`），公开等于无认证手动触发任意项目                                                                       |
 
 `wrangler.toml` 关键片段（与 surety 对齐）：
 
@@ -196,6 +197,7 @@ bucket_name = "backy-test"
 ```
 
 中间件流（参考 `surety/apps/worker/src/middleware/access-auth.ts`）：
+
 - 跳过 Access 的路径白名单（**精确匹配，不要用前缀通配 `/api/cron/*`**）：
   - `GET /api/live`
   - `HEAD/GET/POST /api/webhook/:projectId`
@@ -242,8 +244,16 @@ export interface D1Adapter {
 
 // packages/api/src/lib/r2/adapter.ts
 export interface R2Adapter {
-  put(key: string, body: ArrayBuffer | ReadableStream | Uint8Array, opts?: { contentType?: string }): Promise<void>;
-  get(key: string): Promise<{ body: ReadableStream; bytes: () => Promise<Uint8Array>; contentType?: string } | null>;
+  put(
+    key: string,
+    body: ArrayBuffer | ReadableStream | Uint8Array,
+    opts?: { contentType?: string },
+  ): Promise<void>;
+  get(key: string): Promise<{
+    body: ReadableStream;
+    bytes: () => Promise<Uint8Array>;
+    contentType?: string;
+  } | null>;
   delete(key: string): Promise<void>;
   presignDownload(key: string, ttlSeconds: number): Promise<string>;
 }
@@ -255,7 +265,7 @@ export interface BackyEnv {
   // … 所有目前直接 process.env.X 的 key，全部在这里强类型化
 }
 export interface RuntimeInfo {
-  uptimeMs(): number | null;   // Worker 实现可返回 null
+  uptimeMs(): number | null; // Worker 实现可返回 null
   memory(): { rss: number; heapUsed: number } | null;
 }
 export interface RuntimeContext {
@@ -267,6 +277,7 @@ export interface RuntimeContext {
 ```
 
 工作量分布：
+
 - 现 `d1-client.ts` → 收敛为 `D1Adapter` 的 REST 实现（`createRestD1Adapter(env)`）。
 - 现 `r2/client.ts` → 收敛为 `R2Adapter` 的 S3 实现。
 - 新建 `lib/db/d1-binding.ts`、`lib/r2/binding.ts` 给 worker 用。
@@ -281,6 +292,7 @@ export interface RuntimeContext {
 - legacy `apps/web_legacy` 在每个 route 入口构造 `ctx` 注入；新 worker 在中间件构造。
 
 **验收**：
+
 - `grep -r "process\." packages/api/src | grep -v __tests__` 为空（注释除外）；
 - `grep -r "from \"@aws-sdk\|from 'next" packages/api/src/handlers` 为空；
 - `packages/api` typecheck/lint/test:coverage 全绿，覆盖率不下降；
@@ -293,6 +305,7 @@ export interface RuntimeContext {
 
 **当前问题**（`packages/api/src/handlers/backups.ts:163-224`、
 `handlers/webhook.ts` ingest 路径）：
+
 - `uploadBackupHandler` 接受 `FormData`，对 `File` 调 `arrayBuffer()` 全量读入。
 - 单 JSON 输入会用 `JSZip` 在内存里压缩（再次复制一份）。
 - webhook ingest 也是 `formData` + 全量 `arrayBuffer`。
@@ -312,16 +325,17 @@ export interface RuntimeContext {
 
 **协议变更影响清单（路线 2 必须一并改，缺一项 Wave B' 不算完）**：
 
-| 消费者 / 文案 / 测试 | 位置 | 改造内容 |
-|---|---|---|
-| 手动上传 UI | `apps/web_legacy/src/components/manual-upload-dialog.tsx:157` 当前发 `multipart/form-data` | 新 `apps/web` 复刻该组件时直接走流式 PUT；legacy 版本保留 FormData，但调用旧 handler |
+| 消费者 / 文案 / 测试  | 位置                                                                                                                   | 改造内容                                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 手动上传 UI           | `apps/web_legacy/src/components/manual-upload-dialog.tsx:157` 当前发 `multipart/form-data`                             | 新 `apps/web` 复刻该组件时直接走流式 PUT；legacy 版本保留 FormData，但调用旧 handler                         |
 | Project prompt 生成器 | `packages/api/src/handlers/projects-prompt.ts:188 / :255 / :279` 当前输出 `multipart/form-data`、50MB、`FormData` 示例 | 改输出 `application/octet-stream` PUT 示例 + 新上限值 + header 字段说明；prompt 是给 AI agent 看的，必须同步 |
-| 外部 AI agent 文档 | `README.md` 的 webhook 上传示例（如有 curl 段） | 同步改为流式 PUT |
-| L2 e2e 上传 case | `apps/web_legacy/e2e/api/suites/` 中 `upload*` / `webhook*` 套件 | 新增针对流式入口的 case；旧 FormData case 仅在 legacy 套件保留 |
-| L3 BDD spec | `apps/web_legacy/e2e/bdd/specs/` 含上传流程的 spec | 新 `apps/web/e2e/` 改用流式 fetch；spec 文案同步 |
-| `MAX_FILE_SIZE` 常量 | `packages/api/src/handlers/backups.ts` | 路线 2 下保持或上调；如 fallback 路线 1，则降到 ≤20MB |
+| 外部 AI agent 文档    | `README.md` 的 webhook 上传示例（如有 curl 段）                                                                        | 同步改为流式 PUT                                                                                             |
+| L2 e2e 上传 case      | `apps/web_legacy/e2e/api/suites/` 中 `upload*` / `webhook*` 套件                                                       | 新增针对流式入口的 case；旧 FormData case 仅在 legacy 套件保留                                               |
+| L3 BDD spec           | `apps/web_legacy/e2e/bdd/specs/` 含上传流程的 spec                                                                     | 新 `apps/web/e2e/` 改用流式 fetch；spec 文案同步                                                             |
+| `MAX_FILE_SIZE` 常量  | `packages/api/src/handlers/backups.ts`                                                                                 | 路线 2 下保持或上调；如 fallback 路线 1，则降到 ≤20MB                                                        |
 
 **验收**（在原条目基础上新增）：
+
 - 上述 6 项消费者/文档/测试**全部**已更新（PR 描述里列出 checkbox），不允许"半改"；
 - 上传 30MB 文件不触发 Worker 内存告警（miniflare 本地 + 生产抽样）；
 - L2 e2e 上传相关 case 全绿；
@@ -342,6 +356,7 @@ export interface RuntimeContext {
 7. 本地：`bun --cwd apps/worker dev`（`wrangler dev --port 7018` + `--local` D1/R2 仿真）。
 
 **验收**：
+
 - `wrangler dev` 起得来，`curl /api/live` 200；
 - 带 `E2E_SKIP_AUTH=true` 跑 L2 e2e（指向 worker）146/146；
 - `grep -r "next/server\|NextResponse" apps/worker/src` → 空。
@@ -397,6 +412,7 @@ export interface RuntimeContext {
    `tar-stream`、`nanoid`（这些都被 `@backy/api` 包住了）。
 
 **验收**：
+
 - `bun --cwd apps/web dev` + `bun --cwd apps/worker dev` 联调，所有页面渲染、CRUD 跑通；
 - L3 Playwright 5 个 spec 全绿（runner 改起 vite + wrangler 双进程）；
 - 无 console error / 404；FOUC 不闪。
@@ -435,11 +451,12 @@ E.2 落地（2026-04-25）—— prod (`backy`) + test (`backy-test`) 双 worker
 - **坑**：`[env.test]` 默认继承顶层 `routes`，首次 `--env=test` 部署
   把 `backy.hexly.ai` 抢到了 backy-test 上。修复：在 `[env.test]`
   显式写 `routes = []` 后重新两次 deploy 恢复路由归属。
-   - `apps/web_legacy/Dockerfile` + `apps/web_legacy/railway.json`（暂留作回滚物料）
-   - 整个 `apps/web_legacy/` 目录（含 `legacy:*` 根脚本别名）
-   - 根目录 `Dockerfile` / 根 `railway.json` —— 当前不存在，无操作
+  - `apps/web_legacy/Dockerfile` + `apps/web_legacy/railway.json`（暂留作回滚物料）
+  - 整个 `apps/web_legacy/` 目录（含 `legacy:*` 根脚本别名）
+  - 根目录 `Dockerfile` / 根 `railway.json` —— 当前不存在，无操作
 
 **验收**：
+
 - 生产域名走 Access，未登录访问跳 nocoo team 登录页；
 - 登录后所有功能与现状一致；
 - webhook / restore 端点不经 Access，外部 AI agent 调用不受影响；
@@ -450,14 +467,14 @@ E.2 落地（2026-04-25）—— prod (`backy`) + test (`backy-test`) 双 worker
 
 ## 已知风险 / 注意事项
 
-| 风险 | 缓解 |
-|---|---|
+| 风险                                             | 缓解                                                                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Webhook/Upload 大文件在 Worker 触发 CPU/内存上限 | **不能仅靠"在入口流式转发"概括** —— 现 handler 是 FormData + 全量 buffer + JSZip 内存压缩。详见 Wave B' 单列方案（路线 1 砍上限 / 路线 2 重写为流式契约） |
-| D1 binding 的 SQL 语法 vs REST 微差 | adapter 一层吃掉；测试用 miniflare 本地 D1 跑一遍 schema init |
-| Cron 触发时没有 Request 上下文 | `scheduled()` handler 直接 `cronTriggerHandler({...})`，不再依赖 HTTP |
-| Vite SPA 没有 SSR，首屏需要等 JS | 业务是后台工具，可接受；关键页面给 skeleton |
-| Access 在本地开发不可用 | `accessAuth` 检测 `isLocalhost` 直接放行 + `c.set("accessEmail", "dev@local")` |
-| `web_legacy` 与新 web 构建产物冲突 | 各自独立 outDir；CI 只构新 web |
+| D1 binding 的 SQL 语法 vs REST 微差              | adapter 一层吃掉；测试用 miniflare 本地 D1 跑一遍 schema init                                                                                             |
+| Cron 触发时没有 Request 上下文                   | `scheduled()` handler 直接 `cronTriggerHandler({...})`，不再依赖 HTTP                                                                                     |
+| Vite SPA 没有 SSR，首屏需要等 JS                 | 业务是后台工具，可接受；关键页面给 skeleton                                                                                                               |
+| Access 在本地开发不可用                          | `accessAuth` 检测 `isLocalhost` 直接放行 + `c.set("accessEmail", "dev@local")`                                                                            |
+| `web_legacy` 与新 web 构建产物冲突               | 各自独立 outDir；CI 只构新 web                                                                                                                            |
 
 ---
 

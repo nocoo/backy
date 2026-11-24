@@ -7,8 +7,7 @@ import {
   makeMockR2,
 } from "../helpers";
 
-let mockGetProjectByToken: (token: string) => Promise<any> = async () =>
-  undefined;
+let mockGetProjectByToken: (token: string) => Promise<any> = async () => undefined;
 let mockCreateBackup: (data: any) => Promise<any> = async () => ({});
 let mockCountBackups: (projectId: string) => Promise<number> = async () => 0;
 let mockListBackups: (opts: any) => Promise<any> = async () => ({
@@ -27,8 +26,7 @@ let mockCreateWebhookLog: (entry: any) => Promise<void> = async () => {};
 
 vi.doMock("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProjectByToken: (_db: unknown, token: string) =>
-    mockGetProjectByToken(token),
+  getProjectByToken: (_db: unknown, token: string) => mockGetProjectByToken(token),
 }));
 
 vi.doMock("../../lib/db/backups", () => ({
@@ -46,19 +44,15 @@ vi.doMock("../../lib/db/webhook-logs", () => ({
 const webhookHandlers = await import("../../handlers/webhook");
 const ctx = makeMockCtx({
   r2: makeMockR2({
-    put: async (key, body, opts) =>
-      mockUploadToR2(key, body as Uint8Array, opts?.contentType),
+    put: async (key, body, opts) => mockUploadToR2(key, body as Uint8Array, opts?.contentType),
   }),
 });
-const webhookHeadHandler = (
-  input: Parameters<typeof webhookHandlers.webhookHeadHandler>[0],
-) => webhookHandlers.webhookHeadHandler(input, ctx);
-const webhookGetHandler = (
-  input: Parameters<typeof webhookHandlers.webhookGetHandler>[0],
-) => webhookHandlers.webhookGetHandler(input, ctx);
-const webhookPostHandler = (
-  input: Parameters<typeof webhookHandlers.webhookPostHandler>[0],
-) => webhookHandlers.webhookPostHandler(input, ctx);
+const webhookHeadHandler = (input: Parameters<typeof webhookHandlers.webhookHeadHandler>[0]) =>
+  webhookHandlers.webhookHeadHandler(input, ctx);
+const webhookGetHandler = (input: Parameters<typeof webhookHandlers.webhookGetHandler>[0]) =>
+  webhookHandlers.webhookGetHandler(input, ctx);
+const webhookPostHandler = (input: Parameters<typeof webhookHandlers.webhookPostHandler>[0]) =>
+  webhookHandlers.webhookPostHandler(input, ctx);
 
 const baseProject = {
   id: "p1",
@@ -67,11 +61,7 @@ const baseProject = {
   allowed_ips: null,
 };
 
-function makeFile(
-  content = "data",
-  name = "backup.json",
-  type = "application/json",
-) {
+function makeFile(content = "data", name = "backup.json", type = "application/json") {
   return new File([content], name, { type });
 }
 
@@ -406,8 +396,7 @@ describe("webhookGetHandler", () => {
     });
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Internal server error" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Internal server error" });
   });
 });
 
@@ -486,8 +475,7 @@ describe("webhookPostHandler", () => {
     });
     expect(r.status).toBe(403);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Forbidden" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Forbidden" });
   });
 
   test("400 when file missing", async () => {
@@ -518,8 +506,7 @@ describe("webhookPostHandler", () => {
     });
     expect(r.status).toBe(400);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "File is empty" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "File is empty" });
   });
 
   test("413 when file too large", async () => {
@@ -609,10 +596,7 @@ describe("webhookPostHandler", () => {
     // strings as fileKey path components.
     mockGetProjectByToken = async () => baseProject;
     let createArg: { fileType?: string; fileSize?: number } = {};
-    mockCreateBackup = async (input: {
-      fileType?: string;
-      fileSize?: number;
-    }) => {
+    mockCreateBackup = async (input: { fileType?: string; fileSize?: number }) => {
       createArg = input;
       return {
         id: "bk-empty",
@@ -719,8 +703,7 @@ describe("webhookPostHandler", () => {
     });
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Internal server error" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Internal server error" });
   });
 
   test("500 when uploadToR2 throws non-Error (covers instanceof Error false branch → 'R2 upload failed' fallback)", async () => {
@@ -766,8 +749,7 @@ describe("webhookPostHandler", () => {
     });
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Internal server error" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Internal server error" });
   });
 
   test("500 when getProjectByToken throws non-Error (covers outer-catch instanceof Error false branch → 'Unknown error' fallback)", async () => {
@@ -788,8 +770,7 @@ describe("webhookPostHandler", () => {
     });
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Internal server error" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Internal server error" });
   });
 
   test("500 when createBackup throws", async () => {
@@ -825,8 +806,7 @@ describe("webhookPostHandler", () => {
     });
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Internal server error" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Internal server error" });
   });
 
   test("500 when formData() throws (multipart parse failure)", async () => {

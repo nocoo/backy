@@ -28,9 +28,7 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-function isExpandable(
-  value: unknown,
-): value is Record<string, unknown> | unknown[] {
+function isExpandable(value: unknown): value is Record<string, unknown> | unknown[] {
   return value !== null && typeof value === "object";
 }
 
@@ -79,9 +77,7 @@ function TreeNode({ label, value, depth, defaultExpanded }: TreeNodeProps) {
         <span className="text-basalt-muted-foreground shrink-0">:</span>
 
         {expandable ? (
-          <span className="text-basalt-muted-foreground text-xs ml-1">
-            {getTypeLabel(value)}
-          </span>
+          <span className="text-basalt-muted-foreground text-xs ml-1">{getTypeLabel(value)}</span>
         ) : (
           <span className={cn("ml-1 truncate", getValueColorClass(value))}>
             {formatValue(value)}
@@ -116,12 +112,7 @@ interface JsonTreeViewerProps {
 export function JsonTreeViewer({ data, className }: JsonTreeViewerProps) {
   if (!isExpandable(data)) {
     return (
-      <div
-        className={cn(
-          "rounded-lg border bg-basalt-secondary p-4 font-mono text-sm",
-          className,
-        )}
-      >
+      <div className={cn("rounded-lg border bg-basalt-secondary p-4 font-mono text-sm", className)}>
         <span className={getValueColorClass(data)}>{formatValue(data)}</span>
       </div>
     );
@@ -143,13 +134,7 @@ export function JsonTreeViewer({ data, className }: JsonTreeViewerProps) {
       </div>
 
       {entries.map(([key, val]) => (
-        <TreeNode
-          key={key}
-          label={key}
-          value={val}
-          depth={0}
-          defaultExpanded
-        />
+        <TreeNode key={key} label={key} value={val} depth={0} defaultExpanded />
       ))}
 
       {entries.length === 0 && (

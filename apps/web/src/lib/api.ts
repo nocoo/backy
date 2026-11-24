@@ -17,10 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch(
-  url: string,
-  init?: RequestInit,
-): Promise<Response> {
+export async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(url, {
     credentials: "include",
     ...init,

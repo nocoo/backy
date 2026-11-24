@@ -70,11 +70,7 @@ describe("RequireAuth — DOM-mounted branch coverage", () => {
       let container!: HTMLElement;
       await act(async () => {
         ({ container } = render(
-          React.createElement(
-            RequireAuth,
-            null,
-            React.createElement("div", null, "x"),
-          ),
+          React.createElement(RequireAuth, null, React.createElement("div", null, "x")),
         ));
       });
       expect(reload).toHaveBeenCalledTimes(1);

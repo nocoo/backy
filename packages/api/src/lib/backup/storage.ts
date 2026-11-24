@@ -49,10 +49,7 @@ export function generateBackupKey(
  *
  * @example "previews/proj123/2026-03-02T10-30-00-000Z.json"
  */
-export function generatePreviewKey(
-  projectId: string,
-  timestamp?: string,
-): string {
+export function generatePreviewKey(projectId: string, timestamp?: string): string {
   const ts = timestamp ?? generateTimestamp();
   return `previews/${projectId}/${ts}.json`;
 }

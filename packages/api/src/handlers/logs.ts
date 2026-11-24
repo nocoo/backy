@@ -1,7 +1,4 @@
-import {
-  listWebhookLogs,
-  deleteWebhookLogs,
-} from "../lib/db/webhook-logs";
+import { listWebhookLogs, deleteWebhookLogs } from "../lib/db/webhook-logs";
 import { json, empty, type HandlerResponse } from "../http/response";
 import type { RuntimeContext } from "../runtime";
 
@@ -33,25 +30,16 @@ export async function listWebhookLogsHandler(
   try {
     const statusCodeRaw = input.statusCode;
     const statusCode = statusCodeRaw ? parseInt(statusCodeRaw, 10) : undefined;
-    const success =
-      input.success === "true"
-        ? true
-        : input.success === "false"
-          ? false
-          : undefined;
+    const success = input.success === "true" ? true : input.success === "false" ? false : undefined;
     const page = Math.max(1, parseInt(input.page ?? "1", 10) || 1);
-    const pageSize = Math.min(
-      100,
-      Math.max(1, parseInt(input.pageSize ?? "50", 10) || 50),
-    );
+    const pageSize = Math.min(100, Math.max(1, parseInt(input.pageSize ?? "50", 10) || 50));
 
     const result = await listWebhookLogs(ctx.db, {
       projectId: input.projectId ?? undefined,
       excludeProjectIds: splitCsv(input.excludeProjectIds),
       excludeClientIps: splitCsv(input.excludeClientIps),
       method: input.method ?? undefined,
-      statusCode:
-        statusCode !== undefined && !Number.isNaN(statusCode) ? statusCode : undefined,
+      statusCode: statusCode !== undefined && !Number.isNaN(statusCode) ? statusCode : undefined,
       errorCode: input.errorCode ?? undefined,
       success,
       page,
@@ -86,22 +74,11 @@ export async function deleteWebhookLogsHandler(
   }
 }
 
-import {
-  listCronLogs,
-  deleteCronLogs,
-  type CronLogStatus,
-} from "../lib/db/cron-logs";
+import { listCronLogs, deleteCronLogs, type CronLogStatus } from "../lib/db/cron-logs";
 
-const VALID_CRON_STATUSES: CronLogStatus[] = [
-  "triggered",
-  "skipped",
-  "success",
-  "failed",
-];
+const VALID_CRON_STATUSES: CronLogStatus[] = ["triggered", "skipped", "success", "failed"];
 
-function parseCronStatus(
-  value: string | null | undefined,
-): CronLogStatus | undefined {
+function parseCronStatus(value: string | null | undefined): CronLogStatus | undefined {
   if (value && VALID_CRON_STATUSES.includes(value as CronLogStatus)) {
     return value as CronLogStatus;
   }

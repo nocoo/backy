@@ -81,10 +81,7 @@ describe("createBindingR2Adapter", () => {
     const obj: R2BindingObject = {
       body: null,
       arrayBuffer: async () =>
-        bytes.buffer.slice(
-          bytes.byteOffset,
-          bytes.byteOffset + bytes.byteLength,
-        ),
+        bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
       httpMetadata: { contentType: "image/png" },
       size: 3,
     };

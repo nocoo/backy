@@ -1,6 +1,7 @@
 # Autoresearch: UT 质量优化（保持覆盖率，提升意义/性能/稳定性）
 
 ## Objective
+
 在不降低单元测试覆盖率（lines/branches/functions/statements 阈值）的前提下，
 提升整套 vitest 单元测试的：
 
@@ -11,11 +12,13 @@
 
 覆盖率作为**硬约束**（`autoresearch.checks.sh` 跑 `bun run test:coverage` +
 `bun run typecheck`）。覆盖率阈值见各包 `vitest.config.ts`：
+
 - `packages/api`: lines/funcs/statements 90、branches 80
 - `apps/worker`: lines/statements 90、funcs 85、branches 80
 - `apps/web`: lines/funcs/statements 95、branches 90（仅 `src/lib/**`）
 
 ## Metrics
+
 - **Primary**: `total_ms` — `bun run test` 全套（web+api+worker+cli）
   连续 5 次运行的**中位数耗时**（毫秒，越低越好）
 - **Secondary**:
@@ -25,10 +28,12 @@
   - `coverage_min_pct` — 三个包 lines 覆盖率最小值（监控）
 
 ## How to Run
+
 `./autoresearch.sh` — 输出 `METRIC name=value` 行。
 约束检查：`./autoresearch.checks.sh`（自动在 benchmark 通过后执行）。
 
 ## Files in Scope
+
 所有 vitest 单测文件 + 必要的测试 helpers：
 
 - `apps/web/src/__tests__/**/*.test.{ts,tsx}` (12 文件 / 75 cases)
@@ -42,6 +47,7 @@
 可以新增/合并/删除测试文件，前提是覆盖率阈值不被打破。
 
 ## Off Limits
+
 - **生产代码** `apps/*/src/**`（除 `__tests__` 子目录）、
   `packages/api/src/**`（除 `__tests__`）—— 不允许通过修改实现来作弊
   地满足覆盖率/通过率。
@@ -50,6 +56,7 @@
 - E2E (`e2e/**`, `scripts/run-e2e.ts`)。
 
 ## Constraints
+
 - `bun run test:coverage` 必须通过（覆盖率阈值 + 全部用例 pass）。
 - `bun run typecheck` 必须通过。
 - 任何一次 5 连跑出现 flake/失败 = 视为 crash/checks_failed。
@@ -60,6 +67,7 @@
 ## What's Been Tried
 
 ### Big wins (kept)
+
 1. **Parallelize 4 workspaces** via `& wait` in root `bun run test`. 2241→
    1234 ms (-45%). Stddev 258→12. Trivially safe.
 2. **Vitest 4 pool config**: `pool: "threads", maxWorkers: 1, isolate: false`
@@ -70,7 +78,7 @@
 3. **Delete `scaffold.test.ts`** — single "App is a function" test that took
    302 ms loading every page transitively for one TS-trivially-checked
    assertion. 900→857 ms.
-4. **Sweep "X is a function component" surface tests** in web/__tests__
+4. **Sweep "X is a function component" surface tests** in web/**tests**
    (projects, layout, backups, logs, dashboard, charts, auth, ui). Each
    imported heavy radix/recharts/lucide modules just to assert exports were
    functions. Replaced with real behavioural assertions or deleted. 857→730
@@ -95,6 +103,7 @@
    .toBeUndefined()` + assert exact `Error.message` logged.
 
 ### Dead ends (discarded)
+
 - `@vitejs/plugin-react` removal: no perf delta; transform was already cheap.
 - api `maxWorkers: 4`: workers contended with the parallel web vitest CPU
   budget, and lost the `isolate:false` module-cache benefit when split.
@@ -104,6 +113,7 @@
 - `bunx vitest` direct vs `bun --cwd ... run test`: no measurable delta.
 
 ### Current state (234 experiments)
+
 - **total_ms median: ~735–800 ms** (baseline 2241 ms, **−~65–67%**;
   recent runs trending higher due to host system load).
 - **stddev_ms: ~3–20 ms** typical when system idle.
@@ -147,8 +157,8 @@
 - **weak_tests: 0** by 7-heuristic scanner.
 - **coverage gates: PASS**.
 - **100% body-coverage on every test** in every handler
-  (packages/api/src/handlers/*) and every test file
-  (apps/worker/src/__tests__/*, packages/api/src/__tests__/*).
+  (packages/api/src/handlers/_) and every test file
+  (apps/worker/src/**tests**/_, packages/api/src/**tests**/*).
   No status-only assertions remain in the codebase.
 - **Real production bugs surfaced via testing**:
   - `handler-response.ts` empty-case spreads headers into ResponseInit
@@ -169,7 +179,7 @@
     pin the BUG behavior; cf-edge check is the practical mitigation.
 - **Cron-summary contract documented**: `results` field OMITTED when
   empty (NOT `results:[]`). Pinned at handler + routes-integration
-  + via .not.toHaveProperty for explicit doc.
+  - via .not.toHaveProperty for explicit doc.
 - **Misnamed/wrongly-fixtured tests fixed: 1** (db.test seed-verifies-clean
   silently ran the 'reset' branch for the entire test history).
 - **Adapter-mock arg drops fixed: 2** (presignDownload ttl).
@@ -190,6 +200,7 @@
   assertions: 0**, **real-network deps: 0**.
 
 ### Wrap-up
+
 - Test surface is now in a strong, defensive state. Future regressions
   to handler error messages, response envelopes, or sanitization
   contracts will all surface as test diffs (not silent passes).
@@ -199,6 +210,7 @@
   clean.
 
 ### Where to go next (all in autoresearch.ideas.md)
+
 - handler-test boilerplate consolidation in api/handlers/* (maintainability,
   not perf)
 - lib-coverage's @testing-library/react DOM mount could be replaced with
@@ -206,4 +218,3 @@
   prod-code constraint)
 - 7 remaining 401/404 OR assertions in routes.test.ts could be split into
   two tests each with explicit auth headers
-

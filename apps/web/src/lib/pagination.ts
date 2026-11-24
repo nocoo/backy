@@ -2,10 +2,7 @@
  * Generate page numbers with ellipsis for pagination display.
  * e.g., [1, 2, 3, "...", 10] or [1, "...", 4, 5, 6, "...", 10]
  */
-export function generatePageNumbers(
-  current: number,
-  total: number,
-): Array<number | "..."> {
+export function generatePageNumbers(current: number, total: number): Array<number | "..."> {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }

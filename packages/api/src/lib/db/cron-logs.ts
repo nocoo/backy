@@ -36,11 +36,7 @@ export interface CreateCronLogInput {
   durationMs?: number | null;
 }
 
-async function q<T>(
-  db: D1Adapter,
-  sql: string,
-  params: unknown[] = [],
-): Promise<T[]> {
+async function q<T>(db: D1Adapter, sql: string, params: unknown[] = []): Promise<T[]> {
   const { results } = await db.query<T>(sql, params);
   return results;
 }
@@ -48,10 +44,7 @@ async function q<T>(
 /**
  * Write a cron log entry to D1.
  */
-export async function createCronLog(
-  db: D1Adapter,
-  input: CreateCronLogInput,
-): Promise<void> {
+export async function createCronLog(db: D1Adapter, input: CreateCronLogInput): Promise<void> {
   const id = generateId();
   const now = new Date().toISOString();
 
@@ -110,8 +103,7 @@ export async function listCronLogs(
     params.push(status);
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const countRows = await q<{ count: number }>(
     db,
@@ -169,8 +161,7 @@ export async function deleteCronLogs(
     params.push(status);
   }
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   await q(db, `DELETE FROM cron_logs ${whereClause}`, params);
 }

@@ -6,15 +6,10 @@ const ctx = makeMockCtx();
 
 describe("ipInfoHandler", () => {
   test("400 when ip missing", async () => {
-    const r = await ipInfoHandler(
-      { ip: null },
-      ctx,
-      async () => new Response(),
-    );
+    const r = await ipInfoHandler({ ip: null }, ctx, async () => new Response());
     expect(r.status).toBe(400);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Missing ip parameter" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Missing ip parameter" });
   });
 
   test("503 when ECHO_API_URL not configured (preempts 400 missing-ip)", async () => {
@@ -34,15 +29,10 @@ describe("ipInfoHandler", () => {
       ...baseCtx,
       env: envWithoutUrl as typeof baseCtx.env,
     };
-    const r = await ipInfoHandler(
-      { ip: null },
-      noEchoCtx,
-      async () => new Response(),
-    );
+    const r = await ipInfoHandler({ ip: null }, noEchoCtx, async () => new Response());
     expect(r.status).toBe(503);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "IP info service not configured" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "IP info service not configured" });
   });
 
   test("200 on success", async () => {
@@ -54,18 +44,15 @@ describe("ipInfoHandler", () => {
     expect(r.status).toBe(200);
     // Tightened: handler must pass upstream JSON through verbatim.
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ ip: "1.2.3.4", country: "US" });
+    if (r.kind === "json") expect(r.body).toEqual({ ip: "1.2.3.4", country: "US" });
   });
 
   test("502 on upstream error", async () => {
-    const fetcher = async () =>
-      new Response("bad", { status: 500, statusText: "Server Error" });
+    const fetcher = async () => new Response("bad", { status: 500, statusText: "Server Error" });
     const r = await ipInfoHandler({ ip: "1.2.3.4" }, ctx, fetcher);
     expect(r.status).toBe(502);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "IP info service unavailable" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "IP info service unavailable" });
   });
 
   test("500 on fetcher throw", async () => {
@@ -75,8 +62,7 @@ describe("ipInfoHandler", () => {
     const r = await ipInfoHandler({ ip: "1.2.3.4" }, ctx, fetcher);
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to fetch IP info" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to fetch IP info" });
   });
 
   test("uses default fetcher when not provided", async () => {
@@ -86,9 +72,7 @@ describe("ipInfoHandler", () => {
     // @ts-expect-error narrow override for the test
     globalThis.fetch = async (url, init) => {
       capturedUrl = typeof url === "string" ? url : url.toString();
-      capturedHeaders = (init?.headers ?? undefined) as
-        | Record<string, string>
-        | undefined;
+      capturedHeaders = (init?.headers ?? undefined) as Record<string, string> | undefined;
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     };
     try {
@@ -100,9 +84,7 @@ describe("ipInfoHandler", () => {
       // default-fetcher path (no fetcher arg) must behave identically
       // to the explicit-fetcher path.
       if (r.kind === "json") expect(r.body).toEqual({ ok: true });
-      expect(capturedUrl).toBe(
-        "https://echo.example.com?ip=1.2.3.4",
-      );
+      expect(capturedUrl).toBe("https://echo.example.com?ip=1.2.3.4");
       expect(capturedHeaders?.["x-api-key"]).toBe("test-echo-key");
     } finally {
       globalThis.fetch = originalFetch;
@@ -125,10 +107,7 @@ describe("ipInfoHandler", () => {
       env: envWithoutKey as typeof baseCtx.env,
     };
     let capturedHeaders: Record<string, string> | undefined;
-    const fetcher = async (
-      _url: string,
-      init: { headers: Record<string, string> },
-    ) => {
+    const fetcher = async (_url: string, init: { headers: Record<string, string> }) => {
       capturedHeaders = init.headers;
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     };

@@ -1,10 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Folder, FolderKanban } from "@nocoo/basalt/icons";
-import {
-  CATEGORY_ICONS,
-  CATEGORY_COLORS,
-  getCategoryIcon,
-} from "../lib/category-icons";
+import { CATEGORY_ICONS, CATEGORY_COLORS, getCategoryIcon } from "../lib/category-icons";
 
 // Surface assertions like `typeof ProjectsPage === "function"` were removed:
 // the TypeScript compiler already enforces the export shape, and the heavy

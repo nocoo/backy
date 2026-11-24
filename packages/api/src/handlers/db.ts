@@ -3,9 +3,7 @@ import { TEST_PROJECT } from "../lib/test-project";
 import { json, type HandlerResponse } from "../http/response";
 import type { RuntimeContext } from "../runtime";
 
-export async function dbInitHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function dbInitHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   try {
     await initializeSchema(ctx.db);
     return json(200, { ok: true, message: "Schema initialized" });
@@ -15,13 +13,9 @@ export async function dbInitHandler(
   }
 }
 
-export async function getTestMarkerHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function getTestMarkerHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   try {
-    const { results } = await ctx.db.query<{ id: string }>(
-      "SELECT id FROM _test_marker LIMIT 1",
-    );
+    const { results } = await ctx.db.query<{ id: string }>("SELECT id FROM _test_marker LIMIT 1");
     return json(200, { marker: results[0]?.id ?? null });
   } catch (error) {
     return json(200, {
@@ -32,9 +26,7 @@ export async function getTestMarkerHandler(
   }
 }
 
-export async function seedTestProjectHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function seedTestProjectHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   if (ctx.env.E2E_SKIP_AUTH !== "true") {
     return json(403, { error: "Forbidden" });
   }
@@ -46,10 +38,7 @@ export async function seedTestProjectHandler(
       id: string;
       file_key: string;
       json_key: string | null;
-    }>(
-      "SELECT id, file_key, json_key FROM backups WHERE project_id = ?",
-      [id],
-    );
+    }>("SELECT id, file_key, json_key FROM backups WHERE project_id = ?", [id]);
     if (orphanedBackups.length > 0) {
       const r2Keys = orphanedBackups.flatMap((b) =>
         b.json_key ? [b.file_key, b.json_key] : [b.file_key],

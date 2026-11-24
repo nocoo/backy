@@ -1,9 +1,5 @@
 import { describe, expect, test, beforeEach, vi } from "vitest";
-import {
-  WEBHOOK_LOG_STUBS,
-  CRON_LOG_STUBS,
-  makeMockCtx,
-} from "../helpers";
+import { WEBHOOK_LOG_STUBS, CRON_LOG_STUBS, makeMockCtx } from "../helpers";
 
 let mockListWebhookLogs: (...a: any[]) => Promise<any> = async () => ({
   items: [],
@@ -19,8 +15,7 @@ let mockDeleteCronLogs: (...a: any[]) => Promise<void> = async () => {};
 vi.doMock("../../lib/db/webhook-logs", () => ({
   ...WEBHOOK_LOG_STUBS,
   listWebhookLogs: (_db: unknown, ...a: unknown[]) => mockListWebhookLogs(...a),
-  deleteWebhookLogs: (_db: unknown, ...a: unknown[]) =>
-    mockDeleteWebhookLogs(...a),
+  deleteWebhookLogs: (_db: unknown, ...a: unknown[]) => mockDeleteWebhookLogs(...a),
 }));
 
 vi.doMock("../../lib/db/cron-logs", () => ({
@@ -62,17 +57,20 @@ describe("logs handlers", () => {
         captured = input;
         return { items: [], total: 0 };
       };
-      const r = await listWebhookLogsHandler({
-        projectId: "p1",
-        excludeProjectIds: "a, b ,",
-        excludeClientIps: "1.1.1.1,2.2.2.2",
-        method: "POST",
-        statusCode: "200",
-        errorCode: "auth_invalid",
-        success: "true",
-        page: "2",
-        pageSize: "9999",
-      }, ctx);
+      const r = await listWebhookLogsHandler(
+        {
+          projectId: "p1",
+          excludeProjectIds: "a, b ,",
+          excludeClientIps: "1.1.1.1,2.2.2.2",
+          method: "POST",
+          statusCode: "200",
+          errorCode: "auth_invalid",
+          success: "true",
+          page: "2",
+          pageSize: "9999",
+        },
+        ctx,
+      );
       expect(r.status).toBe(200);
       // Tightened: pin the entire parsed-filter object instead of 5
       // individual fields. Catches drift in any param the handler
@@ -120,16 +118,11 @@ describe("logs handlers", () => {
       // helper must return undefined (not an empty array). Documents
       // that the DB layer never sees an empty exclude list.
       let captured: { excludeProjectIds?: string[] } = {};
-      mockListWebhookLogs = async (input: {
-        excludeProjectIds?: string[];
-      }) => {
+      mockListWebhookLogs = async (input: { excludeProjectIds?: string[] }) => {
         captured = input;
         return { items: [] };
       };
-      await listWebhookLogsHandler(
-        { excludeProjectIds: ", , ," },
-        ctx,
-      );
+      await listWebhookLogsHandler({ excludeProjectIds: ", , ," }, ctx);
       expect(captured.excludeProjectIds).toBeUndefined();
     });
 
@@ -140,17 +133,11 @@ describe("logs handlers", () => {
       // 50 fires → max(1,50)=50. We use pageSize='-5' to also trigger
       // the Math.max(1, ...) clamp on a negative parsed value.
       let captured: { page?: number; pageSize?: number } = {};
-      mockListWebhookLogs = async (input: {
-        page?: number;
-        pageSize?: number;
-      }) => {
+      mockListWebhookLogs = async (input: { page?: number; pageSize?: number }) => {
         captured = input;
         return { items: [] };
       };
-      await listWebhookLogsHandler(
-        { page: "not-a-number", pageSize: "-5" },
-        ctx,
-      );
+      await listWebhookLogsHandler({ page: "not-a-number", pageSize: "-5" }, ctx);
       // page: NaN || 1 = 1
       expect(captured.page).toBe(1);
       // pageSize: parseInt(-5)=-5 (truthy) → Math.max(1, -5) = 1 → Math.min(100, 1) = 1
@@ -164,28 +151,28 @@ describe("logs handlers", () => {
       const r = await listWebhookLogsHandler({}, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to list webhook logs" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to list webhook logs" });
     });
   });
 
   describe("deleteWebhookLogsHandler", () => {
     test("200 on success", async () => {
-      const r = await deleteWebhookLogsHandler({
-        body: { projectId: "p1", method: "POST", success: false },
-      }, ctx);
+      const r = await deleteWebhookLogsHandler(
+        {
+          body: { projectId: "p1", method: "POST", success: false },
+        },
+        ctx,
+      );
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ success: true });
+      if (r.kind === "json") expect(r.body).toEqual({ success: true });
     });
 
     test("200 with empty body", async () => {
       const r = await deleteWebhookLogsHandler({ body: null }, ctx);
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ success: true });
+      if (r.kind === "json") expect(r.body).toEqual({ success: true });
     });
 
     test("500 on db error", async () => {
@@ -195,8 +182,7 @@ describe("logs handlers", () => {
       const r = await deleteWebhookLogsHandler({ body: {} }, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to delete webhook logs" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to delete webhook logs" });
     });
   });
 
@@ -207,8 +193,7 @@ describe("logs handlers", () => {
       expect(r.kind).toBe("json");
       // Tightened: handler must pass the listCronLogs return verbatim
       // (no envelope wrapping).
-      if (r.kind === "json")
-        expect(r.body).toEqual({ items: [], total: 0 });
+      if (r.kind === "json") expect(r.body).toEqual({ items: [], total: 0 });
     });
 
     test("200 with valid status", async () => {
@@ -217,12 +202,15 @@ describe("logs handlers", () => {
         captured = input;
         return { items: [] };
       };
-      await listCronLogsHandler({
-        projectId: "p1",
-        status: "success",
-        page: "3",
-        pageSize: "10",
-      }, ctx);
+      await listCronLogsHandler(
+        {
+          projectId: "p1",
+          status: "success",
+          page: "3",
+          pageSize: "10",
+        },
+        ctx,
+      );
       // Tightened: pin the entire parsed-filter object instead of just
       // status. Catches projectId / page / pageSize forwarding drift.
       expect(captured).toEqual({
@@ -250,8 +238,7 @@ describe("logs handlers", () => {
       const r = await listCronLogsHandler({}, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to list cron logs" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to list cron logs" });
     });
   });
 
@@ -263,10 +250,13 @@ describe("logs handlers", () => {
     });
 
     test("204 with valid status filter", async () => {
-      const r = await deleteCronLogsHandler({
-        projectId: "p1",
-        status: "failed",
-      }, ctx);
+      const r = await deleteCronLogsHandler(
+        {
+          projectId: "p1",
+          status: "failed",
+        },
+        ctx,
+      );
       expect(r.status).toBe(204);
       expect(r.kind).toBe("empty");
     });
@@ -278,8 +268,7 @@ describe("logs handlers", () => {
       const r = await deleteCronLogsHandler({}, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to delete cron logs" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to delete cron logs" });
     });
   });
 });

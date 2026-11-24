@@ -38,7 +38,9 @@ async function runOsvScanner(): Promise<ScanResult> {
   }
 
   try {
-    const result = await $`osv-scanner scan --config=osv-scanner.toml --lockfile=bun.lock 2>&1`.quiet().nothrow();
+    const result = await $`osv-scanner scan --config=osv-scanner.toml --lockfile=bun.lock 2>&1`
+      .quiet()
+      .nothrow();
     const output = result.text();
 
     // osv-scanner exits 0 = no vulns, 1 = vulns found, other = error
@@ -67,7 +69,13 @@ async function runOsvScanner(): Promise<ScanResult> {
 
 function resolveUpstreamRange(): { range: string; fallback: boolean } {
   try {
-    const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]);
+    const result = Bun.spawnSync([
+      "git",
+      "rev-parse",
+      "--abbrev-ref",
+      "--symbolic-full-name",
+      "@{u}",
+    ]);
     if (result.exitCode === 0) {
       const upstream = new TextDecoder().decode(result.stdout).trim();
       return { range: `${upstream}..HEAD`, fallback: false };
@@ -98,7 +106,12 @@ async function runGitleaks(staged: boolean): Promise<ScanResult> {
       if (result.exitCode === 0) {
         return { name, ok: true, warn: false, output: `✅ ${name}: no secrets detected (staged)` };
       }
-      return { name, ok: false, warn: false, output: `❌ ${name}: secrets detected (staged)\n${output}` };
+      return {
+        name,
+        ok: false,
+        warn: false,
+        output: `❌ ${name}: secrets detected (staged)\n${output}`,
+      };
     } catch (err) {
       return { name, ok: false, warn: false, output: `❌ ${name}: unexpected error — ${err}` };
     }
@@ -114,7 +127,12 @@ async function runGitleaks(staged: boolean): Promise<ScanResult> {
     if (result.exitCode === 0) {
       return { name, ok: true, warn: false, output: `✅ ${name}: no secrets detected (${mode})` };
     }
-    return { name, ok: false, warn: false, output: `❌ ${name}: secrets detected (${mode})\n${output}` };
+    return {
+      name,
+      ok: false,
+      warn: false,
+      output: `❌ ${name}: secrets detected (${mode})\n${output}`,
+    };
   } catch (err) {
     return { name, ok: false, warn: false, output: `❌ ${name}: unexpected error — ${err}` };
   }

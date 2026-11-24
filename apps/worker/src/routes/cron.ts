@@ -1,8 +1,5 @@
 import { Hono } from "hono";
-import {
-  cronTriggerHandler,
-  cronTriggerOneHandler,
-} from "@backy/api/handlers/cron";
+import { cronTriggerHandler, cronTriggerOneHandler } from "@backy/api/handlers/cron";
 import type { AppEnv } from "../lib/types";
 import { toResponse } from "../lib/handler-response";
 
@@ -18,12 +15,7 @@ app.post("/trigger", async (c) =>
 );
 
 app.post("/trigger/:projectId", async (c) =>
-  toResponse(
-    await cronTriggerOneHandler(
-      { projectId: c.req.param("projectId") },
-      c.get("ctx"),
-    ),
-  ),
+  toResponse(await cronTriggerOneHandler({ projectId: c.req.param("projectId") }, c.get("ctx"))),
 );
 
 export { app as cronRoutes };

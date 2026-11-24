@@ -35,10 +35,7 @@ describe("L2: API /api/cron", () => {
   test("POST /api/cron/trigger/:projectId triggers single project backup", async () => {
     expect(testProjectId).toBeTruthy();
 
-    const res = await jsonRequest(
-      "POST",
-      `/api/cron/trigger/${testProjectId}`,
-    );
+    const res = await jsonRequest("POST", `/api/cron/trigger/${testProjectId}`);
     // May succeed or fail based on webhook config
     expect([200, 400, 500]).toContain(res.status);
   });

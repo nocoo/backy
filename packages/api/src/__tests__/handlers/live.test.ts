@@ -40,7 +40,16 @@ describe("live handler", () => {
     // Tightened: status='error' AND d1.status='down' AND r2.status='up'.
     // Catches a regression that flips r2 to down too on a d1-only failure.
     expect(r.kind).toBe("json");
-    expect((r as { body: { status: string; dependencies: { d1: { status: string }; r2: { status: string } } } }).body).toMatchObject({
+    expect(
+      (
+        r as {
+          body: {
+            status: string;
+            dependencies: { d1: { status: string }; r2: { status: string } };
+          };
+        }
+      ).body,
+    ).toMatchObject({
       status: "error",
       dependencies: {
         d1: { status: "down" },

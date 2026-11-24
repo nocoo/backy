@@ -1,19 +1,8 @@
 import { getProjectByToken } from "../lib/db/projects";
-import {
-  createBackup,
-  getBackup,
-  getBackupByFileKey,
-  type Backup,
-} from "../lib/db/backups";
+import { createBackup, getBackup, getBackupByFileKey, type Backup } from "../lib/db/backups";
 import { isIpAllowed } from "../lib/ip";
-import {
-  createWebhookLog,
-  type WebhookErrorCode,
-} from "../lib/db/webhook-logs";
-import {
-  detectFileType,
-  normalizeContentType,
-} from "../lib/backup/file-type";
+import { createWebhookLog, type WebhookErrorCode } from "../lib/db/webhook-logs";
+import { detectFileType, normalizeContentType } from "../lib/backup/file-type";
 import { json, type HandlerResponse } from "../http/response";
 import { isS3R2Configured } from "../lib/r2/s3-adapter";
 import { generateId } from "../lib/id";
@@ -207,9 +196,7 @@ export async function webhookInitUploadHandler(
     const { project, startTime, reqCtx } = auth;
 
     const body =
-      input.body && typeof input.body === "object"
-        ? (input.body as Record<string, unknown>)
-        : null;
+      input.body && typeof input.body === "object" ? (input.body as Record<string, unknown>) : null;
     if (!body) {
       fireLog(ctx, {
         projectId: project.id,
@@ -265,13 +252,10 @@ export async function webhookInitUploadHandler(
       });
     }
 
-    const environment =
-      typeof body.environment === "string" ? body.environment : undefined;
+    const environment = typeof body.environment === "string" ? body.environment : undefined;
     if (
       environment &&
-      !VALID_ENVIRONMENTS.includes(
-        environment as (typeof VALID_ENVIRONMENTS)[number],
-      )
+      !VALID_ENVIRONMENTS.includes(environment as (typeof VALID_ENVIRONMENTS)[number])
     ) {
       fireLog(ctx, {
         projectId: project.id,
@@ -300,10 +284,7 @@ export async function webhookInitUploadHandler(
     const uploadId = generateId();
     const stagingKey = generateDirectStagingKey(input.projectId, uploadId, ext);
     const fileKey = generateDirectFinalKey(input.projectId, uploadId, ext);
-    if (
-      utf8ByteLength(stagingKey) > MAX_KEY_BYTES ||
-      utf8ByteLength(fileKey) > MAX_KEY_BYTES
-    ) {
+    if (utf8ByteLength(stagingKey) > MAX_KEY_BYTES || utf8ByteLength(fileKey) > MAX_KEY_BYTES) {
       fireLog(ctx, {
         projectId: project.id,
         method: "POST",
@@ -387,8 +368,7 @@ export async function webhookInitUploadHandler(
         path,
         statusCode: 500,
         errorCode: "internal_error",
-        errorMessage:
-          signError instanceof Error ? signError.message : "presign failed",
+        errorMessage: signError instanceof Error ? signError.message : "presign failed",
         metadata: logMeta({ upload_id: uploadId, file_name: fileName }),
         startTime,
         ctx: reqCtx,
@@ -738,8 +718,7 @@ export async function webhookCompleteUploadHandler(
     }
 
     const fileType = detectFileType(upload.file_name, upload.content_type);
-    const previewableJson =
-      fileType === "json" && finalHead.contentLength <= MAX_PREVIEW_SIZE;
+    const previewableJson = fileType === "json" && finalHead.contentLength <= MAX_PREVIEW_SIZE;
 
     let backup: Backup;
     try {
@@ -756,8 +735,7 @@ export async function webhookCompleteUploadHandler(
         fileType,
       });
     } catch (dbError) {
-      const message =
-        dbError instanceof Error ? dbError.message : "backup insert failed";
+      const message = dbError instanceof Error ? dbError.message : "backup insert failed";
       if (/unique/i.test(message)) {
         const conflict = await getBackupByFileKey(ctx.db, upload.file_key);
         if (conflict && conflict.project_id === input.projectId) {
@@ -907,11 +885,7 @@ export async function webhookAbortUploadHandler(
       });
       return json(404, { error: "Upload not found" });
     }
-    const aborted = await abortPendingDirectUpload(
-      ctx.db,
-      upload.id,
-      input.projectId,
-    );
+    const aborted = await abortPendingDirectUpload(ctx.db, upload.id, input.projectId);
     if (aborted || upload.status === "aborted") {
       fireLog(ctx, {
         projectId: project.id,

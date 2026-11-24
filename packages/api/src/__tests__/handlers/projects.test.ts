@@ -84,8 +84,7 @@ describe("projects handlers", () => {
       const r = await listProjectsHandler(ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to list projects" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to list projects" });
     });
   });
 
@@ -97,10 +96,7 @@ describe("projects handlers", () => {
         captured = args;
         return created;
       };
-      const r = await createProjectHandler(
-        { body: { name: "ok", description: "d" } },
-        ctx,
-      );
+      const r = await createProjectHandler({ body: { name: "ok", description: "d" } }, ctx);
       expect(r.status).toBe(201);
       // Tightened: createProjectHandler intentionally returns the raw
       // project (webhook_token included) so the client sees the token
@@ -143,8 +139,7 @@ describe("projects handlers", () => {
       const r = await createProjectHandler({ body: { name: "ok" } }, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to create project" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to create project" });
     });
   });
 
@@ -165,8 +160,7 @@ describe("projects handlers", () => {
       const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(404);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Project not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
@@ -176,18 +170,20 @@ describe("projects handlers", () => {
       const r = await getProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to get project" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to get project" });
     });
   });
 
   describe("updateProjectHandler", () => {
     test("returns 200 on valid update", async () => {
       mockUpdateProject = async () => makeProject();
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { name: "Renamed", description: "d" },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { name: "Renamed", description: "d" },
+        },
+        ctx,
+      );
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
       // Tightened: pin the response is the SANITIZED project (webhook_token
@@ -210,30 +206,36 @@ describe("projects handlers", () => {
         updates.push(args[1]);
         return makeProject();
       };
-      const r1 = await updateProjectHandler({
-        id: "p1",
-        body: { allowed_ips: null },
-      }, ctx);
+      const r1 = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { allowed_ips: null },
+        },
+        ctx,
+      );
       expect(r1.status).toBe(200);
-      const r2 = await updateProjectHandler({
-        id: "p1",
-        body: { allowed_ips: "  " },
-      }, ctx);
+      const r2 = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { allowed_ips: "  " },
+        },
+        ctx,
+      );
       expect(r2.status).toBe(200);
       // Tightened: positively verify both branches forward null (not
       // "" or "  ") to updateProject. Status-only would let a regression
       // pass that forwarded the empty string verbatim.
-      expect(updates).toEqual([
-        { allowed_ips: null },
-        { allowed_ips: null },
-      ]);
+      expect(updates).toEqual([{ allowed_ips: null }, { allowed_ips: null }]);
     });
 
     test("validates allowed_ips and returns 400 on bad CIDR", async () => {
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { allowed_ips: "not-an-ip" },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { allowed_ips: "not-an-ip" },
+        },
+        ctx,
+      );
       expect(r.status).toBe(400);
       expect(r.kind).toBe("json");
       if (r.kind === "json")
@@ -252,10 +254,13 @@ describe("projects handlers", () => {
         captured = args[1];
         return makeProject();
       };
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { allowed_ips: "10.0.0.0/8" },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { allowed_ips: "10.0.0.0/8" },
+        },
+        ctx,
+      );
       expect(r.status).toBe(200);
       // Tightened: verify the normalized CIDR is forwarded verbatim
       // (no surrounding whitespace, no IP-form drift).
@@ -263,10 +268,13 @@ describe("projects handlers", () => {
     });
 
     test("returns 400 for unsafe webhook URL", async () => {
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { auto_backup_webhook: "http://10.0.0.1/x" },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { auto_backup_webhook: "http://10.0.0.1/x" },
+        },
+        ctx,
+      );
       expect(r.status).toBe(400);
       expect(r.kind).toBe("json");
       if (r.kind === "json")
@@ -278,10 +286,13 @@ describe("projects handlers", () => {
 
     test("accepts null webhook URL", async () => {
       mockUpdateProject = async () => makeProject();
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { auto_backup_webhook: null },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { auto_backup_webhook: null },
+        },
+        ctx,
+      );
       expect(r.status).toBe(200);
     });
 
@@ -291,16 +302,19 @@ describe("projects handlers", () => {
         captured = args[1];
         return makeProject();
       };
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: {
-          auto_backup_enabled: 1,
-          auto_backup_interval: 12,
-          auto_backup_header_key: "X-K",
-          auto_backup_header_value: "V",
-          category_id: "cat1",
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: {
+            auto_backup_enabled: 1,
+            auto_backup_interval: 12,
+            auto_backup_header_key: "X-K",
+            auto_backup_header_value: "V",
+            category_id: "cat1",
+          },
         },
-      }, ctx);
+        ctx,
+      );
       expect(r.status).toBe(200);
       // Tightened: pin the exact patch object forwarded to updateProject.
       // Catches typos / dropped fields / extra fields the old
@@ -315,10 +329,13 @@ describe("projects handlers", () => {
     });
 
     test("returns 400 on schema violation", async () => {
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { auto_backup_interval: 5 },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { auto_backup_interval: 5 },
+        },
+        ctx,
+      );
       expect(r.status).toBe(400);
       expect(r.kind).toBe("json");
       // Tightened: pin the error envelope so a regression that returns
@@ -335,28 +352,32 @@ describe("projects handlers", () => {
     });
 
     test("returns 404 when project missing", async () => {
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { name: "x" },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { name: "x" },
+        },
+        ctx,
+      );
       expect(r.status).toBe(404);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Project not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
       mockUpdateProject = async () => {
         throw new Error("db");
       };
-      const r = await updateProjectHandler({
-        id: "p1",
-        body: { name: "x" },
-      }, ctx);
+      const r = await updateProjectHandler(
+        {
+          id: "p1",
+          body: { name: "x" },
+        },
+        ctx,
+      );
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to update project" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to update project" });
     });
   });
 
@@ -383,8 +404,7 @@ describe("projects handlers", () => {
       const r = await deleteProjectHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to delete project" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to delete project" });
     });
   });
 
@@ -416,18 +436,20 @@ describe("projects handlers", () => {
       const r = await regenerateTokenHandler({ id: "p1" }, ctx);
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to regenerate token" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to regenerate token" });
     });
   });
 
   describe("projectPromptHandler", () => {
     test("returns 200 with prompt markdown", async () => {
       mockGetProject = async () => makeProject();
-      const r = await projectPromptHandler({
-        id: "p1",
-        baseUrl: "https://x.example.com",
-      }, ctx);
+      const r = await projectPromptHandler(
+        {
+          id: "p1",
+          baseUrl: "https://x.example.com",
+        },
+        ctx,
+      );
       expect(r.status).toBe(200);
       expect(r.kind).toBe("json");
       const prompt = (r as { body: { prompt: string } }).body.prompt;
@@ -456,16 +478,21 @@ describe("projects handlers", () => {
           auto_backup_header_key: "X-K",
           auto_backup_header_value: "v",
         });
-      const r = await projectPromptHandler({
-        id: "p1",
-        baseUrl: "https://x.example.com",
-      }, ctx);
+      const r = await projectPromptHandler(
+        {
+          id: "p1",
+          baseUrl: "https://x.example.com",
+        },
+        ctx,
+      );
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       // Tightened: pin the exact "(Active)" badge that appears in the Pull
       // table row when auto-backup is enabled, plus the auth-header line
       // that prints the supplied header key with masked value.
       expect(prompt).toContain("**(Active)**");
-      expect(prompt).toContain("**Auth header**: `X-K: \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022`");
+      expect(prompt).toContain(
+        "**Auth header**: `X-K: \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022`",
+      );
     });
 
     test("pluralizes 'hours' for non-1 interval (covers === 1 false branch)", async () => {
@@ -477,10 +504,7 @@ describe("projects handlers", () => {
           auto_backup_enabled: 1,
           auto_backup_interval: 12,
         });
-      const r = await projectPromptHandler(
-        { id: "p1", baseUrl: "https://x.example.com" },
-        ctx,
-      );
+      const r = await projectPromptHandler({ id: "p1", baseUrl: "https://x.example.com" }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       expect(prompt).toContain("Every 12 hours");
     });
@@ -495,10 +519,7 @@ describe("projects handlers", () => {
           auto_backup_header_key: "X-Auth",
           auto_backup_header_value: null,
         });
-      const r = await projectPromptHandler(
-        { id: "p1", baseUrl: "https://x.example.com" },
-        ctx,
-      );
+      const r = await projectPromptHandler({ id: "p1", baseUrl: "https://x.example.com" }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       expect(prompt).toContain("**Auth header**: `X-Auth: (not set)`");
     });
@@ -512,20 +533,20 @@ describe("projects handlers", () => {
           auto_backup_enabled: 1,
           auto_backup_webhook: null,
         });
-      const r = await projectPromptHandler(
-        { id: "p1", baseUrl: "https://x.example.com" },
-        ctx,
-      );
+      const r = await projectPromptHandler({ id: "p1", baseUrl: "https://x.example.com" }, ctx);
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       expect(prompt).toContain("**Your endpoint**: `(not set)`");
     });
 
     test("notes auto-backup not enabled when disabled", async () => {
       mockGetProject = async () => makeProject({ auto_backup_enabled: 0 });
-      const r = await projectPromptHandler({
-        id: "p1",
-        baseUrl: "https://x.example.com",
-      }, ctx);
+      const r = await projectPromptHandler(
+        {
+          id: "p1",
+          baseUrl: "https://x.example.com",
+        },
+        ctx,
+      );
       const prompt = (r as { body: { prompt: string } }).body.prompt;
       // Tightened: pin the exact 'not yet enabled' phrase + project name
       // interpolation rather than a bare substring that could match
@@ -534,28 +555,32 @@ describe("projects handlers", () => {
     });
 
     test("returns 404 when project missing", async () => {
-      const r = await projectPromptHandler({
-        id: "p1",
-        baseUrl: "https://x",
-      }, ctx);
+      const r = await projectPromptHandler(
+        {
+          id: "p1",
+          baseUrl: "https://x",
+        },
+        ctx,
+      );
       expect(r.status).toBe(404);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Project not found" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Project not found" });
     });
 
     test("returns 500 on db error", async () => {
       mockGetProject = async () => {
         throw new Error("db");
       };
-      const r = await projectPromptHandler({
-        id: "p1",
-        baseUrl: "https://x",
-      }, ctx);
+      const r = await projectPromptHandler(
+        {
+          id: "p1",
+          baseUrl: "https://x",
+        },
+        ctx,
+      );
       expect(r.status).toBe(500);
       expect(r.kind).toBe("json");
-      if (r.kind === "json")
-        expect(r.body).toEqual({ error: "Failed to generate prompt" });
+      if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to generate prompt" });
     });
   });
 });

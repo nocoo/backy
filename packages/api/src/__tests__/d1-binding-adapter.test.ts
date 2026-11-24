@@ -32,9 +32,7 @@ function makeBinding(
 describe("createBindingD1Adapter", () => {
   test("returns rows + meta when binding provides them", async () => {
     const meta = { changes: 1, last_row_id: 7 };
-    const adapter = createBindingD1Adapter(
-      makeBinding({ results: [{ id: "x" }], meta }),
-    );
+    const adapter = createBindingD1Adapter(makeBinding({ results: [{ id: "x" }], meta }));
     const out = await adapter.query<{ id: string }>("SELECT 1");
     expect(out.results).toEqual([{ id: "x" }]);
     expect(out.meta).toEqual(meta);
@@ -49,9 +47,7 @@ describe("createBindingD1Adapter", () => {
 
   test("forwards sql + params via prepare/bind", async () => {
     const capture: { sql?: string; params?: unknown[] } = {};
-    const adapter = createBindingD1Adapter(
-      makeBinding({ results: [] }, capture),
-    );
+    const adapter = createBindingD1Adapter(makeBinding({ results: [] }, capture));
     await adapter.query("SELECT * FROM t WHERE id = ?", ["abc"]);
     expect(capture.sql).toBe("SELECT * FROM t WHERE id = ?");
     expect(capture.params).toEqual(["abc"]);

@@ -34,9 +34,7 @@ describe("meRoutes — direct", () => {
     // Documents the success path: a middleware that set accessEmail
     // (e.g. accessAuth's E2E_SKIP_AUTH bypass or verified JWT) makes
     // the route forward the email in the body.
-    const res = await mount((c) => c.set("accessEmail", "alice@x.com")).request(
-      "/api/me",
-    );
+    const res = await mount((c) => c.set("accessEmail", "alice@x.com")).request("/api/me");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       authenticated: true,
@@ -63,9 +61,7 @@ describe("meRoutes — direct", () => {
       { preconnect: () => {} },
     ) as typeof fetch;
     try {
-      const res = await mount((c) =>
-        c.set("accessEmail", "architie@gmail.com"),
-      ).request("/api/me");
+      const res = await mount((c) => c.set("accessEmail", "architie@gmail.com")).request("/api/me");
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({
         authenticated: true,

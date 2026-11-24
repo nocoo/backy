@@ -4,98 +4,98 @@ AI backup management service. Receive, store, preview, and restore backups sent 
 
 ## Architecture
 
-| Layer | Technology |
-|---|---|
-| Runtime | Bun |
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript (strict mode) |
-| UI | Tailwind CSS v4 + shadcn/ui (basalt design system) |
-| Charts | Recharts |
-| Validation | Zod v4 |
-| Auth | NextAuth v5 + Google OAuth (whitelist) |
-| Metadata DB | Cloudflare D1 (remote REST API, exponential backoff retry) |
-| File Storage | Cloudflare R2 (S3-compatible API, AWS SDK v3) |
-| Deployment | Railway + Docker (3-stage), port 7017 |
-| Domain | your-domain.example.com |
+| Layer        | Technology                                                 |
+| ------------ | ---------------------------------------------------------- |
+| Runtime      | Bun                                                        |
+| Framework    | Next.js 16 (App Router)                                    |
+| Language     | TypeScript (strict mode)                                   |
+| UI           | Tailwind CSS v4 + shadcn/ui (basalt design system)         |
+| Charts       | Recharts                                                   |
+| Validation   | Zod v4                                                     |
+| Auth         | NextAuth v5 + Google OAuth (whitelist)                     |
+| Metadata DB  | Cloudflare D1 (remote REST API, exponential backoff retry) |
+| File Storage | Cloudflare R2 (S3-compatible API, AWS SDK v3)              |
+| Deployment   | Railway + Docker (3-stage), port 7017                      |
+| Domain       | your-domain.example.com                                    |
 
 ## Data Model (D1)
 
 ### categories
 
-| Column | Type | Description |
-|---|---|---|
-| id | TEXT PK | nanoid |
-| name | TEXT | Category name |
-| color | TEXT | Hex color (default `#6b7280`) |
-| icon | TEXT | Lucide icon name (default `folder`) |
-| sort_order | INTEGER | Display order |
-| created_at | TEXT | ISO 8601 |
-| updated_at | TEXT | ISO 8601 |
+| Column     | Type    | Description                         |
+| ---------- | ------- | ----------------------------------- |
+| id         | TEXT PK | nanoid                              |
+| name       | TEXT    | Category name                       |
+| color      | TEXT    | Hex color (default `#6b7280`)       |
+| icon       | TEXT    | Lucide icon name (default `folder`) |
+| sort_order | INTEGER | Display order                       |
+| created_at | TEXT    | ISO 8601                            |
+| updated_at | TEXT    | ISO 8601                            |
 
 ### projects
 
-| Column | Type | Description |
-|---|---|---|
-| id | TEXT PK | nanoid |
-| name | TEXT | Project name |
-| description | TEXT? | Optional description |
-| webhook_token | TEXT UNIQUE | Auto-generated, used by sender in Authorization header |
-| allowed_ips | TEXT? | Comma-separated CIDR whitelist |
-| category_id | TEXT? FK | → categories.id (ON DELETE SET NULL) |
-| auto_backup_enabled | INTEGER | 0/1 flag |
-| auto_backup_interval | INTEGER | Hours between auto-backups (default 24) |
-| auto_backup_webhook | TEXT? | External webhook URL to trigger |
-| auto_backup_header_key | TEXT? | Custom header name for auto-backup request |
-| auto_backup_header_value | TEXT? | Custom header value for auto-backup request |
-| created_at | TEXT | ISO 8601 |
-| updated_at | TEXT | ISO 8601 |
+| Column                   | Type        | Description                                            |
+| ------------------------ | ----------- | ------------------------------------------------------ |
+| id                       | TEXT PK     | nanoid                                                 |
+| name                     | TEXT        | Project name                                           |
+| description              | TEXT?       | Optional description                                   |
+| webhook_token            | TEXT UNIQUE | Auto-generated, used by sender in Authorization header |
+| allowed_ips              | TEXT?       | Comma-separated CIDR whitelist                         |
+| category_id              | TEXT? FK    | → categories.id (ON DELETE SET NULL)                   |
+| auto_backup_enabled      | INTEGER     | 0/1 flag                                               |
+| auto_backup_interval     | INTEGER     | Hours between auto-backups (default 24)                |
+| auto_backup_webhook      | TEXT?       | External webhook URL to trigger                        |
+| auto_backup_header_key   | TEXT?       | Custom header name for auto-backup request             |
+| auto_backup_header_value | TEXT?       | Custom header value for auto-backup request            |
+| created_at               | TEXT        | ISO 8601                                               |
+| updated_at               | TEXT        | ISO 8601                                               |
 
 ### backups
 
-| Column | Type | Description |
-|---|---|---|
-| id | TEXT PK | nanoid |
-| project_id | TEXT FK | → projects.id (ON DELETE CASCADE) |
-| environment | TEXT? | dev/prod, sender-defined |
-| sender_ip | TEXT | Request IP |
-| tag | TEXT? | Sender-defined label |
-| file_key | TEXT | R2 object key (original file) |
-| json_key | TEXT? | R2 object key (extracted JSON preview) |
-| file_size | INTEGER | Bytes |
-| file_type | TEXT | `json`, `zip`, `gz`, `tgz`, or `unknown` |
+| Column         | Type    | Description                               |
+| -------------- | ------- | ----------------------------------------- |
+| id             | TEXT PK | nanoid                                    |
+| project_id     | TEXT FK | → projects.id (ON DELETE CASCADE)         |
+| environment    | TEXT?   | dev/prod, sender-defined                  |
+| sender_ip      | TEXT    | Request IP                                |
+| tag            | TEXT?   | Sender-defined label                      |
+| file_key       | TEXT    | R2 object key (original file)             |
+| json_key       | TEXT?   | R2 object key (extracted JSON preview)    |
+| file_size      | INTEGER | Bytes                                     |
+| file_type      | TEXT    | `json`, `zip`, `gz`, `tgz`, or `unknown`  |
 | is_single_json | INTEGER | 1 if archive contains a single .json file |
-| json_extracted | INTEGER | 1 if user chose to extract JSON |
-| created_at | TEXT | ISO 8601 |
-| updated_at | TEXT | ISO 8601 |
+| json_extracted | INTEGER | 1 if user chose to extract JSON           |
+| created_at     | TEXT    | ISO 8601                                  |
+| updated_at     | TEXT    | ISO 8601                                  |
 
 ### webhook_logs
 
-| Column | Type | Description |
-|---|---|---|
-| id | TEXT PK | nanoid |
-| project_id | TEXT? | Associated project (nullable for bad requests) |
-| method | TEXT | HTTP method |
-| path | TEXT | Request path |
-| status_code | INTEGER | Response status |
-| client_ip | TEXT? | Sender IP |
-| user_agent | TEXT? | Sender user agent |
-| error_code | TEXT? | Structured error code |
-| error_message | TEXT? | Human-readable error |
-| duration_ms | INTEGER? | Request duration |
-| metadata | TEXT? | JSON string with extra context |
-| created_at | TEXT | ISO 8601 |
+| Column        | Type     | Description                                    |
+| ------------- | -------- | ---------------------------------------------- |
+| id            | TEXT PK  | nanoid                                         |
+| project_id    | TEXT?    | Associated project (nullable for bad requests) |
+| method        | TEXT     | HTTP method                                    |
+| path          | TEXT     | Request path                                   |
+| status_code   | INTEGER  | Response status                                |
+| client_ip     | TEXT?    | Sender IP                                      |
+| user_agent    | TEXT?    | Sender user agent                              |
+| error_code    | TEXT?    | Structured error code                          |
+| error_message | TEXT?    | Human-readable error                           |
+| duration_ms   | INTEGER? | Request duration                               |
+| metadata      | TEXT?    | JSON string with extra context                 |
+| created_at    | TEXT     | ISO 8601                                       |
 
 ### cron_logs
 
-| Column | Type | Description |
-|---|---|---|
-| id | TEXT PK | nanoid |
-| project_id | TEXT? FK | → projects.id (ON DELETE CASCADE) |
-| status | TEXT | success/error/skipped |
+| Column        | Type     | Description                        |
+| ------------- | -------- | ---------------------------------- |
+| id            | TEXT PK  | nanoid                             |
+| project_id    | TEXT? FK | → projects.id (ON DELETE CASCADE)  |
+| status        | TEXT     | success/error/skipped              |
 | response_code | INTEGER? | HTTP status from triggered webhook |
-| error | TEXT? | Error message |
-| duration_ms | INTEGER? | Execution time |
-| triggered_at | TEXT | ISO 8601 |
+| error         | TEXT?    | Error message                      |
+| duration_ms   | INTEGER? | Execution time                     |
+| triggered_at  | TEXT     | ISO 8601                           |
 
 ### Indexes
 
@@ -134,64 +134,73 @@ Timestamp format: `2026-03-02T10-30-00-000Z` (ISO 8601 with colons/dots replaced
 ## API Routes (24 files, 37 handlers)
 
 ### Auth
-| Route | Methods | Description |
-|---|---|---|
+
+| Route                     | Methods   | Description          |
+| ------------------------- | --------- | -------------------- |
 | `/api/auth/[...nextauth]` | GET, POST | NextAuth v5 handlers |
 
 ### Backups
-| Route | Methods | Description |
-|---|---|---|
-| `/api/backups` | GET, DELETE | List (paginated, filterable), batch delete by IDs |
-| `/api/backups/[id]` | GET, DELETE | Get/delete single backup |
-| `/api/backups/[id]/download` | GET | Presigned download URL |
-| `/api/backups/[id]/extract` | POST | Extract JSON from archive |
-| `/api/backups/[id]/preview` | GET | Load JSON for tree preview |
-| `/api/backups/upload` | POST | Manual file upload |
+
+| Route                        | Methods     | Description                                       |
+| ---------------------------- | ----------- | ------------------------------------------------- |
+| `/api/backups`               | GET, DELETE | List (paginated, filterable), batch delete by IDs |
+| `/api/backups/[id]`          | GET, DELETE | Get/delete single backup                          |
+| `/api/backups/[id]/download` | GET         | Presigned download URL                            |
+| `/api/backups/[id]/extract`  | POST        | Extract JSON from archive                         |
+| `/api/backups/[id]/preview`  | GET         | Load JSON for tree preview                        |
+| `/api/backups/upload`        | POST        | Manual file upload                                |
 
 ### Categories
-| Route | Methods | Description |
-|---|---|---|
-| `/api/categories` | GET, POST | List/create categories |
+
+| Route                  | Methods          | Description                |
+| ---------------------- | ---------------- | -------------------------- |
+| `/api/categories`      | GET, POST        | List/create categories     |
 | `/api/categories/[id]` | GET, PUT, DELETE | Get/update/delete category |
 
 ### Cron
-| Route | Methods | Description |
-|---|---|---|
-| `/api/cron/trigger` | POST | Trigger auto-backup for all enabled projects |
-| `/api/cron/trigger/[projectId]` | POST | Trigger auto-backup for single project |
-| `/api/cron/logs` | GET, DELETE | List/delete cron logs |
+
+| Route                           | Methods     | Description                                  |
+| ------------------------------- | ----------- | -------------------------------------------- |
+| `/api/cron/trigger`             | POST        | Trigger auto-backup for all enabled projects |
+| `/api/cron/trigger/[projectId]` | POST        | Trigger auto-backup for single project       |
+| `/api/cron/logs`                | GET, DELETE | List/delete cron logs                        |
 
 ### Infrastructure
-| Route | Methods | Description |
-|---|---|---|
-| `/api/db/init` | POST | Initialize D1 schema + migrations |
-| `/api/ip-info` | GET | IP geolocation proxy |
-| `/api/live` | GET | Health check (D1 + R2 ping) |
-| `/api/logs` | GET, DELETE | Webhook audit logs |
+
+| Route          | Methods     | Description                       |
+| -------------- | ----------- | --------------------------------- |
+| `/api/db/init` | POST        | Initialize D1 schema + migrations |
+| `/api/ip-info` | GET         | IP geolocation proxy              |
+| `/api/live`    | GET         | Health check (D1 + R2 ping)       |
+| `/api/logs`    | GET, DELETE | Webhook audit logs                |
 
 ### Projects
-| Route | Methods | Description |
-|---|---|---|
-| `/api/projects` | GET, POST | List/create projects |
-| `/api/projects/[id]` | GET, PUT, DELETE | Get/update/delete project |
-| `/api/projects/[id]/token` | POST | Regenerate webhook token |
-| `/api/projects/[id]/prompt` | GET | AI agent integration prompt |
+
+| Route                       | Methods          | Description                 |
+| --------------------------- | ---------------- | --------------------------- |
+| `/api/projects`             | GET, POST        | List/create projects        |
+| `/api/projects/[id]`        | GET, PUT, DELETE | Get/update/delete project   |
+| `/api/projects/[id]/token`  | POST             | Regenerate webhook token    |
+| `/api/projects/[id]/prompt` | GET              | AI agent integration prompt |
 
 ### Stats
-| Route | Methods | Description |
-|---|---|---|
-| `/api/stats` | GET | Dashboard totals |
-| `/api/stats/charts` | GET | Chart data (activity, projects, cron) |
+
+| Route               | Methods | Description                           |
+| ------------------- | ------- | ------------------------------------- |
+| `/api/stats`        | GET     | Dashboard totals                      |
+| `/api/stats/charts` | GET     | Chart data (activity, projects, cron) |
 
 ### Webhook (public)
-| Route | Methods | Description |
-|---|---|---|
+
+| Route                      | Methods         | Description                                                   |
+| -------------------------- | --------------- | ------------------------------------------------------------- |
 | `/api/webhook/[projectId]` | HEAD, GET, POST | HEAD: token verify, GET: project status, POST: receive backup |
 
 ### Restore (public)
-| Route | Methods | Description |
-|---|---|---|
-| `/api/restore/[id]` | GET | Returns JSON with presigned R2 download URL (15 min TTL) |
+
+| Route               | Methods | Description                                              |
+| ------------------- | ------- | -------------------------------------------------------- |
+| `/api/restore/[id]` | GET     | Returns JSON with presigned R2 download URL (15 min TTL) |
 
 ## Pages
 

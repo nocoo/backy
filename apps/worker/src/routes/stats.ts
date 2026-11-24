@@ -1,8 +1,5 @@
 import { Hono } from "hono";
-import {
-  statsTotalsHandler,
-  statsChartsHandler,
-} from "@backy/api/handlers/stats";
+import { statsTotalsHandler, statsChartsHandler } from "@backy/api/handlers/stats";
 import type { AppEnv } from "../lib/types";
 import { toResponse } from "../lib/handler-response";
 

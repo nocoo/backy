@@ -1,17 +1,12 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { Hono } from "hono";
-import {
-  accessAuth,
-  __resetJwksCacheForTests,
-} from "../middleware/access-auth";
+import { accessAuth, __resetJwksCacheForTests } from "../middleware/access-auth";
 import type { AppEnv } from "../lib/types";
 
 function buildApp() {
   const app = new Hono<AppEnv>();
   app.use("*", accessAuth);
-  app.all("*", (c) =>
-    c.json({ ok: true, email: c.get("accessEmail") ?? null }),
-  );
+  app.all("*", (c) => c.json({ ok: true, email: c.get("accessEmail") ?? null }));
   return app;
 }
 
@@ -122,13 +117,10 @@ describe("accessAuth — public path whitelist", () => {
   });
 
   test("POST nanoid /uploads/:id/complete is public", async () => {
-    const res = await buildApp().request(
-      `/api/webhook/${nid}/uploads/${nid2}/complete`,
-      {
-        method: "POST",
-        headers: { host: "backy.example.com" },
-      },
-    );
+    const res = await buildApp().request(`/api/webhook/${nid}/uploads/${nid2}/complete`, {
+      method: "POST",
+      headers: { host: "backy.example.com" },
+    });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, email: null });
   });
@@ -167,11 +159,9 @@ describe("accessAuth — public path whitelist", () => {
 describe("accessAuth — short-circuits", () => {
   test("E2E_SKIP_AUTH bypass sets dev email", async () => {
     const app = buildApp();
-    const res = await app.request(
-      "/api/projects",
-      { headers: { host: "backy.example.com" } },
-      { E2E_SKIP_AUTH: "true" } as unknown as AppEnv["Bindings"],
-    );
+    const res = await app.request("/api/projects", { headers: { host: "backy.example.com" } }, {
+      E2E_SKIP_AUTH: "true",
+    } as unknown as AppEnv["Bindings"]);
     expect(res.status).toBe(200);
     expect((await res.json()) as unknown).toEqual({ ok: true, email: "dev@local" });
   });
@@ -229,14 +219,10 @@ describe("accessAuth — unconfigured env", () => {
 describe("accessAuth — JWT verification", () => {
   test("missing Cf-Access-Jwt-Assertion → 401", async () => {
     const app = buildApp();
-    const res = await app.request(
-      "/api/projects",
-      { headers: { host: "backy.example.com" } },
-      {
-        CF_ACCESS_TEAM_DOMAIN: "test.cloudflareaccess.com",
-        CF_ACCESS_AUD: "test-aud",
-      } as unknown as AppEnv["Bindings"],
-    );
+    const res = await app.request("/api/projects", { headers: { host: "backy.example.com" } }, {
+      CF_ACCESS_TEAM_DOMAIN: "test.cloudflareaccess.com",
+      CF_ACCESS_AUD: "test-aud",
+    } as unknown as AppEnv["Bindings"]);
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: "Unauthorized" });
   });

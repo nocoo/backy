@@ -12,8 +12,7 @@ import {
 import { mockFetch } from "./helpers";
 
 const KNOWN_EMAIL = "architie@gmail.com";
-const KNOWN_HASH =
-  "7ba563171c26fb9b82e9f7750840c0455602eb35025192027230bcb40aae1217";
+const KNOWN_HASH = "7ba563171c26fb9b82e9f7750840c0455602eb35025192027230bcb40aae1217";
 const AVATAR = "https://example.com/avatar-80.jpg";
 
 function jsonRes(body: unknown, status = 200): Response {
@@ -111,9 +110,10 @@ describe("fetchAuthorProfile", () => {
       fetchAuthorProfile(KNOWN_HASH, async () => jsonRes(["Zheng Li"])),
     ).resolves.toEqual({ name: null, avatar: null });
     __resetAuthorProfileCacheForTests();
-    await expect(
-      fetchAuthorProfile(KNOWN_HASH, async () => jsonRes(null)),
-    ).resolves.toEqual({ name: null, avatar: null });
+    await expect(fetchAuthorProfile(KNOWN_HASH, async () => jsonRes(null))).resolves.toEqual({
+      name: null,
+      avatar: null,
+    });
   });
 
   test("returns empty on 429 without caching", async () => {
@@ -140,37 +140,26 @@ describe("fetchAuthorProfile", () => {
       }),
     ).resolves.toEqual({ name: null, avatar: null });
     await expect(
-      fetchAuthorProfile(
-        KNOWN_HASH,
-        async () => new Response("{", { status: 200 }),
-      ),
+      fetchAuthorProfile(KNOWN_HASH, async () => new Response("{", { status: 200 })),
     ).resolves.toEqual({ name: null, avatar: null });
   });
 
   test("caches a 200 response until TTL expires", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-21T00:00:00Z"));
-    const fetcher = vi.fn(async () =>
-      jsonRes({ name: "Zheng Li", avatar: AVATAR }),
-    );
+    const fetcher = vi.fn(async () => jsonRes({ name: "Zheng Li", avatar: AVATAR }));
     await fetchAuthorProfile(KNOWN_HASH, fetcher);
     await fetchAuthorProfile(KNOWN_HASH, fetcher);
     expect(fetcher).toHaveBeenCalledTimes(1);
 
-    vi.setSystemTime(
-      new Date("2026-08-21T00:00:00Z").getTime() +
-        AUTHOR_PROFILE_CACHE_TTL_MS +
-        1,
-    );
+    vi.setSystemTime(new Date("2026-08-21T00:00:00Z").getTime() + AUTHOR_PROFILE_CACHE_TTL_MS + 1);
     await fetchAuthorProfile(KNOWN_HASH, fetcher);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   test("uses global fetch when fetcher is omitted", async () => {
     globalThis.fetch = mockFetch(async (url) => {
-      expect(String(url)).toBe(
-        `${AUTHOR_PROFILE_ENDPOINT}?hash=${KNOWN_HASH}`,
-      );
+      expect(String(url)).toBe(`${AUTHOR_PROFILE_ENDPOINT}?hash=${KNOWN_HASH}`);
       return jsonRes({ name: "Zheng Li", avatar: AVATAR });
     });
     await expect(fetchAuthorProfile(KNOWN_HASH)).resolves.toEqual({
@@ -186,8 +175,9 @@ describe("lookupAuthorProfile", () => {
       expect(url).toContain(KNOWN_HASH);
       return jsonRes({ name: "Zheng Li", avatar: AVATAR });
     });
-    await expect(
-      lookupAuthorProfile("  Architie@Gmail.com  ", fetcher),
-    ).resolves.toEqual({ name: "Zheng Li", avatar: AVATAR });
+    await expect(lookupAuthorProfile("  Architie@Gmail.com  ", fetcher)).resolves.toEqual({
+      name: "Zheng Li",
+      avatar: AVATAR,
+    });
   });
 });

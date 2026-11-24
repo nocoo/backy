@@ -17,14 +17,12 @@ vi.mock("node:dns/promises", () => {
   return {
     resolve4: async (host: string) => {
       if (host === "localhost") return ["127.0.0.1"];
-      if (host.endsWith(".example") || host.includes("does-not-exist"))
-        NXDOMAIN(host);
+      if (host.endsWith(".example") || host.includes("does-not-exist")) NXDOMAIN(host);
       return ["93.184.216.34"]; // example.com public IP
     },
     resolve6: async (host: string) => {
       if (host === "localhost") return ["::1"];
-      if (host.endsWith(".example") || host.includes("does-not-exist"))
-        NXDOMAIN(host);
+      if (host.endsWith(".example") || host.includes("does-not-exist")) NXDOMAIN(host);
       return ["2606:2800:220:1:248:1893:25c8:1946"];
     },
   };

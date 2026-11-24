@@ -188,9 +188,7 @@ export async function initializeSchema(db: D1Adapter): Promise<void> {
       `Cannot create unique index on backups.file_key: ${duplicates.results.length} duplicate key(s)`,
     );
   }
-  await db.query(
-    "CREATE UNIQUE INDEX IF NOT EXISTS idx_backups_file_key ON backups(file_key)",
-  );
+  await db.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_backups_file_key ON backups(file_key)");
 
   // Insert test marker (E2E safety: verify bound D1 is the test database)
   await db.query(

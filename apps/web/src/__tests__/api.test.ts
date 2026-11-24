@@ -3,7 +3,9 @@ import { ApiError, apiFetch, apiJson, swrFetcher } from "../lib/api";
 
 const realFetch = globalThis.fetch;
 
-function stubFetch(responder: (input: RequestInfo | URL, init?: RequestInit) => Response | Promise<Response>) {
+function stubFetch(
+  responder: (input: RequestInfo | URL, init?: RequestInit) => Response | Promise<Response>,
+) {
   const fn = vi.fn(responder) as unknown as typeof fetch;
   (fn as typeof fetch & { preconnect: () => void }).preconnect = () => {};
   globalThis.fetch = fn;
@@ -115,11 +117,12 @@ describe("apiJson + swrFetcher", () => {
   });
 
   test("swrFetcher delegates to apiJson", async () => {
-    stubFetch(() =>
-      new Response(JSON.stringify({ a: 1 }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
+    stubFetch(
+      () =>
+        new Response(JSON.stringify({ a: 1 }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
     );
     const out = await swrFetcher<{ a: number }>("/api/y");
     expect(out).toEqual({ a: 1 });

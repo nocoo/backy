@@ -35,7 +35,10 @@ interface ManualUploadDialogProps {
 
 function generateDefaultTag(): string {
   const now = new Date();
-  const ts = now.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
+  const ts = now
+    .toISOString()
+    .replace("T", " ")
+    .replace(/\.\d+Z$/, "");
   return `Manual ${ts}`;
 }
 
@@ -56,9 +59,7 @@ export function ManualUploadDialog({
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
 
-  const [selectedProjectId, setSelectedProjectId] = useState(
-    fixedProjectId ?? "",
-  );
+  const [selectedProjectId, setSelectedProjectId] = useState(fixedProjectId ?? "");
   const [tag, setTag] = useState(generateDefaultTag);
   const [environment, setEnvironment] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -129,8 +130,7 @@ export function ManualUploadDialog({
   function getFileIcon() {
     if (!file) return null;
     const name = file.name.toLowerCase();
-    if (name.endsWith(".json"))
-      return <FileJson className="h-5 w-5 text-basalt-warning" />;
+    if (name.endsWith(".json")) return <FileJson className="h-5 w-5 text-basalt-warning" />;
     if (
       name.endsWith(".zip") ||
       name.endsWith(".gz") ||
@@ -184,8 +184,7 @@ export function ManualUploadDialog({
   }
 
   const isJsonFile =
-    file?.name.toLowerCase().endsWith(".json") ||
-    file?.type === "application/json";
+    file?.name.toLowerCase().endsWith(".json") || file?.type === "application/json";
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -201,10 +200,9 @@ export function ManualUploadDialog({
         <DialogHeader>
           <DialogTitle>Upload Backup</DialogTitle>
           <DialogDescription>
-            Upload a backup file to a project. JSON, ZIP, GZ, and TGZ files
-            support preview; other formats are stored as-is.
-            {isJsonFile &&
-              " JSON files will be automatically compressed into ZIP."}
+            Upload a backup file to a project. JSON, ZIP, GZ, and TGZ files support preview; other
+            formats are stored as-is.
+            {isJsonFile && " JSON files will be automatically compressed into ZIP."}
           </DialogDescription>
         </DialogHeader>
 
@@ -218,10 +216,7 @@ export function ManualUploadDialog({
                   Loading projects...
                 </div>
               ) : (
-                <Select
-                  value={selectedProjectId}
-                  onValueChange={setSelectedProjectId}
-                >
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a project" />
                   </SelectTrigger>
@@ -252,9 +247,7 @@ export function ManualUploadDialog({
           <div className="flex flex-col gap-2">
             <Label>
               Environment{" "}
-              <span className="text-basalt-muted-foreground font-normal">
-                (optional)
-              </span>
+              <span className="text-basalt-muted-foreground font-normal">(optional)</span>
             </Label>
             <Select value={environment} onValueChange={setEnvironment}>
               <SelectTrigger className="w-full">
@@ -336,20 +329,12 @@ export function ManualUploadDialog({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={uploading}
-          >
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={uploading}>
             Cancel
           </Button>
           <Button
             onClick={() => void handleUpload()}
-            disabled={
-              uploading ||
-              !file ||
-              (!fixedProjectId && !selectedProjectId)
-            }
+            disabled={uploading || !file || (!fixedProjectId && !selectedProjectId)}
           >
             {uploading && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
             Upload

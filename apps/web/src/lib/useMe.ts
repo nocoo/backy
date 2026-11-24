@@ -9,11 +9,9 @@ export interface MeResponse {
 }
 
 export function useMe() {
-  const { data, error, isLoading, mutate } = useSWR<MeResponse, ApiError>(
-    "/api/me",
-    swrFetcher,
-    { shouldRetryOnError: false },
-  );
+  const { data, error, isLoading, mutate } = useSWR<MeResponse, ApiError>("/api/me", swrFetcher, {
+    shouldRetryOnError: false,
+  });
   return {
     email: data?.email ?? null,
     name: data?.name ?? null,

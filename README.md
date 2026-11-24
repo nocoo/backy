@@ -72,22 +72,22 @@ bun run dev
 
 Vite 使用 `http://localhost:7017`，将 `/api/*` 转发到 7018 的 Worker。仓库 `apps/worker/wrangler.toml` 的 D1 / R2 均设置了 `remote = true`，默认命令会访问其中的远程资源。先替换成自己的开发数据库、存储桶与 Access 配置；本地 secrets 放在 `apps/worker/.dev.vars`，仓库没有对应模板。完整配置与初始化边界见[开发指南](docs/10-development.md)。
 
-| 配置 | 用途 |
-| --- | --- |
-| `DB`、`R2` bindings | D1 数据库与 R2 文件存储 |
-| `CF_ACCESS_TEAM_DOMAIN`、`CF_ACCESS_AUD` | 管理 API 的 Access JWT 校验；开发入口也需匹配认证方式 |
-| `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` | 下载签名、大文件上传签名与对象复制 |
-| `CRON_SECRET` | 自动备份触发及其 HTTP 入口 |
+| 配置                                                                          | 用途                                                  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `DB`、`R2` bindings                                                           | D1 数据库与 R2 文件存储                               |
+| `CF_ACCESS_TEAM_DOMAIN`、`CF_ACCESS_AUD`                                      | 管理 API 的 Access JWT 校验；开发入口也需匹配认证方式 |
+| `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` | 下载签名、大文件上传签名与对象复制                    |
+| `CRON_SECRET`                                                                 | 自动备份触发及其 HTTP 入口                            |
 
 普通开发不要使用测试认证开关。需要完全本地的数据库、R2 与测试身份时，使用下方仓库已有的测试 runner。
 
-| 命令 / 路径 | 用途 |
-| --- | --- |
-| `bun run web:dev`、`bun run worker:dev` | 分别启动前端与 Worker |
-| `bun run typecheck`、`bun run lint` | 工作区类型与代码检查 |
-| `apps/web/` | 管理界面与路由 |
-| `apps/worker/` | Hono 路由、Access 校验、定时任务与静态资源 |
-| `packages/api/` | 备份、存储、项目、直传与日志逻辑 |
+| 命令 / 路径                             | 用途                                       |
+| --------------------------------------- | ------------------------------------------ |
+| `bun run web:dev`、`bun run worker:dev` | 分别启动前端与 Worker                      |
+| `bun run typecheck`、`bun run lint`     | 工作区类型与代码检查                       |
+| `apps/web/`                             | 管理界面与路由                             |
+| `apps/worker/`                          | Hono 路由、Access 校验、定时任务与静态资源 |
+| `packages/api/`                         | 备份、存储、项目、直传与日志逻辑           |
 
 `main` 的 CI 成功后，Release 工作流构建网页、应用增量 D1 迁移并部署 Worker。`bun run worker:deploy` 只执行 Worker 部署，手动发布前仍需准备静态文件和数据库，见[部署说明](docs/10-development.md)。
 
@@ -109,17 +109,17 @@ bun run test:e2e:bdd
 
 ## 技术栈
 
-| 技术 | 用途 |
-| --- | --- |
-| TypeScript、Bun workspaces | 共享类型、业务包与脚本 |
-| Vite、React、React Router | 管理界面与前端路由 |
-| Tailwind CSS、Radix UI、Recharts | 样式、交互组件与图表 |
-| Hono、Cloudflare Workers | HTTP API、定时任务与静态资源 |
-| Cloudflare D1 | 项目、备份、直传状态与日志 |
-| Cloudflare R2、AWS S3 SDK | 文件存储、签名 URL 与对象复制 |
-| Cloudflare Access、jose | 管理身份和 JWT 校验 |
-| JSZip、tar-stream、zlib | 压缩包中的 JSON 提取 |
-| Vitest、Bun test、Playwright | 单元、HTTP 和浏览器测试 |
+| 技术                             | 用途                          |
+| -------------------------------- | ----------------------------- |
+| TypeScript、Bun workspaces       | 共享类型、业务包与脚本        |
+| Vite、React、React Router        | 管理界面与前端路由            |
+| Tailwind CSS、Radix UI、Recharts | 样式、交互组件与图表          |
+| Hono、Cloudflare Workers         | HTTP API、定时任务与静态资源  |
+| Cloudflare D1                    | 项目、备份、直传状态与日志    |
+| Cloudflare R2、AWS S3 SDK        | 文件存储、签名 URL 与对象复制 |
+| Cloudflare Access、jose          | 管理身份和 JWT 校验           |
+| JSZip、tar-stream、zlib          | 压缩包中的 JSON 提取          |
+| Vitest、Bun test、Playwright     | 单元、HTTP 和浏览器测试       |
 
 ## 文档
 

@@ -124,8 +124,7 @@ function discoverE2ERequests(): Route[] {
     }
 
     // jsonRequest("POST", "/api/...", ...) calls
-    const jsonReqRe =
-      /jsonRequest\(\s*["'](\w+)["']\s*,\s*[`"']([^`"']+)[`"']/g;
+    const jsonReqRe = /jsonRequest\(\s*["'](\w+)["']\s*,\s*[`"']([^`"']+)[`"']/g;
     for (const m of src.matchAll(jsonReqRe)) {
       const method = m[1];
       const rawPath = m[2];
@@ -146,8 +145,7 @@ function discoverE2ERequests(): Route[] {
     }
 
     // fetch(url(...)) with method inline or default GET
-    const fetchSimpleRe =
-      /fetch\(\s*url\(\s*[`"']([^`"']+)[`"']\s*\)\s*\)/g;
+    const fetchSimpleRe = /fetch\(\s*url\(\s*[`"']([^`"']+)[`"']\s*\)\s*\)/g;
     for (const m of src.matchAll(fetchSimpleRe)) {
       const rawPath = m[1];
       if (!rawPath?.startsWith("/api/")) continue;
@@ -189,8 +187,7 @@ function normaliseRequestPath(path: string): string {
 
 function isMatch(route: Route, request: Route): boolean {
   const methodOk =
-    route.method === request.method ||
-    (route.method === "GET" && request.method === "HEAD");
+    route.method === request.method || (route.method === "GET" && request.method === "HEAD");
   if (!methodOk) return false;
   const re = routeToRegex(route.path);
   return re.test(normaliseRequestPath(request.path));
@@ -217,9 +214,7 @@ function main(): void {
   }
 
   if (uncovered.length === 0) {
-    console.log(
-      `✅ All ${declared.length} routes have at least one E2E request.\n`,
-    );
+    console.log(`✅ All ${declared.length} routes have at least one E2E request.\n`);
     return;
   }
 

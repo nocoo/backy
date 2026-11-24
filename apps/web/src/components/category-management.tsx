@@ -14,11 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@nocoo/basalt/components/dialog";
-import {
-  CATEGORY_ICONS,
-  CATEGORY_COLORS,
-  getCategoryIcon,
-} from "@/lib/category-icons";
+import { CATEGORY_ICONS, CATEGORY_COLORS, getCategoryIcon } from "@/lib/category-icons";
 
 interface Category {
   id: string;
@@ -34,9 +30,7 @@ interface CategoryManagementProps {
   onCategoriesChanged?: () => void;
 }
 
-export function CategoryManagement({
-  onCategoriesChanged,
-}: CategoryManagementProps) {
+export function CategoryManagement({ onCategoriesChanged }: CategoryManagementProps) {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -127,9 +121,7 @@ export function CategoryManagement({
       await fetchCategories();
       onCategoriesChanged?.();
     } catch (err) {
-      toast.danger(
-        err instanceof Error ? err.message : "Failed to save category",
-      );
+      toast.danger(err instanceof Error ? err.message : "Failed to save category");
     } finally {
       setSaving(false);
     }
@@ -143,9 +135,7 @@ export function CategoryManagement({
       await fetchCategories();
       onCategoriesChanged?.();
     } catch (err) {
-      toast.danger(
-        err instanceof Error ? err.message : "Failed to delete category",
-      );
+      toast.danger(err instanceof Error ? err.message : "Failed to delete category");
     } finally {
       setDeletingId(null);
     }
@@ -163,8 +153,7 @@ export function CategoryManagement({
         <DialogHeader>
           <DialogTitle>Manage Categories</DialogTitle>
           <DialogDescription>
-            Create categories to organize your projects. Each category has a
-            name, color, and icon.
+            Create categories to organize your projects. Each category has a name, color, and icon.
           </DialogDescription>
         </DialogHeader>
 
@@ -294,10 +283,7 @@ export function CategoryManagement({
                         disabled={saving}
                         title={entry.label}
                       >
-                        <Icon
-                          className="h-4 w-4"
-                          style={{ color: formColor }}
-                        />
+                        <Icon className="h-4 w-4" style={{ color: formColor }} />
                       </button>
                     );
                   })}
@@ -310,17 +296,10 @@ export function CategoryManagement({
                   onClick={() => void handleSave()}
                   disabled={saving || !formName.trim()}
                 >
-                  {saving && (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  )}
+                  {saving && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
                   {editingId ? "Update" : "Create"}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={resetForm}
-                  disabled={saving}
-                >
+                <Button size="sm" variant="outline" onClick={resetForm} disabled={saving}>
                   Cancel
                 </Button>
               </div>

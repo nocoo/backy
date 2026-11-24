@@ -14,10 +14,7 @@ test.describe("Projects Pages", () => {
     await expect(page.locator("input#name")).toBeVisible();
   });
 
-  test("GET /projects/:id displays project detail", async ({
-    page,
-    testProjectId,
-  }) => {
+  test("GET /projects/:id displays project detail", async ({ page, testProjectId }) => {
     await page.goto(`/projects/${testProjectId}`);
 
     await expect(page.locator("text=Project").first()).toBeVisible();

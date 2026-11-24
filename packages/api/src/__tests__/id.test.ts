@@ -30,9 +30,7 @@ describe("generateWebhookToken", () => {
   });
 
   test("generates unique tokens", () => {
-    const tokens = new Set(
-      Array.from({ length: 100 }, () => generateWebhookToken()),
-    );
+    const tokens = new Set(Array.from({ length: 100 }, () => generateWebhookToken()));
     expect(tokens.size).toBe(100);
   });
 

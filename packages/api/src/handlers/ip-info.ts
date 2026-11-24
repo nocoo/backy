@@ -22,10 +22,9 @@ export async function ipInfoHandler(
     if (!input.ip) {
       return json(400, { error: "Missing ip parameter" });
     }
-    const res = await fetcher(
-      `${echoUrl}?ip=${encodeURIComponent(input.ip)}`,
-      { headers: { "x-api-key": echoKey } },
-    );
+    const res = await fetcher(`${echoUrl}?ip=${encodeURIComponent(input.ip)}`, {
+      headers: { "x-api-key": echoKey },
+    });
     if (!res.ok) {
       console.error(`Echo API error: ${res.status} ${res.statusText}`);
       return json(502, { error: "IP info service unavailable" });

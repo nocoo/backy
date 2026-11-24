@@ -8,16 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.11.7] - 2026-11-17
 
 ### Changed
+
 - Bump @nocoo/basalt to 3.5.1
 
 ## [1.11.6] - 2026-11-17
 
 ### Added
+
 - Run pre-commit L1 on git index snapshot
 - Add Hexly project link and header tooltips
 - Adopt backy family identity
 
 ### Changed
+
 - Migrate web to basalt 3.5
 - Bump @playwright/test 1.65.0 → 1.65.1
 - Bump hono 4.13.17 → 4.13.18
@@ -170,6 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump @biomejs/biome from 2.5.9 to 2.5.10
 
 ### Fixed
+
 - Patch source-map-js (#695)
 - Pin undici 8.11.2 for security (#691)
 - Patch undici on supported 7.x
@@ -184,12 +188,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade sharp to 0.35.4
 
 ### Removed
+
 - Drop unused ci secrets inherit
 - Remove unused LoadingScreen web component.
 
 ## [1.11.5] - 2026-11-10
 
 ### Changed
+
 - Bump hono to 4.13.17
 - Bump lucide-react to 1.70.0
 - Bump tailwindcss and @tailwindcss/vite to 4.3.5
@@ -200,6 +206,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.11.4] - 2026-11-03
 
 ### Changed
+
 - Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1161.0
 - Bump wrangler to 4.156.2
 - Bump react-router to 8.5.1
@@ -210,6 +217,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.11.3] - 2026-10-25
 
 ### Changed
+
 - Bump happy-dom to 21.0.4 (security)
 - Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1156.0
 - Bump jose to 6.2.13
@@ -224,6 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.11.2] - 2026-10-20
 
 ### Changed
+
 - Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1153.0
 - Bump @cloudflare/workers-types to 5.20261019.1
 - Bump lucide-react to 1.59.0
@@ -236,6 +245,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.11.1] - 2026-10-13
 
 ### Changed
+
 - Bump @aws-sdk/client-s3 and s3-request-presigner to 3.1150.0
 - Bump @cloudflare/workers-types to 5.20261012.1
 - Bump @playwright/test to 1.64.0
@@ -257,22 +267,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.11.0] - 2026-08-22
 
 ### Added
+
 - Apply backups projectId url filter
 - Add project settings backup delete
 
 ### Changed
+
 - Bump workers-types to 5.20260821.1
 - Bump @types/bun from 1.3.14 to 1.4.0
 
 ## [1.10.0] - 2026-08-21
 
 ### Added
+
 - Add large-file direct upload ingest
 - Add r2 head, copy, and upload presign
 - Add direct_uploads schema and unique file_key
 - Lookup public author profile in sidebar
 
 ### Changed
+
 - Document large-file ingest path
 - Align indexes prefixes and summaries
 - Reserve outstanding bytes in quotas
@@ -351,6 +365,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump swr to 2.5.0
 
 ### Fixed
+
 - Protect gc keys and keep webhook logs
 - Apply d1 migration before worker deploy
 - Harden complete lease copy and gc cursor
@@ -367,6 +382,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.9.0] - 2026-08-02
 
 ### Changed
+
 - Update README lint tool to biome
 - Switch G1 lint docs to biome
 - Bump typescript to 7.0.2
@@ -537,16 +553,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converge backy dependency ranges
 
 ### Fixed
+
 - Drop incomplete table roles on backups
 - Restore backup table header a11y roles
 - Clear selection when backup list changes
 
 ### Removed
+
 - Drop stale fast-xml-parser ignore from osv-scanner.toml
 
 ## [1.8.5] - 2026-06-07
 
 ### Changed
+
 - Bump lucide-react 0.577 → 1.17
 - Extract Github icon from lucide-react 0.577
 - Bump vite 7 → 8 + @vitejs/plugin-react 5 → 6
@@ -559,34 +578,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.4] - 2026-05-12
 
 ### Changed
+
 - Update test references from bun test to vitest
 
 ### Fixed
+
 - Override fast-xml-builder to ^1.1.7 (GHSA-45c6, GHSA-5wm8)
 - Allowlist E2E test fixture paths in gitleaks config
 - Upgrade hono to 4.12.16+ (GHSA-69xw, GHSA-9vqf)
 
 ### Removed
+
 - Delete apps/web_legacy (frozen Next.js snapshot)
 - Remove all external references to apps/web_legacy
 
 ## [1.8.3] - 2026-05-12
 
 ### Changed
+
 - Update test references from bun test to vitest
 
 ### Fixed
+
 - Override fast-xml-builder to ^1.1.7 (GHSA-45c6, GHSA-5wm8)
 - Allowlist E2E test fixture paths in gitleaks config
 - Upgrade hono to 4.12.16+ (GHSA-69xw, GHSA-9vqf)
 
 ### Removed
+
 - Delete apps/web_legacy (frozen Next.js snapshot)
 - Remove all external references to apps/web_legacy
 
 ## [1.8.2] - 2026-05-05
 
 ### Added
+
 - Sync NEXT_PUBLIC_APP_VERSION in release script
 - Add test:e2e:bdd runner script
 - Add gate:pages static coverage check
@@ -626,6 +652,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - D1 + R2 binding adapters for Cloudflare Worker host (Wave C.2)
 
 ### Changed
+
 - Fix contradictory E2E description
 - Update test isolation references for --local mode
 - Replace --env test with --local --persist-to
@@ -926,6 +953,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add base-ci quality workflow (L1+G1+G2)
 
 ### Fixed
+
 - Make wrangler.toml version sync fatal in release script
 - Isolate BDD backup fixture and strengthen assertions
 - Use role-based locators and add port-safety to BDD runner
@@ -952,6 +980,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Declare @types/node devDep explicitly
 
 ### Removed
+
 - Remove [env.test] from wrangler.toml
 - Remove basic.test.ts (superseded by domain files)
 - Ip-info.test: FIX 2 tests (delete env.X to actually trigger ?? '' fallback)
@@ -971,6 +1000,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.1] - 2026-05-05
 
 ### Added
+
 - Sync NEXT_PUBLIC_APP_VERSION in release script
 - Add test:e2e:bdd runner script
 - Add gate:pages static coverage check
@@ -1010,6 +1040,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - D1 + R2 binding adapters for Cloudflare Worker host (Wave C.2)
 
 ### Changed
+
 - Fix contradictory E2E description
 - Update test isolation references for --local mode
 - Replace --env test with --local --persist-to
@@ -1310,6 +1341,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add base-ci quality workflow (L1+G1+G2)
 
 ### Fixed
+
 - Make wrangler.toml version sync fatal in release script
 - Isolate BDD backup fixture and strengthen assertions
 - Use role-based locators and add port-safety to BDD runner
@@ -1336,6 +1368,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Declare @types/node devDep explicitly
 
 ### Removed
+
 - Remove [env.test] from wrangler.toml
 - Remove basic.test.ts (superseded by domain files)
 - Ip-info.test: FIX 2 tests (delete env.X to actually trigger ?? '' fallback)
@@ -1355,6 +1388,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.0] - 2026-04-23
 
 ### Changed
+
 - Ignore .next anywhere in tree (was repo-root only)
 - Mark Wave 2 + Wave 3 of API extraction plan complete
 - Wave 2d.4 — extract webhook handlers
@@ -1372,16 +1406,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade next to 16.2.3 to fix CVE
 
 ### Fixed
+
 - Walk up to git root for monorepo layout
 - Keep webhook formData parsing inside handler try/catch
 
 ### Removed
+
 - Drop transport coupling from restoreCommandHandler
 - Remove unused brace-expansion dependency
 
 ## [1.7.12] - 2026-04-03
 
 ### Added
+
 - Add per-page skeleton to Backups list page (B-4)
 - Add per-page skeleton to Projects list page (B-4)
 - Add fade-up entry animation with staggered delays
@@ -1389,6 +1426,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add skeleton component and dashboard loading skeleton
 
 ### Changed
+
 - Ignore GHSA-5f7q-jpqc-wp7h false positive
 - Replace spinner with per-page skeleton (B-4)
 - Migrate ports 7026/17026/27026 → 7017/17017/27017
@@ -1397,6 +1435,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update CLAUDE.md with security fix retrospective entries
 
 ### Fixed
+
 - Normalize page container spacing to gap-4 md:gap-6
 - Remove card border/shadow anti-pattern, use bg-secondary + radius tokens
 - Dashboard framework compliance with basalt B-2 spec
@@ -1414,11 +1453,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add --max-warnings=0 to lint script in package.json
 
 ### Removed
+
 - Remove unused shadcn and @radix-ui/react-collapsible deps
 
 ## [1.7.11] - 2026-04-03
 
 ### Added
+
 - Add per-page skeleton to Backups list page (B-4)
 - Add per-page skeleton to Projects list page (B-4)
 - Add fade-up entry animation with staggered delays
@@ -1426,6 +1467,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add skeleton component and dashboard loading skeleton
 
 ### Changed
+
 - Ignore GHSA-5f7q-jpqc-wp7h false positive
 - Replace spinner with per-page skeleton (B-4)
 - Migrate ports 7026/17026/27026 → 7017/17017/27017
@@ -1434,6 +1476,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update CLAUDE.md with security fix retrospective entries
 
 ### Fixed
+
 - Normalize page container spacing to gap-4 md:gap-6
 - Remove card border/shadow anti-pattern, use bg-secondary + radius tokens
 - Dashboard framework compliance with basalt B-2 spec
@@ -1451,11 +1494,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add --max-warnings=0 to lint script in package.json
 
 ### Removed
+
 - Remove unused shadcn and @radix-ui/react-collapsible deps
 
 ## [1.7.10] - 2026-04-03
 
 ### Added
+
 - Add per-page skeleton to Backups list page (B-4)
 - Add per-page skeleton to Projects list page (B-4)
 - Add fade-up entry animation with staggered delays
@@ -1463,6 +1508,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add skeleton component and dashboard loading skeleton
 
 ### Changed
+
 - Replace spinner with per-page skeleton (B-4)
 - Migrate ports 7026/17026/27026 → 7017/17017/27017
 - Ignore test webhook token in gitleaks
@@ -1470,6 +1516,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update CLAUDE.md with security fix retrospective entries
 
 ### Fixed
+
 - Normalize page container spacing to gap-4 md:gap-6
 - Remove card border/shadow anti-pattern, use bg-secondary + radius tokens
 - Dashboard framework compliance with basalt B-2 spec
@@ -1487,11 +1534,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add --max-warnings=0 to lint script in package.json
 
 ### Removed
+
 - Remove unused shadcn and @radix-ui/react-collapsible deps
 
 ## [1.7.6] - 2026-03-24
 
 ### Added
+
 - Add automated release script
 
 ## [1.7.5] - 2026-03-24

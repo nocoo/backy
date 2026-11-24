@@ -1,11 +1,5 @@
 import JSZip from "jszip";
-import type {
-  BackyEnv,
-  D1Adapter,
-  R2Adapter,
-  RuntimeContext,
-  RuntimeInfo,
-} from "../runtime";
+import type { BackyEnv, D1Adapter, R2Adapter, RuntimeContext, RuntimeInfo } from "../runtime";
 
 // ---------------------------------------------------------------------------
 // Fetch mock
@@ -56,9 +50,7 @@ export function d1Error(message: string) {
 // ---------------------------------------------------------------------------
 
 /** Create a zip buffer from a map of filename → content. */
-export async function createZipBuffer(
-  files: Record<string, string>,
-): Promise<Uint8Array> {
+export async function createZipBuffer(files: Record<string, string>): Promise<Uint8Array> {
   const zip = new JSZip();
   for (const [name, content] of Object.entries(files)) {
     zip.file(name, content);
@@ -206,10 +198,14 @@ export interface MockD1 extends D1Adapter {
  * customize the result; defaults to an empty result set.
  */
 export function makeMockD1(
-  respond: (sql: string, params: unknown[]) =>
+  respond: (
+    sql: string,
+    params: unknown[],
+  ) =>
     | { results: unknown[]; meta?: { changes?: number; last_row_id?: number } }
-    | Promise<{ results: unknown[]; meta?: { changes?: number; last_row_id?: number } }>
-    = () => ({ results: [] }),
+    | Promise<{ results: unknown[]; meta?: { changes?: number; last_row_id?: number } }> = () => ({
+    results: [],
+  }),
 ): MockD1 {
   const calls: Array<{ sql: string; params: unknown[] }> = [];
   const adapter: MockD1 = {
@@ -237,9 +233,7 @@ export interface MockR2 extends R2Adapter {
 }
 
 /** R2 adapter that records every call. */
-export function makeMockR2(
-  overrides: Partial<R2Adapter> = {},
-): MockR2 {
+export function makeMockR2(overrides: Partial<R2Adapter> = {}): MockR2 {
   const puts: MockR2["puts"] = [];
   const deletes: string[] = [];
   const presigns: string[] = [];
@@ -248,9 +242,18 @@ export function makeMockR2(
   const uploadPresigns: string[] = [];
   let pings = 0;
   const adapter: MockR2 = {
-    puts, deletes, presigns, heads, copies, uploadPresigns,
-    get pings() { return pings; },
-    set pings(v) { pings = v; },
+    puts,
+    deletes,
+    presigns,
+    heads,
+    copies,
+    uploadPresigns,
+    get pings() {
+      return pings;
+    },
+    set pings(v) {
+      pings = v;
+    },
     async put(key, body, opts) {
       puts.push({ key, body, ...(opts ? { opts } : {}) });
       if (overrides.put) await overrides.put(key, body, opts);
@@ -297,12 +300,7 @@ export function makeMockInfo(uptime: number | null = 42): RuntimeInfo {
 
 /** Build a complete RuntimeContext for handler tests. */
 export function makeMockCtx(
-  overrides: {
-    db?: D1Adapter;
-    r2?: R2Adapter;
-    env?: Partial<BackyEnv>;
-    info?: RuntimeInfo;
-  } = {},
+  overrides: { db?: D1Adapter; r2?: R2Adapter; env?: Partial<BackyEnv>; info?: RuntimeInfo } = {},
 ): RuntimeContext {
   return {
     db: overrides.db ?? makeMockD1(),

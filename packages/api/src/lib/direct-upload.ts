@@ -24,8 +24,7 @@ export const QUOTA_GLOBAL_HOURLY_BYTES = 100 * 1024 * 1024 * 1024;
 export const QUOTA_PROJECT_DAILY_BYTES = 100 * 1024 * 1024 * 1024;
 export const QUOTA_GLOBAL_DAILY_BYTES = 500 * 1024 * 1024 * 1024;
 
-export const WRITABLE_STATUS_SQL =
-  "status IN ('pending','completing','aborted','expired')";
+export const WRITABLE_STATUS_SQL = "status IN ('pending','completing','aborted','expired')";
 
 export function unixNow(ms = Date.now()): number {
   return Math.floor(ms / 1000);
@@ -40,19 +39,11 @@ export function directExtension(fileType: FileType, fileName: string): string {
   return getStorageExtension(fileType, fileName);
 }
 
-export function generateDirectStagingKey(
-  projectId: string,
-  uploadId: string,
-  ext: string,
-): string {
+export function generateDirectStagingKey(projectId: string, uploadId: string, ext: string): string {
   return `direct-staging/${projectId}/${uploadId}/in${ext}`;
 }
 
-export function generateDirectFinalKey(
-  projectId: string,
-  uploadId: string,
-  ext: string,
-): string {
+export function generateDirectFinalKey(projectId: string, uploadId: string, ext: string): string {
   return `backups/${projectId}/direct/${uploadId}${ext}`;
 }
 
@@ -64,12 +55,7 @@ export function validateFileName(name: unknown): string | null {
   if (typeof name !== "string" || name.length === 0 || name.length > MAX_FILE_NAME) {
     return "file_name is required (max 255 characters)";
   }
-  if (
-    name.includes("/") ||
-    name.includes("\\") ||
-    name.includes("\0") ||
-    name.includes("..")
-  ) {
+  if (name.includes("/") || name.includes("\\") || name.includes("\0") || name.includes("..")) {
     return "file_name must be a basename";
   }
   return null;

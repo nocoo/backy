@@ -68,9 +68,7 @@ describe("L2: API direct upload", () => {
       headers: Record<string, string>;
       file_key: string;
     };
-    expect(body.file_key).not.toBe(
-      `direct-staging/${TEST_PROJECT.id}/${body.upload_id}/in.bin`,
-    );
+    expect(body.file_key).not.toBe(`direct-staging/${TEST_PROJECT.id}/${body.upload_id}/in.bin`);
 
     const put = await fetch(body.put_url, {
       method: "PUT",
@@ -82,10 +80,13 @@ describe("L2: API direct upload", () => {
     }
     expect(put.ok).toBe(true);
 
-    const complete = await fetch(url(`/api/webhook/${TEST_PROJECT.id}/uploads/${body.upload_id}/complete`), {
-      method: "POST",
-      headers: auth,
-    });
+    const complete = await fetch(
+      url(`/api/webhook/${TEST_PROJECT.id}/uploads/${body.upload_id}/complete`),
+      {
+        method: "POST",
+        headers: auth,
+      },
+    );
     expect(complete.status).toBe(201);
     const created = (await complete.json()) as { id: string; file_size: number };
     expect(created.file_size).toBe(payload.byteLength);
@@ -102,10 +103,13 @@ describe("L2: API direct upload", () => {
   test("complete without object is 404; abort then complete is 410", async () => {
     const missing = await initUpload("missing.bin", new Uint8Array([1]));
     const missingBody = (await missing.json()) as { upload_id: string };
-    const completeMissing = await fetch(url(`/api/webhook/${TEST_PROJECT.id}/uploads/${missingBody.upload_id}/complete`), {
-      method: "POST",
-      headers: auth,
-    });
+    const completeMissing = await fetch(
+      url(`/api/webhook/${TEST_PROJECT.id}/uploads/${missingBody.upload_id}/complete`),
+      {
+        method: "POST",
+        headers: auth,
+      },
+    );
     expect(completeMissing.status).toBe(404);
 
     const abortInit = await initUpload("abort.bin", new Uint8Array([1, 2]));
@@ -115,10 +119,13 @@ describe("L2: API direct upload", () => {
       { method: "DELETE", headers: auth },
     );
     expect(aborted.status).toBe(200);
-    const completeAborted = await fetch(url(`/api/webhook/${TEST_PROJECT.id}/uploads/${abortBody.upload_id}/complete`), {
-      method: "POST",
-      headers: auth,
-    });
+    const completeAborted = await fetch(
+      url(`/api/webhook/${TEST_PROJECT.id}/uploads/${abortBody.upload_id}/complete`),
+      {
+        method: "POST",
+        headers: auth,
+      },
+    );
     expect(completeAborted.status).toBe(410);
   });
 });

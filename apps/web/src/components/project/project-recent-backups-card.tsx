@@ -74,7 +74,9 @@ export function ProjectRecentBackupsCard({
           <div>
             <h2 className="text-basalt-lg font-semibold">Recent Backups</h2>
             <p className="text-basalt-sm text-basalt-muted-foreground">
-              {backups ? `${backups.total} backup${backups.total !== 1 ? "s" : ""} in this project` : "Loading..."}
+              {backups
+                ? `${backups.total} backup${backups.total !== 1 ? "s" : ""} in this project`
+                : "Loading..."}
             </p>
           </div>
           {backups && backups.total > 0 ? (
@@ -89,18 +91,35 @@ export function ProjectRecentBackupsCard({
       </LayerCard.Header>
       <LayerCard.Body>
         {backupsLoading ? (
-          <div className="flex items-center justify-center py-basalt-layout-lg"><Loader2 className="h-4 w-4 animate-spin text-basalt-muted-foreground" /></div>
+          <div className="flex items-center justify-center py-basalt-layout-lg">
+            <Loader2 className="h-4 w-4 animate-spin text-basalt-muted-foreground" />
+          </div>
         ) : backups && backups.items.length > 0 ? (
           <div className="flex flex-col gap-basalt-space-sm">
             {backups.items.map((backup) => (
-              <div key={backup.id} className="flex items-center justify-between gap-basalt-layout rounded-basalt-md bg-basalt-control px-basalt-card py-basalt-card-sm">
+              <div
+                key={backup.id}
+                className="flex items-center justify-between gap-basalt-layout rounded-basalt-md bg-basalt-control px-basalt-card py-basalt-card-sm"
+              >
                 <div className="flex min-w-0 flex-1 items-center gap-basalt-layout">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-basalt-md text-basalt-primary"><Archive className="h-3.5 w-3.5" /></div>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-basalt-md text-basalt-primary">
+                    <Archive className="h-3.5 w-3.5" />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-basalt-space-lg">
-                      {backup.tag ? <span className="text-basalt-base font-medium">{backup.tag}</span> : null}
-                      {backup.environment ? <Badge tone="neutral" className="text-basalt-xs">{backup.environment}</Badge> : null}
-                      {backup.file_type ? <Badge tone={backup.file_type === "json" ? "info" : "neutral"}>{FILE_TYPE_LABELS[backup.file_type] ?? backup.file_type.toUpperCase()}</Badge> : null}
+                      {backup.tag ? (
+                        <span className="text-basalt-base font-medium">{backup.tag}</span>
+                      ) : null}
+                      {backup.environment ? (
+                        <Badge tone="neutral" className="text-basalt-xs">
+                          {backup.environment}
+                        </Badge>
+                      ) : null}
+                      {backup.file_type ? (
+                        <Badge tone={backup.file_type === "json" ? "info" : "neutral"}>
+                          {FILE_TYPE_LABELS[backup.file_type] ?? backup.file_type.toUpperCase()}
+                        </Badge>
+                      ) : null}
                     </div>
                     <div className="mt-basalt-space-sm flex items-center gap-basalt-layout text-basalt-xs text-basalt-muted-foreground">
                       <span>{formatDate(backup.created_at)}</span>
@@ -111,20 +130,49 @@ export function ProjectRecentBackupsCard({
                 </div>
                 <div className="flex shrink-0 items-center gap-basalt-space-sm">
                   <Button variant="outline" size="sm" asChild>
-                    <Link to={`/backups/${backup.id}`} aria-label={`View backup ${backup.id.slice(0, 8)}`}><Eye className="h-3.5 w-3.5" /></Link>
+                    <Link
+                      to={`/backups/${backup.id}`}
+                      aria-label={`View backup ${backup.id.slice(0, 8)}`}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Link>
                   </Button>
-                  <Button variant="outline" size="sm" aria-label={`Download backup ${backup.id.slice(0, 8)}`} onClick={() => void onDownload(backup.id)} disabled={downloading === backup.id}>
-                    {downloading === backup.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={`Download backup ${backup.id.slice(0, 8)}`}
+                    onClick={() => void onDownload(backup.id)}
+                    disabled={downloading === backup.id}
+                  >
+                    {downloading === backup.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
                   </Button>
-                  <Button variant="outline" size="sm" aria-label={`Delete backup ${backup.id.slice(0, 8)}`} onClick={() => setDeleteTarget(backup)} disabled={deleting === backup.id}>
-                    {deleting === backup.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 text-basalt-destructive" />}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={`Delete backup ${backup.id.slice(0, 8)}`}
+                    onClick={() => setDeleteTarget(backup)}
+                    disabled={deleting === backup.id}
+                  >
+                    {deleting === backup.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5 text-basalt-destructive" />
+                    )}
                   </Button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <LayerCard.Empty icon={<Archive className="h-8 w-8" />} title="No backups yet" description="Configure your AI agent using the webhook above." />
+          <LayerCard.Empty
+            icon={<Archive className="h-8 w-8" />}
+            title="No backups yet"
+            description="Configure your AI agent using the webhook above."
+          />
         )}
       </LayerCard.Body>
 
@@ -132,12 +180,22 @@ export function ProjectRecentBackupsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Backup?</DialogTitle>
-            <DialogDescription>This will permanently delete this backup file from storage. This action cannot be undone.</DialogDescription>
+            <DialogDescription>
+              This will permanently delete this backup file from storage. This action cannot be
+              undone.
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={!!deleting}>Cancel</Button>
-            <Button variant="destructive" onClick={() => void handleConfirmDelete()} disabled={!!deleting}>
-              {deleting ? <Loader2 className="mr-basalt-space-md h-4 w-4 animate-spin" /> : null}Delete
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={!!deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirmDelete()}
+              disabled={!!deleting}
+            >
+              {deleting ? <Loader2 className="mr-basalt-space-md h-4 w-4 animate-spin" /> : null}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

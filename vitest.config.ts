@@ -28,12 +28,7 @@ export default defineConfig({
       provider: "v8",
       experimentalAstAwareRemapping: true,
       reporter: ["text", "html"],
-      include: [
-        "apps/web/src/**",
-        "apps/worker/src/**",
-        "apps/cli/src/**",
-        "packages/api/src/**",
-      ],
+      include: ["apps/web/src/**", "apps/worker/src/**", "apps/cli/src/**", "packages/api/src/**"],
       exclude: [
         "**/*.test.ts",
         "**/*.d.ts",

@@ -1,8 +1,5 @@
 import type { D1Binding } from "@backy/api/db/d1-binding-adapter";
-import type {
-  R2Binding,
-  R2BindingObject,
-} from "@backy/api/r2/binding-adapter";
+import type { R2Binding, R2BindingObject } from "@backy/api/r2/binding-adapter";
 import type { Bindings } from "../lib/types";
 
 export function fakeD1(rows: unknown[] = []): D1Binding {
@@ -62,9 +59,9 @@ type OptionalBindingKey = {
   [K in keyof Bindings]-?: object extends Pick<Bindings, K> ? K : never;
 }[keyof Bindings];
 
-export type EnvOverrides =
-  & { DB?: D1Database; R2?: R2Bucket }
-  & { [K in OptionalBindingKey]?: Bindings[K] | undefined };
+export type EnvOverrides = { DB?: D1Database; R2?: R2Bucket } & {
+  [K in OptionalBindingKey]?: Bindings[K] | undefined;
+};
 
 export function makeEnv(overrides: EnvOverrides = {}): Bindings {
   const base: Bindings = {

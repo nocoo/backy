@@ -1,20 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
-import {
-  AppHeader,
-  AppHeaderMenuButton,
-  ProjectLinks,
-} from "@nocoo/basalt/components/app-header";
+import { AppHeader, AppHeaderMenuButton, ProjectLinks } from "@nocoo/basalt/components/app-header";
 import {
   AppMain,
   AppShell as BasaltAppShell,
   AppSkipLink,
 } from "@nocoo/basalt/components/app-shell";
-import {
-  ContentIsland,
-  SidebarDrawer,
-  SidebarProvider,
-} from "@nocoo/basalt/components/sidebar";
+import { ContentIsland, SidebarDrawer, SidebarProvider } from "@nocoo/basalt/components/sidebar";
 import { ThemeToggle } from "@nocoo/basalt/components/theme-toggle";
 import { Sidebar } from "./sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";

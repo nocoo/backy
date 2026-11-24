@@ -8,15 +8,12 @@ import {
 } from "../helpers";
 import type { DirectUploadRow } from "../../lib/db/direct-uploads";
 
-let mockGetProjectByToken: (token: string) => Promise<any> = async () =>
-  undefined;
+let mockGetProjectByToken: (token: string) => Promise<any> = async () => undefined;
 let mockCreateBackup: (data: any) => Promise<any> = async () => ({});
 let mockGetBackup: (id: string) => Promise<any> = async () => undefined;
-let mockGetBackupByFileKey: (key: string) => Promise<any> = async () =>
-  undefined;
+let mockGetBackupByFileKey: (key: string) => Promise<any> = async () => undefined;
 let mockInsert: () => Promise<boolean> = async () => true;
-let mockGetUpload: () => Promise<DirectUploadRow | undefined> = async () =>
-  undefined;
+let mockGetUpload: () => Promise<DirectUploadRow | undefined> = async () => undefined;
 let mockClaim: () => Promise<boolean> = async () => true;
 let mockAbortPending: () => Promise<boolean> = async () => true;
 const mockAbortLease: () => Promise<void> = async () => {};
@@ -26,8 +23,7 @@ const mockAttach: () => Promise<void> = async () => {};
 
 vi.doMock("../../lib/db/projects", () => ({
   ...PROJECT_STUBS,
-  getProjectByToken: (_db: unknown, token: string) =>
-    mockGetProjectByToken(token),
+  getProjectByToken: (_db: unknown, token: string) => mockGetProjectByToken(token),
 }));
 
 vi.doMock("../../lib/db/backups", () => ({
@@ -42,9 +38,9 @@ vi.doMock("../../lib/db/webhook-logs", () => ({
 }));
 
 vi.doMock("../../lib/db/direct-uploads", async () => {
-  const actual = await vi.importActual<
-    typeof import("../../lib/db/direct-uploads")
-  >("../../lib/db/direct-uploads");
+  const actual = await vi.importActual<typeof import("../../lib/db/direct-uploads")>(
+    "../../lib/db/direct-uploads",
+  );
   return {
     ...actual,
     insertPendingDirectUpload: () => mockInsert(),
@@ -105,8 +101,7 @@ function ctx(overrides: Parameters<typeof makeMockCtx>[0] = {}) {
   return makeMockCtx({
     env: s3Env,
     r2: makeMockR2({
-      presignUpload: async () =>
-        "https://bucket.acct.r2.cloudflarestorage.com/k",
+      presignUpload: async () => "https://bucket.acct.r2.cloudflarestorage.com/k",
       head: async () => ({ contentLength: 4 }),
     }),
     ...overrides,
@@ -129,24 +124,22 @@ describe("webhookInitUploadHandler", () => {
   test("401 without token and 403 on mismatch / ip", async () => {
     mockGetProjectByToken = async () => undefined;
     expect(
-      (await handlers.webhookInitUploadHandler(
-        { ...auth, authorization: null, body: {} },
-        ctx(),
-      )).status,
+      (await handlers.webhookInitUploadHandler({ ...auth, authorization: null, body: {} }, ctx()))
+        .status,
     ).toBe(401);
-    expect(
-      (await handlers.webhookInitUploadHandler({ ...auth, body: {} }, ctx())).status,
-    ).toBe(403);
+    expect((await handlers.webhookInitUploadHandler({ ...auth, body: {} }, ctx())).status).toBe(
+      403,
+    );
     mockGetProjectByToken = async () => ({ ...project, allowed_ips: "10.0.0.1/32" });
-    expect(
-      (await handlers.webhookInitUploadHandler({ ...auth, body: {} }, ctx())).status,
-    ).toBe(403);
+    expect((await handlers.webhookInitUploadHandler({ ...auth, body: {} }, ctx())).status).toBe(
+      403,
+    );
   });
 
   test("400 on validation and 5000000001 rejected, 5000000000 accepted", async () => {
-    expect(
-      (await handlers.webhookInitUploadHandler({ ...auth, body: null }, ctx())).status,
-    ).toBe(400);
+    expect((await handlers.webhookInitUploadHandler({ ...auth, body: null }, ctx())).status).toBe(
+      400,
+    );
     expect(
       (
         await handlers.webhookInitUploadHandler(
@@ -270,9 +263,9 @@ describe("webhookInitUploadHandler", () => {
     mockGetProjectByToken = async () => {
       throw new Error("boom");
     };
-    expect(
-      (await handlers.webhookInitUploadHandler({ ...auth, body: {} }, ctx())).status,
-    ).toBe(500);
+    expect((await handlers.webhookInitUploadHandler({ ...auth, body: {} }, ctx())).status).toBe(
+      500,
+    );
   });
 });
 
@@ -309,26 +302,21 @@ describe("webhookCompleteUploadHandler", () => {
     expect(
       (await handlers.webhookCompleteUploadHandler({ ...auth, uploadId: "u" }, ctx())).status,
     ).toBe(410);
-    mockGetUpload = async () =>
-      pending({ status: "completed", backup_id: null });
+    mockGetUpload = async () => pending({ status: "completed", backup_id: null });
     expect(
       (await handlers.webhookCompleteUploadHandler({ ...auth, uploadId: "u" }, ctx())).status,
     ).toBe(410);
   });
 
   test("201 idempotent completed backup", async () => {
-    mockGetUpload = async () =>
-      pending({ status: "completed", backup_id: "b1" });
+    mockGetUpload = async () => pending({ status: "completed", backup_id: "b1" });
     mockGetBackup = async () => ({
       id: "b1",
       project_id: "p1",
       file_size: 4,
       created_at: "t",
     });
-    const r = await handlers.webhookCompleteUploadHandler(
-      { ...auth, uploadId: "u" },
-      ctx(),
-    );
+    const r = await handlers.webhookCompleteUploadHandler({ ...auth, uploadId: "u" }, ctx());
     expect(r.status).toBe(201);
     if (r.kind === "json") {
       expect(r.body).toEqual({
@@ -411,10 +399,7 @@ describe("webhookCompleteUploadHandler", () => {
       }),
     );
     expect(missingFinal.status).toBe(409);
-    const ok = await handlers.webhookCompleteUploadHandler(
-      { ...auth, uploadId: "u" },
-      ctx(),
-    );
+    const ok = await handlers.webhookCompleteUploadHandler({ ...auth, uploadId: "u" }, ctx());
     expect(ok.status).toBe(201);
   });
 

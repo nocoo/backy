@@ -15,11 +15,7 @@ export interface Category {
   updated_at: string;
 }
 
-async function q<T>(
-  db: D1Adapter,
-  sql: string,
-  params: unknown[] = [],
-): Promise<T[]> {
+async function q<T>(db: D1Adapter, sql: string, params: unknown[] = []): Promise<T[]> {
   const { results } = await db.query<T>(sql, params);
   return results;
 }
@@ -28,24 +24,14 @@ async function q<T>(
  * List all categories, ordered by sort_order ascending then name.
  */
 export async function listCategories(db: D1Adapter): Promise<Category[]> {
-  return q<Category>(
-    db,
-    "SELECT * FROM categories ORDER BY sort_order ASC, name ASC",
-  );
+  return q<Category>(db, "SELECT * FROM categories ORDER BY sort_order ASC, name ASC");
 }
 
 /**
  * Get a single category by ID.
  */
-export async function getCategory(
-  db: D1Adapter,
-  id: string,
-): Promise<Category | undefined> {
-  const rows = await q<Category>(
-    db,
-    "SELECT * FROM categories WHERE id = ?",
-    [id],
-  );
+export async function getCategory(db: D1Adapter, id: string): Promise<Category | undefined> {
+  const rows = await q<Category>(db, "SELECT * FROM categories WHERE id = ?", [id]);
   return rows[0];
 }
 
@@ -73,7 +59,15 @@ export async function createCategory(
     [id, data.name, color, icon, sortOrder, now, now],
   );
 
-  return { id, name: data.name, color, icon, sort_order: sortOrder, created_at: now, updated_at: now };
+  return {
+    id,
+    name: data.name,
+    color,
+    icon,
+    sort_order: sortOrder,
+    created_at: now,
+    updated_at: now,
+  };
 }
 
 /**
@@ -110,10 +104,7 @@ export async function updateCategory(
 /**
  * Delete a category by ID. Projects referencing it will have category_id set to NULL.
  */
-export async function deleteCategory(
-  db: D1Adapter,
-  id: string,
-): Promise<boolean> {
+export async function deleteCategory(db: D1Adapter, id: string): Promise<boolean> {
   const existing = await getCategory(db, id);
   if (!existing) return false;
 

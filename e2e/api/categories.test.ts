@@ -50,14 +50,10 @@ describe("L2: API /api/categories", () => {
   test("PUT /api/categories/:id updates category", async () => {
     expect(createdCategoryId).toBeTruthy();
 
-    const res = await jsonRequest(
-      "PUT",
-      `/api/categories/${createdCategoryId}`,
-      {
-        name: "E2E Test Category Updated",
-        color: "#33FF57",
-      },
-    );
+    const res = await jsonRequest("PUT", `/api/categories/${createdCategoryId}`, {
+      name: "E2E Test Category Updated",
+      color: "#33FF57",
+    });
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as { id: string; name: string };
@@ -67,10 +63,7 @@ describe("L2: API /api/categories", () => {
   test("DELETE /api/categories/:id deletes category", async () => {
     expect(createdCategoryId).toBeTruthy();
 
-    const res = await jsonRequest(
-      "DELETE",
-      `/api/categories/${createdCategoryId}`,
-    );
+    const res = await jsonRequest("DELETE", `/api/categories/${createdCategoryId}`);
     expect(res.status).toBe(200);
 
     // Verify deletion

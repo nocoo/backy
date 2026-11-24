@@ -4,21 +4,21 @@ Upgrade from 3-tier testing to 4-tier testing architecture.
 
 ## Current State
 
-| Layer | Status | Notes |
-|---|---|---|
-| L1 - UT | ✅ Complete | 34 test files, 421 tests, 93.9% functions / 96.4% lines, shared helpers in `src/__tests__/helpers.ts` |
-| L2 - Lint | ✅ Complete | ESLint + next/core-web-vitals + typescript, pre-commit, zero errors |
-| L3 - API E2E | ✅ Complete | 21 suites in `e2e/api/suites/`, 146 tests, 31 API route/method combos |
-| L4 - BDD E2E | ✅ Complete | 5 Playwright specs, 17 tests, port 27017 |
+| Layer        | Status      | Notes                                                                                                 |
+| ------------ | ----------- | ----------------------------------------------------------------------------------------------------- |
+| L1 - UT      | ✅ Complete | 34 test files, 421 tests, 93.9% functions / 96.4% lines, shared helpers in `src/__tests__/helpers.ts` |
+| L2 - Lint    | ✅ Complete | ESLint + next/core-web-vitals + typescript, pre-commit, zero errors                                   |
+| L3 - API E2E | ✅ Complete | 21 suites in `e2e/api/suites/`, 146 tests, 31 API route/method combos                                 |
+| L4 - BDD E2E | ✅ Complete | 5 Playwright specs, 17 tests, port 27017                                                              |
 
 ## Target State
 
-| Layer | Tool | Trigger | Gate |
-|---|---|---|---|
-| L1 - UT | bun test | pre-commit | 90%+ coverage |
-| L2 - Lint | eslint | pre-commit | Zero errors/warnings |
-| L3 - API E2E | custom runner (port 17017) | pre-push | 100% API routes |
-| L4 - BDD E2E | Playwright (port 27017) | pre-push | Core user flows |
+| Layer        | Tool                       | Trigger    | Gate                 |
+| ------------ | -------------------------- | ---------- | -------------------- |
+| L1 - UT      | bun test                   | pre-commit | 90%+ coverage        |
+| L2 - Lint    | eslint                     | pre-commit | Zero errors/warnings |
+| L3 - API E2E | custom runner (port 17017) | pre-push   | 100% API routes      |
+| L4 - BDD E2E | Playwright (port 27017)    | pre-push   | Core user flows      |
 
 ## Execution Plan
 

@@ -7,11 +7,7 @@ import {
   Timer,
   type LucideIcon,
 } from "@nocoo/basalt/icons";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@nocoo/basalt/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@nocoo/basalt/components/avatar";
 import {
   Sidebar as BasaltSidebar,
   SidebarBrand,
@@ -110,27 +106,25 @@ export function Sidebar({
           name="backy"
           version={`v${APP_VERSION}`}
           action={
-            onDismiss ? (
-              <SidebarToggle mode="dismiss" onDismiss={onDismiss} />
-            ) : (
-              <SidebarToggle />
-            )
+            onDismiss ? <SidebarToggle mode="dismiss" onDismiss={onDismiss} /> : <SidebarToggle />
           }
         />
       </SidebarHeader>
       <SidebarNav aria-label="Application navigation">
         {collapsed
-          ? navGroups.flatMap((group) => group.items).map((item) => (
-              <Tooltip key={item.href}>
-                <TooltipTrigger asChild>
-                  <SidebarIconItem href={item.href} active={isActiveRoute(pathname, item.href)}>
-                    <item.icon className="h-4 w-4" strokeWidth={1.5} />
-                    <span className="sr-only">{item.label}</span>
-                  </SidebarIconItem>
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            ))
+          ? navGroups
+              .flatMap((group) => group.items)
+              .map((item) => (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    <SidebarIconItem href={item.href} active={isActiveRoute(pathname, item.href)}>
+                      <item.icon className="h-4 w-4" strokeWidth={1.5} />
+                      <span className="sr-only">{item.label}</span>
+                    </SidebarIconItem>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              ))
           : navGroups.map((group) => (
               <SidebarGroup key={group.label} label={group.label} defaultOpen>
                 {group.items.map((item) => (

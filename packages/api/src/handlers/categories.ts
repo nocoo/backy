@@ -29,9 +29,7 @@ const UpdateCategorySchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
 });
 
-export async function listCategoriesHandler(
-  ctx: RuntimeContext,
-): Promise<HandlerResponse> {
+export async function listCategoriesHandler(ctx: RuntimeContext): Promise<HandlerResponse> {
   try {
     const categories = await listCategories(ctx.db);
     return json(200, categories);

@@ -18,12 +18,7 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       // Excludes: tests, the worker entrypoint (Cloudflare Workers fetch handler
       // exercised end-to-end via E2E), shared type module, and type decls.
-      exclude: [
-        "src/__tests__/**",
-        "src/index.ts",
-        "src/lib/types.ts",
-        "src/**/*.d.ts",
-      ],
+      exclude: ["src/__tests__/**", "src/index.ts", "src/lib/types.ts", "src/**/*.d.ts"],
       thresholds: {
         statements: 95,
         branches: 95,

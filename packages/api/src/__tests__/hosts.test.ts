@@ -1,9 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  buildBaseUrl,
-  isAllowedHost,
-  parseAllowedHosts,
-} from "@backy/api/hosts";
+import { buildBaseUrl, isAllowedHost, parseAllowedHosts } from "@backy/api/hosts";
 
 const TEST_HOSTS = "example.com,backy.hexly.ai,localhost:7017";
 const env = { ALLOWED_HOSTS: TEST_HOSTS };
@@ -16,11 +12,7 @@ describe("ALLOWED_HOSTS", () => {
     // doesn't trim whitespace, OR a regression that smuggles in extra
     // hosts. Sorted toEqual via [...].sort() is determinism-safe across
     // V8 Set iteration order.
-    expect([...allowedHosts].sort()).toEqual([
-      "backy.hexly.ai",
-      "example.com",
-      "localhost:7017",
-    ]);
+    expect([...allowedHosts].sort()).toEqual(["backy.hexly.ai", "example.com", "localhost:7017"]);
   });
 
   test("does not contain arbitrary hosts", () => {

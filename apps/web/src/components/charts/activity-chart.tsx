@@ -27,7 +27,9 @@ export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
         <LayerCard.Header>
           <div>
             <h3 className="text-basalt-base font-medium">Backup Activity</h3>
-            <p className="text-basalt-sm text-basalt-muted-foreground">Daily backup count (last 30 days)</p>
+            <p className="text-basalt-sm text-basalt-muted-foreground">
+              Daily backup count (last 30 days)
+            </p>
           </div>
         </LayerCard.Header>
         <LayerCard.Empty title="No activity data" />
@@ -49,7 +51,9 @@ export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
       <LayerCard.Header>
         <div>
           <h3 className="text-basalt-base font-medium">Backup Activity</h3>
-          <p className="text-basalt-sm text-basalt-muted-foreground">Daily backup count (last 30 days)</p>
+          <p className="text-basalt-sm text-basalt-muted-foreground">
+            Daily backup count (last 30 days)
+          </p>
         </div>
       </LayerCard.Header>
       <LayerCard.Body>
@@ -67,10 +71,27 @@ export function DailyBackupsChart({ data }: { data: DailyBackup[] }) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={chartAxis} opacity={0.25} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartAxis }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: chartAxis }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: chartAxis }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: chartAxis }}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+              />
               <Tooltip content={<ChartTooltipContent />} isAnimationActive={false} />
-              <Area type="monotone" dataKey="count" name="Backups" stroke={getChartColor(0)} fill="url(#backupGradient)" strokeWidth={2} />
+              <Area
+                type="monotone"
+                dataKey="count"
+                name="Backups"
+                stroke={getChartColor(0)}
+                fill="url(#backupGradient)"
+                strokeWidth={2}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </ChartFrame>

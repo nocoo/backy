@@ -49,11 +49,7 @@ export interface R2Adapter {
   delete(key: string): Promise<void>;
   copy(sourceKey: string, destKey: string): Promise<void>;
   presignDownload(key: string, ttlSeconds: number): Promise<string>;
-  presignUpload(
-    key: string,
-    ttlSeconds: number,
-    opts: R2PresignUploadOpts,
-  ): Promise<string>;
+  presignUpload(key: string, ttlSeconds: number, opts: R2PresignUploadOpts): Promise<string>;
   ping(): Promise<void>;
 }
 

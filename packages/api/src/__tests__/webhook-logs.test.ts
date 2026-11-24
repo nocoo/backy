@@ -9,15 +9,12 @@ import { makeMockD1 } from "./helpers";
 describe("webhook-logs", () => {
   let db: ReturnType<typeof makeMockD1>;
 
-  const createWebhookLog = (
-    input: Parameters<typeof createWebhookLogRaw>[1],
-  ) => createWebhookLogRaw(db, input);
-  const listWebhookLogs = (
-    options?: Parameters<typeof listWebhookLogsRaw>[1],
-  ) => listWebhookLogsRaw(db, options);
-  const deleteWebhookLogs = (
-    options?: Parameters<typeof deleteWebhookLogsRaw>[1],
-  ) => deleteWebhookLogsRaw(db, options);
+  const createWebhookLog = (input: Parameters<typeof createWebhookLogRaw>[1]) =>
+    createWebhookLogRaw(db, input);
+  const listWebhookLogs = (options?: Parameters<typeof listWebhookLogsRaw>[1]) =>
+    listWebhookLogsRaw(db, options);
+  const deleteWebhookLogs = (options?: Parameters<typeof deleteWebhookLogsRaw>[1]) =>
+    deleteWebhookLogsRaw(db, options);
 
   beforeEach(() => {
     db = makeMockD1();

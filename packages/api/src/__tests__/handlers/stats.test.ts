@@ -9,9 +9,7 @@ describe("stats handlers", () => {
     db = makeMockD1(async (sql) => {
       if (sql.includes("COUNT(*) FROM projects")) {
         return {
-          results: [
-            { total_projects: 0, total_backups: 0, total_size: 0 },
-          ],
+          results: [{ total_projects: 0, total_backups: 0, total_size: 0 }],
         };
       }
       return { results: [] };
@@ -20,9 +18,7 @@ describe("stats handlers", () => {
 
   test("totals 200 with rows", async () => {
     db = makeMockD1(async () => ({
-      results: [
-        { total_projects: 2, total_backups: 5, total_size: 100 },
-      ],
+      results: [{ total_projects: 2, total_backups: 5, total_size: 100 }],
     }));
 
     const r = await statsTotalsHandler(makeMockCtx({ db }));
@@ -58,8 +54,7 @@ describe("stats handlers", () => {
     const r = await statsTotalsHandler(makeMockCtx({ db }));
     expect(r.status).toBe(500);
     expect(r.kind).toBe("json");
-    if (r.kind === "json")
-      expect(r.body).toEqual({ error: "Failed to fetch stats" });
+    if (r.kind === "json") expect(r.body).toEqual({ error: "Failed to fetch stats" });
   });
 
   test("charts 200 with data", async () => {
