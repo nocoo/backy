@@ -132,16 +132,6 @@
 			}
 		},
 		{
-			"includes": ["**/e2e/**"],
-			"linter": {
-				"rules": {
-					"suspicious": {
-						"noSkippedTests": "off"
-					}
-				}
-			}
-		},
-		{
 			"includes": ["**/*.css"],
 			"linter": {
 				"rules": {
