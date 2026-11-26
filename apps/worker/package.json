@@ -25,6 +25,6 @@
     "@vitest/coverage-v8": "5.1.1",
     "typescript": "7.0.2",
     "vitest": "5.1.1",
-    "wrangler": "4.165.0"
+    "wrangler": "4.168.0"
   }
 }
