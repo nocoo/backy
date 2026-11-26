@@ -19,7 +19,7 @@
  */
 
 import { resolve } from "node:path";
-import { rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import type { Subprocess } from "bun";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -35,6 +35,18 @@ const MAX_WAIT_MS = 60_000;
 // ---------------------------------------------------------------------------
 
 async function buildWebApp(): Promise<void> {
+  if (process.env.SKIP_WEB_BUILD === "1") {
+    const indexHtml = resolve(WORKER_DIR, "static/index.html");
+    if (!existsSync(indexHtml)) {
+      console.error(`FATAL: SKIP_WEB_BUILD=1 set but ${indexHtml} is missing`);
+      process.exit(1);
+    }
+    console.log(
+      "\nStep 1: Skipping web app build (SKIP_WEB_BUILD=1, reusing prebuilt static assets)...",
+    );
+    return;
+  }
+
   console.log("\nStep 1: Building web app...");
   const start = Date.now();
 

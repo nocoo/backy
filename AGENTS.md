@@ -50,7 +50,7 @@ bun run gate:security             # G1 gitleaks + G2 osv-scanner locally
 
 Follows `system1-quality`; CI slot definitions and pinned `nocoo/base-ci` revision live in `.github/workflows/quality-slots.yml` (via `.github/workflows/ci.yml`, `quality / Z1: Gate` required on `main`). Status vocabulary: `enforced`, `planned`, `manual`, `N/A`.
 
-- **Exceptions / gaps**: `L2 Runtime` is `N/A` (`wrangler dev` integration covered by `L3`/`L4`); `P1 Package` is `N/A` (private monorepo, unpublished). All other CI slots are `enforced`.
+- **Exceptions / gaps**: `L2 Runtime` is `N/A` (`wrangler dev` integration covered by `L3`/`L4`); `P1 Package` runs `wrangler deploy --dry-run` in `apps/worker` reusing `B1` (`enforced`); `L4` reuses `B1` (`apps/worker/static/`, `SKIP_WEB_BUILD=1`). All other CI slots are `enforced`.
 - **Coverage boundary**: `L1 Unit` enforces 95/90/95/95 (statements/branches/functions/lines) in `vitest.config.ts` across workspace `src/**` (excluding TSX views, hooks, auth glue, DB/S3 adapters, CLI entry).
 - **Local hooks**: `bun install` restores Husky (`.husky/`). Hooks are check-only; never bypass with `--no-verify` on commits or branch pushes.
 - **Pre-commit**: Runs on a Git index snapshot (rejecting staged-only breakage): `gate:secrets`, `typecheck`, `lint`, `gate:routes`, `gate:pages`, and `test:coverage`.
