@@ -43,12 +43,12 @@ bun run gate:security             # G1 gitleaks + G2 osv-scanner locally
 - **Test isolation**: Tests must never use production or daily-dev D1/R2 despite `remote = true` in `apps/worker/wrangler.toml`; never create remote `-test` resources.
 - **Testing & UI**: Never `mock.module` low-level D1/R2 modules (process-wide in Bun). Keep views thin, isolate logic in `packages/api/`, and follow `@nocoo/basalt` rules (`system1-design-basalt`).
 - **Static assets**: Vite writes `apps/worker/static/` with `emptyOutDir`; restore its `.gitignore` after builds (`apps/web` build script does this). Build the SPA before any authorized Worker deploy.
-- **Release & CD**: Production deploys require explicit authorization. Maintainers use `bun run release`; `release.yml` deploys the proven CI commit, builds assets, and applies incremental D1 migrations.
+- **Release & CD**: Production deploys require explicit authorization. Maintainers use `bun run release`; `.github/workflows/pipeline.yml` (`deploy` job, `D1`–`D5` via `deploy-worker.yml`) deploys on `main` push after `quality / Z1: Gate` passes (or manual `workflow_dispatch` with `deploy=true`), reusing the `B1` `apps/worker/static/` artifact without rebuilding, applying incremental D1 migrations, deploying the Worker, and verifying `/api/live`.
 - **CD exclusivity**: Never run a parallel `bun run worker:deploy` that races CD. Deployment credentials differ from Access JWT credentials; see [docs/10-development.md](docs/10-development.md).
 
 ## Quality & Local Gates
 
-Follows `system1-quality`; CI slot definitions and pinned `nocoo/base-ci` revision live in `.github/workflows/quality-slots.yml` (via `.github/workflows/ci.yml`, `quality / Z1: Gate` required on `main`). Status vocabulary: `enforced`, `planned`, `manual`, `N/A`.
+Follows `system1-quality`; CI slot definitions and pinned `nocoo/base-ci` revision live in `.github/workflows/quality-slots.yml` (called by `.github/workflows/pipeline.yml`, `quality / Z1: Gate` required on `main`). Status vocabulary: `enforced`, `planned`, `manual`, `N/A`.
 
 - **Exceptions / gaps**: `L2 Runtime` is `N/A` (`wrangler dev` integration covered by `L3`/`L4`); `P1 Package` runs `wrangler deploy --dry-run` in `apps/worker` reusing `B1` (`enforced`); `L4` reuses `B1` (`apps/worker/static/`, `SKIP_WEB_BUILD=1`). All other CI slots are `enforced`.
 - **Coverage boundary**: `L1 Unit` enforces 95/90/95/95 (statements/branches/functions/lines) in `vitest.config.ts` across workspace `src/**` (excluding TSX views, hooks, auth glue, DB/S3 adapters, CLI entry).
