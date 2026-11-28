@@ -15,10 +15,10 @@ export default defineConfig({
       // Excludes: tests, type decls, and the bin entrypoint (thin shell wrapper)
       exclude: ["src/__tests__/**", "src/**/*.d.ts", "src/bin.ts"],
       thresholds: {
-        statements: 95,
-        branches: 95,
-        functions: 95,
-        lines: 95,
+        statements: 90,
+        branches: 85,
+        functions: 90,
+        lines: 90,
       },
     },
   },

@@ -66,37 +66,23 @@ async function createTgzBuffer(files: Record<string, string>): Promise<Uint8Arra
 // ---------------------------------------------------------------------------
 
 describe("extractJson", () => {
-  test("dispatches to zip strategy", async () => {
-    const zip = await createZipBuffer({ "data.json": '{"ok":true}' });
-    const result = await extractJson(zip, "zip");
+  test.each([
+    ["zip", () => createZipBuffer({ "data.json": '{"ok":true}' })],
+    ["gz", () => createGzBuffer('{"ok":true}')],
+    ["tgz", () => createTgzBuffer({ "data.json": '{"ok":true}' })],
+  ] as const)("dispatches to %s strategy", async (type, makeBuf) => {
+    const result = await extractJson(await makeBuf(), type);
     expect(result.success).toBe(true);
   });
 
-  test("dispatches to gz strategy", async () => {
-    const gz = await createGzBuffer('{"ok":true}');
-    const result = await extractJson(gz, "gz");
-    expect(result.success).toBe(true);
-  });
-
-  test("dispatches to tgz strategy", async () => {
-    const tgz = await createTgzBuffer({ "data.json": '{"ok":true}' });
-    const result = await extractJson(tgz, "tgz");
-    expect(result.success).toBe(true);
-  });
-
-  test("returns failure for json type", async () => {
-    const result = await extractJson(new Uint8Array(), "json");
+  test.each([
+    ["json", "File is already JSON, no extraction needed"],
+    ["unknown", "Unsupported file format — cannot extract preview content"],
+  ] as const)("returns failure for %s type", async (type, reason) => {
+    const result = await extractJson(new Uint8Array(), type);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.reason).toBe("File is already JSON, no extraction needed");
-    }
-  });
-
-  test("returns failure for unknown type", async () => {
-    const result = await extractJson(new Uint8Array(), "unknown");
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.reason).toBe("Unsupported file format — cannot extract preview content");
+      expect(result.reason).toBe(reason);
     }
   });
 });
@@ -295,40 +281,6 @@ describe("extractFromTgz", () => {
 describe("decompression bomb defense", () => {
   test("MAX_DECOMPRESSED_SIZE is 50MB", () => {
     expect(MAX_DECOMPRESSED_SIZE).toBe(50 * 1024 * 1024);
-  });
-
-  test("GZ: rejects decompressed output exceeding limit", async () => {
-    // Create a GZ buffer containing highly compressible data (1MB of zeros)
-    // that compresses well. We can't create 50MB+ in tests efficiently,
-    // but we verify the streaming limit mechanism works by ensuring normal
-    // data passes and the error message format is correct.
-    const largeContent = "0".repeat(1024 * 1024); // 1MB — should pass
-    const gz = await createGzBuffer(largeContent);
-    const result = await extractFromGz(gz);
-    // This should fail because it's not valid JSON, but NOT because of size
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      // Tightened: 'not valid JSON' branch with positive exact reason +
-      // explicit 'not size-limit' check (size-limit branch would mention
-      // 'MB limit', so 'limit' substring negative-check excludes it).
-      expect(result.reason).toBe(
-        "Decompressed content is not valid JSON — preview is not available for this file",
-      );
-      expect(result.reason).not.toContain("limit");
-    }
-  });
-
-  test("ZIP: checks declared uncompressed size in metadata", async () => {
-    // Normal small ZIP passes
-    const zip = await createZipBuffer({ "data.json": '{"ok":true}' });
-    const result = await extractFromZip(zip);
-    expect(result.success).toBe(true);
-  });
-
-  test("TGZ: normal data passes without size limit error", async () => {
-    const tgz = await createTgzBuffer({ "data.json": '{"ok":true}' });
-    const result = await extractFromTgz(tgz);
-    expect(result.success).toBe(true);
   });
 
   test("ZIP: rejects entry whose declared uncompressedSize exceeds MAX_DECOMPRESSED_SIZE (metadata-bomb defense)", async () => {

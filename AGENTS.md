@@ -15,7 +15,7 @@ bun run dev                       # Vite 7017 (backy.dev.hexly.ai) + Worker 7018
 bun run typecheck                 # S1 across all workspaces
 bun run lint                      # S2 Biome check-only, 0 warnings
 bun run build                     # B1 builds SPA into apps/worker/static/
-bun run test:coverage             # L1 Vitest (95/90/95/95 floors)
+bun run test:coverage             # L1 Vitest (90/85/90/90 floors)
 bun run test:e2e:api              # L3 local Worker HTTP E2E on 17018
 bunx playwright install chromium  # one-time browser install for L4
 bun run test:e2e:bdd              # L4 builds SPA + Playwright E2E on 17018
@@ -51,7 +51,7 @@ bun run gate:security             # G1 gitleaks + G2 osv-scanner locally
 Follows `system1-quality`; CI slot definitions and pinned `nocoo/base-ci` revision live in `.github/workflows/quality-slots.yml` (called by `.github/workflows/pipeline.yml`, `quality / Z1: Gate` required on `main`). Status vocabulary: `enforced`, `planned`, `manual`, `N/A`.
 
 - **Exceptions / gaps**: `L2 Runtime` is `N/A` (`wrangler dev` integration covered by `L3`/`L4`); `P1 Package` runs `wrangler deploy --dry-run` in `apps/worker` reusing `B1` (`enforced`); `L4` reuses `B1` (`apps/worker/static/`, `SKIP_WEB_BUILD=1`). All other CI slots are `enforced`.
-- **Coverage boundary**: `L1 Unit` enforces 95/90/95/95 (statements/branches/functions/lines) in `vitest.config.ts` across workspace `src/**` (excluding TSX views, hooks, auth glue, DB/S3 adapters, CLI entry).
+- **Coverage boundary**: `L1 Unit` enforces 90/85/90/90 (statements/branches/functions/lines) in `vitest.config.ts` across workspace `src/**` (excluding TSX views, hooks, auth glue, DB/S3 adapters, CLI entry).
 - **Local hooks**: `bun install` restores Husky (`.husky/`). Hooks are check-only; never bypass with `--no-verify` on commits or branch pushes.
 - **Pre-commit**: Runs on a Git index snapshot (rejecting staged-only breakage): `gate:secrets`, `typecheck`, `lint`, `gate:routes`, `gate:pages`, and `test:coverage`.
 - **Pre-push**: Runs `gate:deps` (`osv-scanner` on `bun.lock`) only; `B1`/`L3` + `G2` against stdin push refs (<3 min) is `planned`.

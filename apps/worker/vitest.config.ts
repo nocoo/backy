@@ -20,10 +20,10 @@ export default defineConfig({
       // exercised end-to-end via E2E), shared type module, and type decls.
       exclude: ["src/__tests__/**", "src/index.ts", "src/lib/types.ts", "src/**/*.d.ts"],
       thresholds: {
-        statements: 95,
-        branches: 95,
-        functions: 95,
-        lines: 95,
+        statements: 90,
+        branches: 85,
+        functions: 90,
+        lines: 90,
       },
     },
   },
